@@ -9,6 +9,12 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "warn",
+        "noUnreachable": "warn",
+        "noConstantCondition": "warn",
+        "noUnusedImports": "warn"
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "warn",
