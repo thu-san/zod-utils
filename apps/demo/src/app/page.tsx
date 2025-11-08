@@ -260,16 +260,7 @@ console.log('--- Array of Objects Schema Defaults ---');
 console.log(JSON.stringify(getSchemaDefaults(arrayOfObjectsSchema), null, 2));
 
 export default function BugReportForm() {
-  const form = useForm<
-    z.infer<typeof formSchema>,
-    unknown,
-    {
-      title?: string;
-      age: number;
-      description: string;
-      email?: string | undefined;
-    }
-  >({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',

@@ -2,7 +2,10 @@
   "name": "zod-form-utils-monorepo",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/demo",
     "build": "npm run build --workspaces --if-present",
@@ -17,6 +20,7 @@
     "format:fix": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
+    "size": "size-limit",
     "prepare": "husky",
     "publish:core": "npm publish --workspace=packages/core",
     "publish:rhf": "npm publish --workspace=packages/react-hook-form",
@@ -24,13 +28,27 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@size-limit/preset-small-lib": "^11.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
+    "size-limit": "^11.2.0",
     "typescript": "^5"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css,md}": [
       "biome check --write --no-errors-on-unmatched"
     ]
-  }
+  },
+  "size-limit": [
+    {
+      "name": "@zod-utils/core",
+      "path": "packages/core/dist/index.js",
+      "limit": "10 KB"
+    },
+    {
+      "name": "@zod-utils/react-hook-form",
+      "path": "packages/react-hook-form/dist/index.js",
+      "limit": "15 KB"
+    }
+  ]
 }
