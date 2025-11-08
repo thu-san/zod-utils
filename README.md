@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# @zod-utils
 
-## Getting Started
+A collection of TypeScript utilities for Zod schemas, with React Hook Form integration.
 
-First, run the development server:
+## Packages
+
+This monorepo contains the following packages:
+
+### [@zod-utils/core](./packages/core)
+
+Pure TypeScript utilities for Zod schema manipulation and default extraction. No React dependencies.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install @zod-utils/core zod
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Features:**
+- Extract default values from schemas (`getSchemaDefaults`)
+- Check if fields are required (`checkIfFieldIsRequired`)
+- Unwrap and manipulate schema types
+- TypeScript utility types
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### [@zod-utils/react](./packages/react)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+React Hook Form integration and utilities for Zod schemas.
 
-## Learn More
+```bash
+npm install @zod-utils/react zod react react-hook-form @hookform/resolvers
+```
 
-To learn more about Next.js, take a look at the following resources:
+**Features:**
+- Type-safe `useZodForm` hook
+- Custom error resolver with i18n support (Japanese)
+- Re-exports all `@zod-utils/core` utilities
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Quick Start
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```typescript
+import { getSchemaDefaults } from '@zod-utils/core';
+import { useZodForm } from '@zod-utils/react';
+import { z } from 'zod';
 
-## Deploy on Vercel
+// Define your schema
+const schema = z.object({
+  name: z.string().default('John Doe'),
+  age: z.number().default(25),
+  email: z.string().email(),
+});
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+// Extract defaults
+const defaults = getSchemaDefaults(schema);
+// { name: 'John Doe', age: 25 }
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+// Use in React Hook Form
+function MyForm() {
+  const form = useZodForm({
+    schema,
+    defaultValues: defaults,
+  });
+
+  // ...
+}
+```
+
+## Examples
+
+See the [demo app](./apps/demo) for complete examples.
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Build a specific package
+npm run build:lib    # @zod-utils/core
+
+# Run demo app
+npm run dev
+```
+
+## Monorepo Structure
+
+```
+zod-utils/
+├── apps/
+│   └── demo/                 # Next.js demo application
+├── packages/
+│   ├── core/                 # @zod-utils/core
+│   └── react/                # @zod-utils/react
+└── package.json              # Workspace root
+```
+
+## Future Packages
+
+Planned additions:
+- `@zod-utils/openapi` - OpenAPI/Swagger integration
+- `@zod-utils/i18n` - Internationalization utilities
+
+## License
+
+MIT

@@ -1,0 +1,42 @@
+{
+  "name": "@zod-utils/core",
+  "version": "0.1.0",
+  "description": "Pure TypeScript utilities for Zod schema manipulation and default extraction",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "zod",
+    "schema",
+    "validation",
+    "typescript",
+    "defaults",
+    "utilities"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "zod": ">=4.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.5",
+    "typescript": "^5",
+    "zod": "^4.1.12"
+  }
+}

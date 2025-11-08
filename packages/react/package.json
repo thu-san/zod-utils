@@ -1,0 +1,51 @@
+{
+  "name": "@zod-utils/react",
+  "version": "0.1.0",
+  "description": "React Hook Form integration and utilities for Zod schemas",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "zod",
+    "react-hook-form",
+    "form",
+    "validation",
+    "react",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-hook-form": ">=7.0.0",
+    "zod": ">=4.0.0"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@zod-utils/core": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react": "^19.2.0",
+    "react-hook-form": "^7.66.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5",
+    "zod": "^4.1.12"
+  }
+}
