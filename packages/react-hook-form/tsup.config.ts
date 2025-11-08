@@ -8,5 +8,11 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   treeshake: true,
-  external: ['react', 'react-hook-form', 'zod', '@hookform/resolvers', '@zod-utils/core'],
+  external: [
+    'react',
+    'react-hook-form',
+    'zod',
+    '@hookform/resolvers',
+    '@zod-utils/core',
+  ],
 });

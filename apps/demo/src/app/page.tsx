@@ -35,9 +35,9 @@ import { FormSchemaProvider } from '@/lib/form-schema-context';
 // ==============================
 // ==============================
 
-const name = z.string().nonempty().default('');
+const _name = z.string().nonempty().default('');
 
-const arr = z.array(z.string()).nonempty();
+const _arr = z.array(z.string()).nonempty();
 
 const getPrimitiveType = <T extends z.ZodTypeAny>(
   field: T,
@@ -77,7 +77,7 @@ function removeDefault(field: z.ZodType): z.ZodType {
   return field;
 }
 
-const checkIfFieldIsRequired = <T extends z.ZodTypeAny>(field: T) => {
+const _checkIfFieldIsRequired = <T extends z.ZodTypeAny>(field: T) => {
   const undefinedResult = removeDefault(field).safeParse(undefined).success;
   const nullResult = field.safeParse(null).success;
 
@@ -120,7 +120,7 @@ function getUnwrappedType(field: z.ZodTypeAny): z.ZodTypeAny {
   return field;
 }
 
-function getSchemaDefaults<T extends z.ZodObject<any>>(
+function _getSchemaDefaults<T extends z.ZodObject<any>>(
   schema: T,
 ): Partial<z.infer<T>> {
   const defaults: Record<string, any> = {};
@@ -138,7 +138,7 @@ function getSchemaDefaults<T extends z.ZodObject<any>>(
     // If no explicit default, check if it's a nested object with defaults
     const unwrapped = getUnwrappedType(field);
     if (unwrapped instanceof z.ZodObject) {
-      const nestedDefaults = getSchemaDefaults(unwrapped);
+      const nestedDefaults = _getSchemaDefaults(unwrapped);
       if (Object.keys(nestedDefaults).length > 0) {
         defaults[key] = nestedDefaults;
       }

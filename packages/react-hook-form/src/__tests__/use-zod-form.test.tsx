@@ -136,9 +136,7 @@ describe('useZodForm', () => {
       useZodForm({
         schema,
         defaultValues: { name: '' },
-        zodResolverOptions: {
-          raw: false,
-        },
+        zodResolverOptions: {},
       }),
     );
 

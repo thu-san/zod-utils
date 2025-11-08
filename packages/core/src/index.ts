@@ -1,20 +1,20 @@
 // Zod schema utilities
-export {
-  getPrimitiveType,
-  removeDefault,
-  checkIfFieldIsRequired,
-} from './schema';
 
 // Zod defaults extraction
 export {
   extractDefault,
-  getUnwrappedType,
   getSchemaDefaults,
+  getUnwrappedType,
 } from './defaults';
+export {
+  checkIfFieldIsRequired,
+  getPrimitiveType,
+  removeDefault,
+} from './schema';
 
 // Type utilities
 export type {
+  MakeOptionalAndNullable,
   PickArrayObject,
   Simplify,
-  MakeOptionalAndNullable,
 } from './types';

@@ -1,9 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  type FIELD_NAMESPACE,
-  FieldNamespaceMapping,
-  customErrorResolver,
-} from '../error-map';
+import { customErrorResolver, FieldNamespaceMapping } from '../error-map';
 
 describe('customErrorResolver', () => {
   let originalEnv: string | undefined;
@@ -281,6 +277,8 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       input: 123,
+      origin: 'record' as const,
+      issues: [],
     });
 
     expect(result).toContain('部署・店舗名');
@@ -295,6 +293,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       input: 'invalid',
+      errors: [[]],
     });
 
     expect(result).toBe('無効な入力');
@@ -308,6 +307,9 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       input: 'invalid',
+      origin: 'set' as const,
+      issues: [],
+      key: 'groupName',
     });
 
     expect(result).toContain('部署・店舗名');

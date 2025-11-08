@@ -1,5 +1,4 @@
 import type { ZodErrorMap } from 'zod';
-import { createEnglishErrorMap } from './locales/en';
 import { createJapaneseErrorMap } from './locales/ja';
 
 /**
@@ -38,6 +37,6 @@ export const customErrorResolver = ({
   };
 };
 
+export { createEnglishErrorMap } from './locales/en';
 // Re-export locale-specific error maps
 export { createJapaneseErrorMap } from './locales/ja';
-export { createEnglishErrorMap } from './locales/en';
