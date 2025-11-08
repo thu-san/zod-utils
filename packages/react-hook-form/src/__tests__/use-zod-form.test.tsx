@@ -103,8 +103,9 @@ describe('useZodForm', () => {
     );
 
     const values = result.current.getValues();
-    expect(values.user.name).toBe('John');
-    expect(values.user.email).toBe('john@example.com');
+    expect(values.user).toBeDefined();
+    expect(values.user?.name).toBe('John');
+    expect(values.user?.email).toBe('john@example.com');
   });
 
   it('should handle arrays', () => {
@@ -136,7 +137,7 @@ describe('useZodForm', () => {
         schema,
         defaultValues: { name: '' },
         zodResolverOptions: {
-          async: true,
+          raw: false,
         },
       }),
     );

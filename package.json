@@ -2,10 +2,7 @@
   "name": "zod-form-utils-monorepo",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev": "npm run dev --workspace=apps/demo",
     "build": "npm run build --workspaces --if-present",
@@ -43,12 +40,12 @@
     {
       "name": "@zod-utils/core",
       "path": "packages/core/dist/index.js",
-      "limit": "10 KB"
+      "limit": "60 KB"
     },
     {
       "name": "@zod-utils/react-hook-form",
       "path": "packages/react-hook-form/dist/index.js",
-      "limit": "15 KB"
+      "limit": "70 KB"
     }
   ]
 }

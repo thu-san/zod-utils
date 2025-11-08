@@ -23,6 +23,7 @@ describe('customErrorResolver', () => {
       code: 'custom',
       message: '',
       path: ['groupName'],
+      input: undefined,
     });
 
     expect(result).toBe('無効な入力');
@@ -52,6 +53,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       values: ['valid'],
+      input: 'invalid',
     });
 
     expect(result).toContain('無効な入力');
@@ -66,6 +68,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       values: ['a', 'b', 'c'],
+      input: 'd',
     });
 
     expect(result).toContain('無効な選択');
@@ -84,6 +87,7 @@ describe('customErrorResolver', () => {
       maximum: 10,
       inclusive: true,
       origin: 'string',
+      input: 'very long string that exceeds maximum',
     });
 
     expect(result).toContain('大きすぎる値');
@@ -102,6 +106,7 @@ describe('customErrorResolver', () => {
       minimum: 1,
       inclusive: true,
       origin: 'string',
+      input: '',
     });
 
     expect(result).toBe('必須項目です');
@@ -117,6 +122,7 @@ describe('customErrorResolver', () => {
       minimum: 3,
       inclusive: true,
       origin: 'string',
+      input: 'ab',
     });
 
     expect(result).toContain('小さすぎる値');
@@ -134,6 +140,7 @@ describe('customErrorResolver', () => {
       minimum: 2,
       inclusive: true,
       origin: 'array',
+      input: [1],
     });
 
     expect(result).toContain('2');
@@ -149,6 +156,7 @@ describe('customErrorResolver', () => {
       path: ['groupName'],
       format: 'starts_with',
       prefix: 'test',
+      input: 'something',
     });
 
     expect(result).toContain('無効な文字列');
@@ -165,6 +173,7 @@ describe('customErrorResolver', () => {
       path: ['groupName'],
       format: 'ends_with',
       suffix: '.com',
+      input: 'example.org',
     });
 
     expect(result).toContain('無効な文字列');
@@ -181,6 +190,7 @@ describe('customErrorResolver', () => {
       path: ['groupName'],
       format: 'includes',
       includes: '@',
+      input: 'example.com',
     });
 
     expect(result).toContain('無効な文字列');
@@ -196,6 +206,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       format: 'email',
+      input: 'not-an-email',
     });
 
     expect(result).toContain('無効なメールアドレス');
@@ -209,6 +220,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       format: 'url',
+      input: 'not-a-url',
     });
 
     expect(result).toContain('無効なURL');
@@ -222,6 +234,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       divisor: 5,
+      input: 13,
     });
 
     expect(result).toContain('無効な数値');
@@ -237,6 +250,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       keys: ['extra'],
+      input: { groupName: 'test', extra: 'value' },
     });
 
     expect(result).toContain('認識されていないキー');
@@ -251,6 +265,7 @@ describe('customErrorResolver', () => {
       message: '',
       path: ['groupName'],
       keys: ['extra1', 'extra2'],
+      input: { groupName: 'test', extra1: 'a', extra2: 'b' },
     });
 
     expect(result).toContain('認識されていないキー群');
@@ -265,6 +280,7 @@ describe('customErrorResolver', () => {
       code: 'invalid_key',
       message: '',
       path: ['groupName'],
+      input: 123,
     });
 
     expect(result).toContain('部署・店舗名');
@@ -278,6 +294,7 @@ describe('customErrorResolver', () => {
       code: 'invalid_union',
       message: '',
       path: ['groupName'],
+      input: 'invalid',
     });
 
     expect(result).toBe('無効な入力');
@@ -290,6 +307,7 @@ describe('customErrorResolver', () => {
       code: 'invalid_element',
       message: '',
       path: ['groupName'],
+      input: 'invalid',
     });
 
     expect(result).toContain('部署・店舗名');
@@ -306,6 +324,7 @@ describe('customErrorResolver', () => {
       minimum: 1,
       inclusive: true,
       origin: 'string',
+      input: '',
     });
 
     expect(result).toBe('必須項目です');
@@ -318,6 +337,7 @@ describe('customErrorResolver', () => {
       code: 'custom',
       message: '',
       path: [],
+      input: undefined,
     });
 
     expect(result).toBe('無効な入力');

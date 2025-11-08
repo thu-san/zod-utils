@@ -181,84 +181,6 @@ const formSchema = z.object({
   email: z.string().email('Please enter a valid email address.').optional(),
 });
 
-console.log(formSchema.safeParse({}));
-
-console.log('--- Schema Defaults (empty for formSchema) ---');
-console.log(getSchemaDefaults(formSchema));
-
-// Test with a schema that has defaults
-const schemaWithDefaults = z.object({
-  name: z.string().default('John Doe'),
-  age: z.number().default(25),
-  active: z.boolean().default(true),
-  role: z.string().optional().default('user'),
-  email: z.string().email(), // no default
-});
-
-console.log('--- Schema With Defaults ---');
-console.log(getSchemaDefaults(schemaWithDefaults));
-
-// Test with nested objects
-const nestedSchema = z.object({
-  title: z.string(),
-  user: z.object({
-    name: z.string().default('Anonymous'),
-    age: z.number().default(0),
-    email: z.string().email(), // no default
-  }),
-  settings: z
-    .object({
-      theme: z.string().default('light'),
-      notifications: z.boolean().default(true),
-    })
-    .optional(),
-  tags: z.array(z.string()).default(['abcd']),
-  metadata: z
-    .object({
-      created: z.string().default('2025-01-01'),
-      nested: z.object({
-        deep: z.string().default('deep value'),
-      }),
-    })
-    .optional()
-    .default({
-      created: '2025-01-01',
-      nested: { deep: 'deep value' },
-    }),
-});
-
-console.log('--- Nested Schema Defaults ---');
-console.log(JSON.stringify(getSchemaDefaults(nestedSchema), null, 2));
-
-// Test with array of objects
-const arrayOfObjectsSchema = z.object({
-  name: z.string(),
-  items: z
-    .array(
-      z.object({
-        id: z.string(),
-        label: z.string().default('Untitled'),
-        enabled: z.boolean().default(true),
-      }),
-    )
-    .default([]),
-  users: z
-    .array(
-      z.object({
-        username: z.string().default('guest'),
-        role: z.string().default('viewer'),
-      }),
-    )
-    .default([
-      { username: 'admin', role: 'admin' },
-      { username: 'user1', role: 'viewer' },
-    ]),
-  tags: z.array(z.string()).default(['default-tag']),
-});
-
-console.log('--- Array of Objects Schema Defaults ---');
-console.log(JSON.stringify(getSchemaDefaults(arrayOfObjectsSchema), null, 2));
-
 export default function BugReportForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -271,7 +193,7 @@ export default function BugReportForm() {
   });
 
   const clearField = () => {
-    console.log('testing');
+    // Clear field logic would go here
   };
 
   function onSubmit(data: z.infer<typeof formSchema>) {
