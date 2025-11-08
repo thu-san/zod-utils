@@ -39,13 +39,23 @@
   "size-limit": [
     {
       "name": "@zod-utils/core",
-      "path": "packages/core/dist/index.js",
-      "limit": "60 KB"
+      "path": "packages/core/dist/index.mjs",
+      "limit": "10 KB",
+      "ignore": [
+        "zod"
+      ]
     },
     {
       "name": "@zod-utils/react-hook-form",
-      "path": "packages/react-hook-form/dist/index.js",
-      "limit": "70 KB"
+      "path": "packages/react-hook-form/dist/index.mjs",
+      "limit": "10 KB",
+      "ignore": [
+        "zod",
+        "react",
+        "react-hook-form",
+        "@hookform/resolvers",
+        "@zod-utils/core"
+      ]
     }
   ]
 }
