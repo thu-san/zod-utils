@@ -12,14 +12,15 @@
       "require": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "zod",
@@ -31,12 +32,26 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thu-san/zod-utils.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/thu-san/zod-utils/issues"
+  },
+  "homepage": "https://github.com/thu-san/zod-utils/tree/main/packages/core#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "zod": ">=4.0.0"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.0",
     "tsup": "^8.3.5",
     "typescript": "^5",
+    "vitest": "^2.1.0",
     "zod": "^4.1.12"
   }
 }

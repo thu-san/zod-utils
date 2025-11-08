@@ -6,6 +6,8 @@ export {
   customErrorResolver,
   FieldNamespaceMapping,
   type FIELD_NAMESPACE,
+  createEnglishErrorMap,
+  createJapaneseErrorMap,
 } from './error-map';
 
 // Re-export core utilities for convenience

@@ -2,20 +2,35 @@
   "name": "zod-form-utils-monorepo",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "dev": "npm run dev --workspace=apps/demo",
     "build": "npm run build --workspaces --if-present",
     "build:core": "npm run build --workspace=packages/core",
-    "build:react": "npm run build --workspace=packages/react",
+    "build:rhf": "npm run build --workspace=packages/react-hook-form",
     "build:demo": "npm run build --workspace=apps/demo",
-    "lint": "npm run lint --workspaces --if-present",
-    "format": "npm run format --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format .",
+    "format:fix": "biome format --write .",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "prepare": "husky",
+    "publish:core": "npm publish --workspace=packages/core",
+    "publish:rhf": "npm publish --workspace=packages/react-hook-form",
+    "publish:all": "npm run build && npm publish --workspaces"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
   }
 }

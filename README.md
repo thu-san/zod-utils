@@ -1,5 +1,10 @@
 # @zod-utils
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![CI](https://github.com/thu-san/zod-utils/workflows/CI/badge.svg)](https://github.com/thu-san/zod-utils/actions)
+[![Monorepo](https://img.shields.io/badge/monorepo-npm%20workspaces-blue)](https://docs.npmjs.com/cli/v7/using-npm/workspaces)
+
 A collection of TypeScript utilities for Zod schemas, with React Hook Form integration.
 
 ## Packages
@@ -20,12 +25,12 @@ npm install @zod-utils/core zod
 - Unwrap and manipulate schema types
 - TypeScript utility types
 
-### [@zod-utils/react](./packages/react)
+### [@zod-utils/react-hook-form](./packages/react-hook-form)
 
 React Hook Form integration and utilities for Zod schemas.
 
 ```bash
-npm install @zod-utils/react zod react react-hook-form @hookform/resolvers
+npm install @zod-utils/react-hook-form zod react react-hook-form @hookform/resolvers
 ```
 
 **Features:**
@@ -37,7 +42,7 @@ npm install @zod-utils/react zod react react-hook-form @hookform/resolvers
 
 ```typescript
 import { getSchemaDefaults } from '@zod-utils/core';
-import { useZodForm } from '@zod-utils/react';
+import { useZodForm } from '@zod-utils/react-hook-form';
 import { z } from 'zod';
 
 // Define your schema
@@ -76,7 +81,8 @@ npm install
 npm run build
 
 # Build a specific package
-npm run build:lib    # @zod-utils/core
+npm run build:core   # @zod-utils/core
+npm run build:rhf    # @zod-utils/react-hook-form
 
 # Run demo app
 npm run dev
@@ -87,11 +93,11 @@ npm run dev
 ```
 zod-utils/
 ├── apps/
-│   └── demo/                 # Next.js demo application
+│   └── demo/                      # Next.js demo application
 ├── packages/
-│   ├── core/                 # @zod-utils/core
-│   └── react/                # @zod-utils/react
-└── package.json              # Workspace root
+│   ├── core/                      # @zod-utils/core
+│   └── react-hook-form/           # @zod-utils/react-hook-form
+└── package.json                   # Workspace root
 ```
 
 ## Future Packages

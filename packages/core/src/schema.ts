@@ -20,7 +20,7 @@ export const getPrimitiveType = <T extends z.ZodTypeAny>(
   }
 
   if ('unwrap' in field && typeof field.unwrap === 'function') {
-    return getPrimitiveType(field.unwrap());
+    return getPrimitiveType(field.unwrap(), options);
   }
 
   return field;
@@ -56,7 +56,8 @@ export function removeDefault(field: z.ZodType): z.ZodType {
  * @returns True if the field is required
  */
 export const checkIfFieldIsRequired = <T extends z.ZodTypeAny>(field: T) => {
-  const undefinedResult = removeDefault(field).safeParse(undefined).success;
+  // Check with defaults intact - if a field has a default, it's not required
+  const undefinedResult = field.safeParse(undefined).success;
   const nullResult = field.safeParse(null).success;
 
   const primitiveType = getPrimitiveType(field);

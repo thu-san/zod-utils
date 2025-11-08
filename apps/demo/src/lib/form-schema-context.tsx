@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { createContext, useContext } from "react";
-import { z } from "zod";
+import { createContext, useContext } from 'react';
+import type { z } from 'zod';
 
 // Context to provide Zod schema to child components
 const FormSchemaContext = createContext<z.ZodObject<any> | null>(null);
@@ -77,7 +77,7 @@ export function useIsFieldRequired(fieldName: string): boolean {
  */
 export function isFieldRequired(
   schema: z.ZodObject<any>,
-  fieldName: string
+  fieldName: string,
 ): boolean {
   const field = schema.shape[fieldName];
 

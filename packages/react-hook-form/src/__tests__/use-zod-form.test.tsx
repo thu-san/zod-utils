@@ -1,0 +1,179 @@
+import { renderHook } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import * as z from 'zod';
+import { useZodForm } from '../use-zod-form';
+
+describe('useZodForm', () => {
+  it('should initialize form with schema', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: { name: '', age: 0 },
+      }),
+    );
+
+    expect(result.current).toBeDefined();
+    expect(result.current.formState).toBeDefined();
+    expect(result.current.register).toBeDefined();
+    expect(result.current.handleSubmit).toBeDefined();
+  });
+
+  it('should initialize with schema and resolver', () => {
+    const schema = z.object({
+      email: z.string().email(),
+      age: z.number().min(18),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: { email: '', age: 0 },
+      }),
+    );
+
+    expect(result.current).toBeDefined();
+    expect(result.current.formState).toBeDefined();
+    // Verify the resolver is set up by checking formState has the right shape
+    expect(result.current.formState.isSubmitting).toBe(false);
+  });
+
+  it('should provide setValue and getValues', () => {
+    const schema = z.object({
+      name: z.string().min(1),
+      age: z.number().min(18),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: { name: 'John', age: 25 },
+      }),
+    );
+
+    expect(result.current.setValue).toBeDefined();
+    expect(result.current.getValues).toBeDefined();
+
+    // Verify default values
+    const values = result.current.getValues();
+    expect(values.name).toBe('John');
+    expect(values.age).toBe(25);
+  });
+
+  it('should handle optional fields', async () => {
+    const schema = z.object({
+      name: z.string(),
+      nickname: z.string().optional(),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: { name: 'John' },
+      }),
+    );
+
+    await result.current.trigger();
+
+    expect(result.current.formState.errors.nickname).toBeUndefined();
+  });
+
+  it('should handle nested objects', () => {
+    const schema = z.object({
+      user: z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+      }),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: {
+          user: {
+            name: 'John',
+            email: 'john@example.com',
+          },
+        },
+      }),
+    );
+
+    const values = result.current.getValues();
+    expect(values.user.name).toBe('John');
+    expect(values.user.email).toBe('john@example.com');
+  });
+
+  it('should handle arrays', () => {
+    const schema = z.object({
+      tags: z.array(z.string().min(1)),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: {
+          tags: ['react', 'typescript'],
+        },
+      }),
+    );
+
+    const values = result.current.getValues();
+    expect(values.tags).toEqual(['react', 'typescript']);
+    expect(Array.isArray(values.tags)).toBe(true);
+  });
+
+  it('should accept zodResolverOptions', () => {
+    const schema = z.object({
+      name: z.string(),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: { name: '' },
+        zodResolverOptions: {
+          async: true,
+        },
+      }),
+    );
+
+    expect(result.current).toBeDefined();
+  });
+
+  it('should handle default values from schema', async () => {
+    const schema = z.object({
+      name: z.string().default('John'),
+      age: z.number().default(25),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        // No defaultValues provided
+      }),
+    );
+
+    expect(result.current).toBeDefined();
+  });
+
+  it('should pass through form options', () => {
+    const schema = z.object({
+      name: z.string(),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        defaultValues: { name: '' },
+        mode: 'onBlur',
+        reValidateMode: 'onChange',
+      }),
+    );
+
+    expect(result.current.formState).toBeDefined();
+  });
+});

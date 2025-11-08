@@ -6,7 +6,11 @@ export {
 } from './schema';
 
 // Zod defaults extraction
-export { extractDefault, getUnwrappedType, getSchemaDefaults } from './defaults';
+export {
+  extractDefault,
+  getUnwrappedType,
+  getSchemaDefaults,
+} from './defaults';
 
 // Type utilities
 export type {

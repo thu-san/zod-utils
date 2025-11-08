@@ -1,0 +1,79 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Which package?
+      description: Which package is affected?
+      options:
+        - "@zod-utils/core"
+        - "@zod-utils/react-hook-form"
+        - "Both"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: When I do X, Y happens instead of Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps to reproduce the behavior or a minimal reproduction repository.
+      placeholder: |
+        1. Install package
+        2. Import function X
+        3. Call with parameters Y
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Code Sample
+      description: If applicable, add a minimal code sample to reproduce the issue.
+      render: typescript
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Please provide information about your environment.
+      placeholder: |
+        - Package version: 0.1.0
+        - Node version: 20.x
+        - TypeScript version: 5.x
+        - Zod version: 4.x
+        - Browser (if applicable): Chrome 120
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.

@@ -1,5 +1,5 @@
 {
-  "name": "@zod-utils/react",
+  "name": "@zod-utils/react-hook-form",
   "version": "0.1.0",
   "description": "React Hook Form integration and utilities for Zod schemas",
   "main": "./dist/index.js",
@@ -12,14 +12,15 @@
       "require": "./dist/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "zod",
@@ -31,6 +32,18 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thu-san/zod-utils.git",
+    "directory": "packages/react-hook-form"
+  },
+  "bugs": {
+    "url": "https://github.com/thu-san/zod-utils/issues"
+  },
+  "homepage": "https://github.com/thu-san/zod-utils/tree/main/packages/react-hook-form#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-hook-form": ">=7.0.0",
@@ -41,11 +54,16 @@
     "@zod-utils/core": "*"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^19",
+    "@vitest/coverage-v8": "^2.1.0",
+    "jsdom": "^25.0.1",
     "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-hook-form": "^7.66.0",
     "tsup": "^8.3.5",
     "typescript": "^5",
+    "vitest": "^2.1.0",
     "zod": "^4.1.12"
   }
 }
