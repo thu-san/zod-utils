@@ -6,7 +6,7 @@ import {
   type UseFormProps,
   useForm,
 } from 'react-hook-form';
-import type * as z4 from 'zod/v4/core';
+import type { ZodTypeAny } from 'zod';
 
 /**
  * Type-safe wrapper around useForm with Zod v4 schema integration
@@ -30,14 +30,15 @@ export const useZodForm = <T extends FieldValues>({
   zodResolverOptions,
   ...formOptions
 }: {
-  schema: z4.$ZodType<T, MakeOptionalAndNullable<T>>;
+  schema: ZodTypeAny;
   defaultValues?: DefaultValues<MakeOptionalAndNullable<T>>;
   zodResolverOptions?: Parameters<typeof zodResolver>[1];
 } & Omit<
   UseFormProps<MakeOptionalAndNullable<T>, unknown, T>,
   'resolver' | 'defaultValues'
 >) => {
-  const resolver = zodResolver(schema, zodResolverOptions);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resolver = zodResolver(schema as any, zodResolverOptions);
 
   return useForm({
     resolver,

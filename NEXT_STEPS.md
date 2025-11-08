@@ -46,7 +46,39 @@ git push origin main
      - Add to GitHub secrets
    - `CODECOV_TOKEN` (optional): Sign up at https://codecov.io
 
-### 3. Publish Packages to npm
+### 3. Verify npm Scope Ownership (CRITICAL)
+
+**⚠️ YOU MUST DO THIS BEFORE PUBLISHING ⚠️**
+
+The packages use the `@zod-utils` npm scope. You need to verify you own this scope:
+
+```bash
+# Check who you're logged in as
+npm whoami
+
+# Check if you have access to the @zod-utils scope
+npm access list collaborators @zod-utils/core
+
+# If the scope doesn't exist, you have two options:
+
+# Option 1: Create an npm organization for the scope
+# Go to: https://www.npmjs.com/org/create
+# Create organization named "zod-utils"
+
+# Option 2: Use your personal scope instead
+# Replace @zod-utils with @your-username in ALL package.json files:
+# - packages/core/package.json
+# - packages/react-hook-form/package.json
+# - apps/demo/package.json (dependencies)
+# - Root README.md (examples)
+```
+
+**If the scope is already taken by someone else**, you MUST:
+1. Choose a different scope name (e.g., `@thu-san/zod-utils-core`)
+2. Update ALL package.json files with the new scope
+3. Update ALL documentation with the new scope
+
+### 4. Publish Packages to npm
 
 #### Option A: Manual First Release
 

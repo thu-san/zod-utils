@@ -1,12 +1,6 @@
-import type {
-  $ZodErrorMap,
-  $ZodStringFormatIssues,
-  $ZodStringFormats,
-} from 'zod/v4/core';
+import type { ZodErrorMap } from 'zod';
 
-const Nouns: {
-  [k in $ZodStringFormats | (string & {})]?: string;
-} = {
+const Nouns: Record<string, string> = {
   regex: 'input',
   email: 'email address',
   url: 'URL',
@@ -96,8 +90,8 @@ function parsedType(data: unknown): string {
  */
 export function createEnglishErrorMap(
   fieldName?: string,
-): (issue: Parameters<$ZodErrorMap>[number]) => string {
-  return (issue: Parameters<$ZodErrorMap>[number]) => {
+): (issue: Parameters<ZodErrorMap>[0]) => string {
+  return (issue: Parameters<ZodErrorMap>[0]) => {
     const field = fieldName || 'This field';
 
     switch (issue.code) {
@@ -138,7 +132,10 @@ export function createEnglishErrorMap(
           : `${field} must be greater than ${issue.minimum}`;
       }
       case 'invalid_format': {
-        const _issue = issue as $ZodStringFormatIssues;
+        const _issue = issue as Extract<
+          Parameters<ZodErrorMap>[0],
+          { code: 'invalid_format' }
+        >;
         if (_issue.format === 'starts_with')
           return `Invalid string: must start with "${_issue.prefix}"`;
         if (_issue.format === 'ends_with')

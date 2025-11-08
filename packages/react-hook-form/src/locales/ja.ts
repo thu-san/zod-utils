@@ -1,12 +1,6 @@
-import type {
-  $ZodErrorMap,
-  $ZodStringFormatIssues,
-  $ZodStringFormats,
-} from 'zod/v4/core';
+import type { ZodErrorMap } from 'zod';
 
-const Nouns: {
-  [k in $ZodStringFormats | (string & {})]?: string;
-} = {
+const Nouns: Record<string, string> = {
   regex: '入力値',
   email: 'メールアドレス',
   url: 'URL',
@@ -93,8 +87,8 @@ function parsedType(data: unknown): string {
  */
 export function createJapaneseErrorMap(
   fieldName?: string,
-): (issue: Parameters<$ZodErrorMap>[number]) => string {
-  return (issue: Parameters<$ZodErrorMap>[number]) => {
+): (issue: Parameters<ZodErrorMap>[0]) => string {
+  return (issue: Parameters<ZodErrorMap>[0]) => {
     const field = fieldName || 'この項目';
 
     switch (issue.code) {
@@ -125,7 +119,10 @@ export function createJapaneseErrorMap(
         return `小さすぎる値: ${field}は${issue.minimum.toString()}${adj}必要があります`;
       }
       case 'invalid_format': {
-        const _issue = issue as $ZodStringFormatIssues;
+        const _issue = issue as Extract<
+          Parameters<ZodErrorMap>[0],
+          { code: 'invalid_format' }
+        >;
         if (_issue.format === 'starts_with')
           return `無効な文字列: "${_issue.prefix}"で始まる必要があります`;
         if (_issue.format === 'ends_with')

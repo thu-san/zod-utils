@@ -1,4 +1,4 @@
-import type { $ZodErrorMap } from 'zod/v4/core';
+import type { ZodErrorMap } from 'zod';
 import { createEnglishErrorMap } from './locales/en';
 import { createJapaneseErrorMap } from './locales/ja';
 
@@ -26,11 +26,7 @@ export const customErrorResolver = ({
 }: {
   fieldNamespace: FIELD_NAMESPACE;
 }) => {
-  return (issue: Parameters<$ZodErrorMap>[number]) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(issue);
-    }
-
+  return (issue: Parameters<ZodErrorMap>[0]) => {
     const fieldName =
       FieldNamespaceMapping[fieldNamespace][
         String(
