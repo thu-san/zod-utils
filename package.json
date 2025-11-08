@@ -2,7 +2,10 @@
   "name": "zod-form-utils-monorepo",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/demo",
     "build": "npm run build --workspaces --if-present",
@@ -11,7 +14,8 @@
     "build:demo": "npm run build --workspace=apps/demo",
     "test": "npm run test --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
-    "lint": "biome lint .",
+    "lint:typescript": "tsc --build --force",
+    "lint": "biome check . && npm run lint:typescript",
     "lint:fix": "biome lint --write .",
     "format": "biome format .",
     "format:fix": "biome format --write .",
@@ -24,7 +28,7 @@
     "publish:all": "npm run build && npm publish --workspaces"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.0",
+    "@biomejs/biome": "^2.3.0",
     "@size-limit/preset-small-lib": "^11.2.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",

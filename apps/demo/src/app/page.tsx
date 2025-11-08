@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import type * as React from 'react';
+import { type CSSProperties, useId } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import * as z from 'zod';
@@ -182,6 +182,11 @@ const formSchema = z.object({
 });
 
 export default function BugReportForm() {
+  const formId = useId();
+  const titleId = useId();
+  const descriptionId = useId();
+  const emailId = useId();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -209,7 +214,7 @@ export default function BugReportForm() {
       },
       style: {
         '--border-radius': 'calc(var(--radius)  + 4px)',
-      } as React.CSSProperties,
+      } as CSSProperties,
     });
   }
 
@@ -223,19 +228,19 @@ export default function BugReportForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form id="form-rhf-demo" onSubmit={form.handleSubmit(onSubmit)}>
+          <form id={formId} onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               <Controller
                 name="title"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="form-rhf-demo-title" fieldName="title">
+                    <FieldLabel htmlFor={titleId} fieldName="title">
                       Bug Title
                     </FieldLabel>
                     <Input
                       {...field}
-                      id="form-rhf-demo-title"
+                      id={titleId}
                       aria-invalid={fieldState.invalid}
                       placeholder="Login button not working on mobile"
                       autoComplete="off"
@@ -251,16 +256,13 @@ export default function BugReportForm() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel
-                      htmlFor="form-rhf-demo-description"
-                      fieldName="description"
-                    >
+                    <FieldLabel htmlFor={descriptionId} fieldName="description">
                       Description
                     </FieldLabel>
                     <InputGroup>
                       <InputGroupTextarea
                         {...field}
-                        id="form-rhf-demo-description"
+                        id={descriptionId}
                         placeholder="I'm having an issue with the login button on mobile."
                         rows={6}
                         className="min-h-24 resize-none"
@@ -287,12 +289,12 @@ export default function BugReportForm() {
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor="form-rhf-demo-email" fieldName="email">
+                    <FieldLabel htmlFor={emailId} fieldName="email">
                       Contact Email
                     </FieldLabel>
                     <Input
                       {...field}
-                      id="form-rhf-demo-email"
+                      id={emailId}
                       type="email"
                       aria-invalid={fieldState.invalid}
                       placeholder="your.email@example.com"
