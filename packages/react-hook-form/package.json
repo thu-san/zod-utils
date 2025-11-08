@@ -19,7 +19,6 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "type-check": "tsc --noEmit",
     "lint:typescript": "tsc --project tsconfig.json",
     "lint": "biome check . && npm run lint:typescript",
     "lint:fix": "biome check --write .",
