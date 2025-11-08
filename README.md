@@ -7,6 +7,8 @@
 
 A collection of TypeScript utilities for Zod schemas, with React Hook Form integration.
 
+**[🚀 Live Demo](https://thu-san.github.io/zod-utils/)** | [📦 Packages](#packages) | [📖 Documentation](./GITHUB_PAGES.md)
+
 ## Packages
 
 This monorepo contains the following packages:
