@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { useIsFieldRequired } from "@/lib/form-schema-context"
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -109,8 +110,20 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
 
 function FieldLabel({
   className,
+  fieldName,
+  required,
+  children,
   ...props
-}: React.ComponentProps<typeof Label>) {
+}: React.ComponentProps<typeof Label> & {
+  fieldName?: string
+  required?: boolean
+}) {
+  // Check if field is required from schema context if fieldName is provided
+  const isRequiredFromSchema = useIsFieldRequired(fieldName ?? "")
+
+  // Determine if asterisk should be shown
+  const showAsterisk = required ?? (fieldName ? isRequiredFromSchema : false)
+
   return (
     <Label
       data-slot="field-label"
@@ -121,7 +134,14 @@ function FieldLabel({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      {showAsterisk && (
+        <span className="text-destructive" aria-hidden="true">
+          *
+        </span>
+      )}
+    </Label>
   )
 }
 
