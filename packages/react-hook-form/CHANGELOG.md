@@ -1,0 +1,12 @@
+# @zod-utils/react-hook-form
+
+## 0.2.0
+
+### Minor Changes
+
+- 632c391: MVP
+
+### Patch Changes
+
+- Updated dependencies [632c391]
+  - @zod-utils/core@0.2.0
