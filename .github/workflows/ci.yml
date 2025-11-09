@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18, 20]
+        node-version: [24]
     steps:
       - uses: actions/checkout@v4
 
@@ -45,11 +45,11 @@ jobs:
         run: npm test
 
       - name: Run test coverage
-        if: matrix.node-version == 20
+        if: matrix.node-version == 24
         run: npm run test:coverage
 
       - name: Upload coverage reports
-        if: matrix.node-version == 20
+        if: matrix.node-version == 24
         uses: codecov/codecov-action@v4
         with:
           files: ./packages/core/coverage/coverage-final.json,./packages/react-hook-form/coverage/coverage-final.json
