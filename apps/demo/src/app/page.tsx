@@ -1,6 +1,7 @@
 'use client';
 
 import { getSchemaDefaults, useZodForm } from '@zod-utils/react-hook-form';
+import { useTranslations } from 'next-intl';
 import { type CSSProperties, useId } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -121,6 +122,7 @@ const formSchema = z.object({
 
 export default function UserProfileForm() {
   const formId = useId();
+  const t = useTranslations('user');
 
   const form = useZodForm({
     schema: formSchema,
@@ -170,9 +172,9 @@ export default function UserProfileForm() {
                         name="stringRequired"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Required</FormLabel>
+                            <FormLabel>{t('form.stringRequired')}</FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value ?? ''} />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -183,9 +185,9 @@ export default function UserProfileForm() {
                         name="stringNullish"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nullish (Optional)</FormLabel>
+                            <FormLabel>{t('form.stringNullish')}</FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value ?? ''} />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -196,9 +198,11 @@ export default function UserProfileForm() {
                         name="stringRequiredWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Required with Default</FormLabel>
+                            <FormLabel>
+                              {t('form.stringRequiredWithDefault')}
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value ?? ''} />
+                              <Input {...field} />
                             </FormControl>
                             <FormDescription>
                               Default: "Default String"
@@ -212,9 +216,11 @@ export default function UserProfileForm() {
                         name="stringNullishWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nullish with Default</FormLabel>
+                            <FormLabel>
+                              {t('form.stringNullishWithDefault')}
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value ?? ''} />
+                              <Input {...field} />
                             </FormControl>
                             <FormDescription>
                               Default: "Optional Default"
@@ -239,12 +245,11 @@ export default function UserProfileForm() {
                         name="numberRequired"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Required</FormLabel>
+                            <FormLabel>{t('form.numberRequired')}</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="number"
-                                value={field.value ?? ''}
                                 onChange={(e) =>
                                   field.onChange(e.target.valueAsNumber)
                                 }
@@ -259,12 +264,11 @@ export default function UserProfileForm() {
                         name="numberNullish"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nullish (Optional)</FormLabel>
+                            <FormLabel>{t('form.numberNullish')}</FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="number"
-                                value={field.value ?? ''}
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   field.onChange(
@@ -282,12 +286,13 @@ export default function UserProfileForm() {
                         name="numberRequiredWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Required with Default</FormLabel>
+                            <FormLabel>
+                              {t('form.numberRequiredWithDefault')}
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="number"
-                                value={field.value ?? ''}
                                 onChange={(e) =>
                                   field.onChange(e.target.valueAsNumber)
                                 }
@@ -303,12 +308,13 @@ export default function UserProfileForm() {
                         name="numberNullishWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nullish with Default</FormLabel>
+                            <FormLabel>
+                              {t('form.numberNullishWithDefault')}
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
                                 type="number"
-                                value={field.value ?? ''}
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   field.onChange(
@@ -347,7 +353,9 @@ export default function UserProfileForm() {
                                   value={undefined}
                                 />
                               </FormControl>
-                              <FormLabel className="!mt-0">Required</FormLabel>
+                              <FormLabel className="mt-0!">
+                                {t('form.booleanRequired')}
+                              </FormLabel>
                             </div>
                             <FormMessage />
                           </FormItem>
@@ -367,8 +375,8 @@ export default function UserProfileForm() {
                                   value={undefined}
                                 />
                               </FormControl>
-                              <FormLabel className="!mt-0">
-                                Nullish (Optional)
+                              <FormLabel className="mt-0!">
+                                {t('form.booleanNullish')}
                               </FormLabel>
                             </div>
                             <FormMessage />
@@ -389,8 +397,8 @@ export default function UserProfileForm() {
                                   value={undefined}
                                 />
                               </FormControl>
-                              <FormLabel className="!mt-0">
-                                Required with Default
+                              <FormLabel className="mt-0!">
+                                {t('form.booleanRequiredWithDefault')}
                               </FormLabel>
                             </div>
                             <FormDescription>Default: true</FormDescription>
@@ -412,8 +420,8 @@ export default function UserProfileForm() {
                                   value={undefined}
                                 />
                               </FormControl>
-                              <FormLabel className="!mt-0">
-                                Nullish with Default
+                              <FormLabel className="mt-0!">
+                                {t('form.booleanNullishWithDefault')}
                               </FormLabel>
                             </div>
                             <FormDescription>Default: false</FormDescription>
@@ -437,7 +445,9 @@ export default function UserProfileForm() {
                         name="arrayOfStringRequired"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Required</FormLabel>
+                            <FormLabel>
+                              {t('form.arrayOfStringRequired')}
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 value={
@@ -455,7 +465,9 @@ export default function UserProfileForm() {
                                   )
                                 }
                                 onBlur={field.onBlur}
-                                placeholder="Comma-separated"
+                                placeholder={t(
+                                  'placeholders.arrayOfStringRequired',
+                                )}
                               />
                             </FormControl>
                             <FormMessage />
@@ -467,7 +479,9 @@ export default function UserProfileForm() {
                         name="arrayOfStringNullish"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nullish (Optional)</FormLabel>
+                            <FormLabel>
+                              {t('form.arrayOfStringNullish')}
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 value={
@@ -488,7 +502,9 @@ export default function UserProfileForm() {
                                   );
                                 }}
                                 onBlur={field.onBlur}
-                                placeholder="Comma-separated"
+                                placeholder={t(
+                                  'placeholders.arrayOfStringNullish',
+                                )}
                               />
                             </FormControl>
                             <FormMessage />
@@ -500,7 +516,9 @@ export default function UserProfileForm() {
                         name="arrayOfStringRequiredWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Required with Default</FormLabel>
+                            <FormLabel>
+                              {t('form.arrayOfStringRequiredWithDefault')}
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 value={
@@ -518,7 +536,9 @@ export default function UserProfileForm() {
                                   )
                                 }
                                 onBlur={field.onBlur}
-                                placeholder="Comma-separated"
+                                placeholder={t(
+                                  'placeholders.arrayOfStringRequiredWithDefault',
+                                )}
                               />
                             </FormControl>
                             <FormDescription>
@@ -533,7 +553,9 @@ export default function UserProfileForm() {
                         name="arrayOfStringNullishWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nullish with Default</FormLabel>
+                            <FormLabel>
+                              {t('form.arrayOfStringNullishWithDefault')}
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 value={
@@ -554,7 +576,9 @@ export default function UserProfileForm() {
                                   );
                                 }}
                                 onBlur={field.onBlur}
-                                placeholder="Comma-separated"
+                                placeholder={t(
+                                  'placeholders.arrayOfStringNullishWithDefault',
+                                )}
                               />
                             </FormControl>
                             <FormDescription>
