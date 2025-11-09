@@ -1,5 +1,11 @@
 # @zod-utils/react-hook-form
 
+## 0.3.0
+
+### Minor Changes
+
+- ac2315d: update inputType and make it Generic
+
 ## 0.2.0
 
 ### Minor Changes
