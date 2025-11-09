@@ -4,5 +4,5 @@
 export * from '@zod-utils/core';
 
 // Local type utilities
-export type { MakeOptionalAndNullable } from './types';
+export type { PartialWithNullableObjects, PartialWithAllNullables } from './types';
 export { useZodForm } from './use-zod-form';

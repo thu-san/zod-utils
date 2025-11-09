@@ -1,72 +1,43 @@
 /**
- * Transforms all properties in a type to be optional and nullable.
- *
- * This type utility is the secret sauce behind `useZodForm`'s type transformation.
- * It makes form inputs accept `null | undefined` during editing, while validated
- * output remains exactly as the schema defines.
- *
- * **Why this matters:**
- * - React Hook Form fields often contain `null` or `undefined` during user input
- * - Zod schemas define strict output types without these nullable/optional wrappers
- * - This type bridges the gap, eliminating "Type 'null' is not assignable to..." errors
- *
- * @template T - The object type to transform
- *
- * @example
- * Basic transformation
- * ```typescript
- * type User = {
- *   name: string;
- *   age: number;
- * };
- *
- * type FormUser = MakeOptionalAndNullable<User>;
- * // Result: {
- * //   name?: string | null;
- * //   age?: number | null;
- * // }
- * ```
- *
- * @example
- * Usage with useZodForm
- * ```typescript
- * const schema = z.object({
- *   title: z.string(),
- *   count: z.number(),
- * });
- *
- * const form = useZodForm({ schema });
- *
- * // ✅ These work without type errors:
- * form.setValue('title', null); // Accepts null during editing
- * form.setValue('title', undefined); // Accepts undefined
- * form.reset({ title: null, count: null }); // Reset with null values
- *
- * // But validated output is still:
- * // { title: string, count: number }
- * ```
- *
- * @example
- * Comparison with original type
- * ```typescript
- * type Schema = {
- *   email: string;
- *   isActive: boolean;
- * };
- *
- * // Original: { email: string; isActive: boolean }
- * // Transformed: { email?: string | null; isActive?: boolean | null }
- *
- * const original: Schema = { email: '', isActive: true }; // OK
- * const original2: Schema = { email: null }; // ❌ Error
- *
- * const transformed: MakeOptionalAndNullable<Schema> = {}; // OK
- * const transformed2: MakeOptionalAndNullable<Schema> = { email: null }; // OK
- * ```
- *
- * @see {@link useZodForm} for how this type is used in practice
- * @since 0.1.0
+ * Helper type that adds `null` to object-type fields only (excludes arrays).
+ * @internal
  */
-export type MakeOptionalAndNullable<T> = {
+type AddNullToObjects<T> = {
+  [K in keyof T]: T[K] extends readonly unknown[]
+    ? T[K]  // Arrays: no null
+    : T[K] extends object
+    ? T[K] | null  // Objects: add null
+    : T[K];  // Primitives: no null
+};
+
+/**
+ * Transforms Zod schema types for form inputs.
+ *
+ * - **Primitives** (string, number, boolean): optional → `type | undefined`
+ * - **Arrays**: optional → `type[] | undefined`
+ * - **Objects**: optional and nullable → `type | null | undefined`
+ *
+ * @example
+ * ```typescript
+ * type User = { name: string; tags: string[]; profile: { bio: string } };
+ * type FormInput = PartialWithNullableObjects<User>;
+ * // { name?: string; tags?: string[]; profile?: { bio: string } | null; }
+ * ```
+ */
+export type PartialWithNullableObjects<T> = Partial<AddNullToObjects<T>>;
+
+/**
+ * Makes all fields optional and nullable.
+ *
+ * - **All fields**: optional and nullable → `type | null | undefined`
+ *
+ * @example
+ * ```typescript
+ * type User = { name: string; age: number; tags: string[] };
+ * type FormInput = PartialWithAllNullables<User>;
+ * // { name?: string | null; age?: number | null; tags?: string[] | null; }
+ * ```
+ */
+export type PartialWithAllNullables<T> = {
   [K in keyof T]?: T[K] | null;
 };

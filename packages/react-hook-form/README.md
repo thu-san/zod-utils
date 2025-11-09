@@ -12,7 +12,7 @@ React Hook Form integration and utilities for Zod schemas.
 
 ## 💡 Why Use This?
 
-**The whole point:** Automatically transforms your Zod schema types so form inputs and default values accept `null | undefined` during editing, while the validated output remains exactly as your Zod schema defines.
+**The whole point:** Automatically transforms your Zod schema types so form inputs accept `undefined` (and `null` for objects only) during editing, while the validated output remains exactly as your Zod schema defines.
 
 No more type wrestling with React Hook Form - just pass your schema and it works.
 
@@ -20,27 +20,33 @@ No more type wrestling with React Hook Form - just pass your schema and it works
 import { useZodForm } from "@zod-utils/react-hook-form";
 import { z } from "zod";
 
-// Your schema requires string - NOT optional
+// Your schema with primitives, arrays, and objects - NOT optional
 const schema = z.object({
   username: z.string().min(3),
-  email: z.string().email(),
+  age: z.number().min(18),
+  tags: z.array(z.string()),
+  profile: z.object({ bio: z.string() }),
 });
 
 const form = useZodForm({ schema });
 
-// ✅ Works! defaultValues accepts null/undefined during editing
-form.reset({ username: null, email: undefined });
+// ✅ Works! Primitives and arrays accept undefined during editing
+form.setValue("username", undefined);
+form.setValue("age", undefined);
+form.setValue("tags", undefined);
 
-// ✅ Works! setValue accepts null/undefined during editing
-form.setValue("username", null);
-form.setValue("email", undefined);
+// ✅ Works! Objects accept both null and undefined
+form.setValue("profile", null);
+form.setValue("profile", undefined);
 
 // ✅ Validated output type is exactly z.infer<typeof schema>
 const onSubmit = form.handleSubmit((data) => {
-  // Type: { username: string; email: string }
-  // NOT { username: string | null | undefined; email: string | null | undefined }
+  // Type: { username: string; age: number; tags: string[]; profile: { bio: string } }
+  // NOT { username: string | null | undefined; ... }
   console.log(data.username); // Type: string
-  console.log(data.email); // Type: string
+  console.log(data.age); // Type: number
+  console.log(data.tags); // Type: string[]
+  console.log(data.profile); // Type: { bio: string }
 });
 ```
 
@@ -122,10 +128,54 @@ const form = useZodForm({
 
 **What it does:**
 
-- **Input transformation**: Form field values can be `null` or `undefined` during editing
+- **Input transformation** (by default):
+  - **Primitive fields** (string, number, boolean) accept `undefined` only
+  - **Array fields** accept `undefined` only
+  - **Object fields** accept both `null` and `undefined`
+  - You can override this by specifying a custom input type (see examples below)
 - **Output validation**: Validated data matches your Zod schema exactly
 - **Type inference**: No manual type annotations needed - everything is inferred from the schema
 - **Zod integration**: Automatically sets up `zodResolver` for validation
+
+#### Custom Input Types
+
+You can override the default input type transformation if needed:
+
+```typescript
+import {
+  useZodForm,
+  PartialWithAllNullables,
+} from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  username: z.string().min(3),
+  email: z.string().email(),
+  age: z.number(),
+});
+
+// Option 1: Use PartialWithAllNullables to make ALL fields accept null
+const form = useZodForm<
+  z.infer<typeof schema>,
+  PartialWithAllNullables<z.infer<typeof schema>>
+>({
+  schema,
+  defaultValues: { username: null, email: null, age: null },
+});
+
+// Option 2: Specify exact input types per field
+const form2 = useZodForm<
+  z.infer<typeof schema>,
+  {
+    username?: string | null; // Can be set to null
+    email?: string; // Can only be undefined
+    age?: number | null; // Can be set to null
+  }
+>({
+  schema,
+  defaultValues: { username: null, email: undefined, age: null },
+});
+```
 
 ---
 
@@ -144,7 +194,8 @@ import {
   type Simplify,
 
   // Type utilities (react-hook-form specific)
-  type MakeOptionalAndNullable,
+  type PartialWithNullableObjects,
+  type PartialWithAllNullables,
 } from "@zod-utils/react-hook-form";
 ```
 
@@ -152,23 +203,63 @@ See [@zod-utils/core documentation](../core/README.md) for details on schema uti
 
 ### Type Utilities
 
-#### `MakeOptionalAndNullable<T>`
+#### `PartialWithNullableObjects<T>`
 
-Make all properties optional and nullable. Useful for React Hook Form input types where fields can be empty during editing.
+Transforms properties based on their type. Primitive and array fields become optional-only (not nullable), while object fields become optional and nullable.
+
+**Transformation rules:**
+
+- **Primitives** (string, number, boolean): optional → `type | undefined`
+- **Arrays**: optional → `type[] | undefined`
+- **Objects**: optional and nullable → `type | null | undefined`
 
 ```typescript
-import type { MakeOptionalAndNullable } from "@zod-utils/react-hook-form";
+import type { PartialWithNullableObjects } from "@zod-utils/react-hook-form";
 
 type User = {
   name: string;
   age: number;
+  tags: string[];
+  profile: { bio: string };
 };
 
-type FormInput = MakeOptionalAndNullable<User>;
-// { name?: string | null; age?: number | null; }
+type FormInput = PartialWithNullableObjects<User>;
+// {
+//   name?: string;                  // Primitive: optional, not nullable
+//   age?: number;                   // Primitive: optional, not nullable
+//   tags?: string[];                // Array: optional, not nullable
+//   profile?: { bio: string } | null; // Object: optional AND nullable
+// }
 ```
 
-This type is used internally by `useZodForm` to allow form fields to be null/undefined during editing while maintaining proper validation types.
+This type is used internally by `useZodForm` to allow form fields to accept undefined (and null for objects only) during editing while maintaining proper validation types.
+
+#### `PartialWithAllNullables<T>`
+
+Makes all fields optional and nullable, regardless of type.
+
+**Transformation rules:**
+
+- **All fields**: optional and nullable → `type | null | undefined`
+
+```typescript
+import type { PartialWithAllNullables } from "@zod-utils/react-hook-form";
+
+type User = {
+  name: string;
+  age: number;
+  tags: string[];
+};
+
+type FormInput = PartialWithAllNullables<User>;
+// {
+//   name?: string | null;       // All fields: optional AND nullable
+//   age?: number | null;        // All fields: optional AND nullable
+//   tags?: string[] | null;     // All fields: optional AND nullable
+// }
+```
+
+Use this when all fields need to accept `null`, not just objects/arrays.
 
 ---
 
