@@ -79,7 +79,11 @@ describe('useZodForm', () => {
 
     await result.current.trigger();
 
-    expect(result.current.formState.errors.nickname).toBeUndefined();
+    // Use type assertion since TypeScript can't infer optional fields from schema
+    expect(
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- Dynamic property access */
+      (result.current.formState.errors as Record<string, unknown>).nickname,
+    ).toBeUndefined();
   });
 
   it('should handle nested objects', () => {

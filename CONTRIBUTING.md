@@ -16,17 +16,20 @@ Please read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 ### Setup
 
 1. Fork and clone the repository:
+
    ```bash
    git clone https://github.com/thu-san/zod-utils.git
    cd zod-utils
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Run tests to ensure everything is working:
+
    ```bash
    npm test
    ```
@@ -35,7 +38,7 @@ Please read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 This is a monorepo using npm workspaces:
 
-```
+```sh
 zod-utils/
 ├── packages/
 │   ├── core/              # Core utilities for Zod schemas
@@ -49,6 +52,7 @@ zod-utils/
 ### Making Changes
 
 1. Create a new branch:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -56,11 +60,13 @@ zod-utils/
 2. Make your changes following our coding standards
 
 3. Add tests for your changes:
+
    ```bash
    npm test
    ```
 
 4. Ensure code quality:
+
    ```bash
    npm run check:fix    # Format and lint with Biome
    npm run build        # Build all packages
@@ -69,16 +75,19 @@ zod-utils/
 ### Coding Standards
 
 - **Code Style**: We use [Biome](https://biomejs.dev/) for formatting and linting
+
   - Run `npm run check:fix` to auto-fix issues
   - Use single quotes, 2-space indentation, semicolons
   - Trailing commas on multi-line structures
 
 - **TypeScript**: All code must be properly typed
+
   - Avoid using `any` when possible
   - Add JSDoc comments for public APIs
   - Run `npm run type-check` in each package
 
 - **Testing**: All new features must include tests
+
   - Write unit tests using Vitest
   - Aim for high coverage on public APIs
   - Test both success and error cases
@@ -137,7 +146,7 @@ npm run test       # Test
 
 ### JSDoc Format
 
-```typescript
+````typescript
 /**
  * Brief description of what the function does
  * @param paramName - Description of parameter
@@ -150,16 +159,18 @@ npm run test       # Test
 export function myFunction(paramName: string): ReturnType {
   // implementation
 }
-```
+````
 
 ## Pull Request Process
 
 1. **Create a Pull Request**
+
    - Use the PR template
    - Fill out all sections completely
    - Link related issues
 
 2. **PR Requirements**
+
    - All tests must pass
    - Code must be formatted with Biome
    - No TypeScript errors
@@ -168,6 +179,7 @@ export function myFunction(paramName: string): ReturnType {
 
 3. **CI Checks**
    All PRs must pass:
+
    - Biome linting/formatting
    - Unit tests on Node 18 & 20
    - Build verification
@@ -194,13 +206,37 @@ export function myFunction(paramName: string): ReturnType {
 
 ## Release Process
 
+We use **automated releases** with Changesets and GitHub Actions.
+
+### For Contributors
+
+Add a changeset to your PR:
+```bash
+npx changeset
+```
+
+The changeset describes what changed and will be used for version bumps and changelogs.
+
+### For Maintainers
+
 Releases are automated via GitHub Actions:
 
-1. Version bump following semantic versioning
-2. Update changelogs
-3. Create git tag: `git tag v0.2.0`
-4. Push tag: `git push origin v0.2.0`
-5. GitHub Actions will publish to npm automatically
+1. **Changesets bot creates a "Version Packages" PR** (automatic)
+   - Triggered when changeset files are merged to main
+   - Contains version bumps and CHANGELOG updates
+
+2. **Merge the PR when ready to release** (manual approval)
+   - Review the changes
+   - Merge to trigger automatic publishing
+
+3. **GitHub Actions publishes to npm** (automatic)
+   - Runs tests and builds
+   - Publishes packages
+   - Creates GitHub release
+
+For detailed instructions and manual fallback, see [RELEASING.md](./RELEASING.md).
+
+**Note:** Only maintainers with npm publish access can release packages.
 
 ## Questions?
 

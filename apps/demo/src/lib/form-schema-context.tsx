@@ -1,10 +1,13 @@
 'use client';
 
+import { checkIfFieldIsRequired } from '@zod-utils/core';
 import { createContext, useContext } from 'react';
 import type { z } from 'zod';
 
 // Context to provide Zod schema to child components
-const FormSchemaContext = createContext<z.ZodObject<any> | null>(null);
+const FormSchemaContext = createContext<z.ZodObject<z.ZodRawShape> | null>(
+  null,
+);
 
 /**
  * Provider component that makes Zod schema available to all child components
@@ -25,7 +28,7 @@ export function FormSchemaProvider({
   schema,
   children,
 }: {
-  schema: z.ZodObject<any>;
+  schema: z.ZodObject<z.ZodRawShape>;
   children: React.ReactNode;
 }) {
   return (
@@ -68,24 +71,27 @@ export function useIsFieldRequired(fieldName: string): boolean {
 /**
  * Utility function to check if a field in a Zod schema is required
  *
+ * Uses the comprehensive checkIfFieldIsRequired from @zod-utils/core which:
+ * - Checks for undefined (optional fields)
+ * - Checks for null (nullable fields)
+ * - Checks for empty strings (string().min(1) vs string())
+ * - Checks for empty arrays (array().min(1) vs array())
+ *
  * @param schema - The Zod object schema
  * @param fieldName - The name of the field to check
  * @returns true if the field is required, false otherwise
- *
- * Works by testing if undefined is a valid value for the field.
- * If safeParse(undefined) fails, the field is required.
  */
 export function isFieldRequired(
-  schema: z.ZodObject<any>,
+  schema: z.ZodObject<z.ZodRawShape>,
   fieldName: string,
 ): boolean {
-  const field = schema.shape[fieldName];
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const field = schema.shape[fieldName] as z.ZodTypeAny | undefined;
 
   if (!field) {
     return false;
   }
 
-  // If undefined parses successfully, the field is optional
-  // If it fails, the field is required
-  return !field.safeParse(undefined).success;
+  // Use the comprehensive check from @zod-utils/core
+  return checkIfFieldIsRequired(field);
 }

@@ -1,0 +1,193 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+This is a TypeScript monorepo containing utilities for Zod schema manipulation with React Hook Form integration. Built with npm workspaces, targeting **Zod v4** specifically.
+
+**Core Value Proposition:** The `useZodForm` hook automatically transforms Zod schema types so form inputs accept `null | undefined` during editing, while validated output remains exactly as the schema defines. No manual type wrestling required.
+
+## Monorepo Architecture
+
+### Package Structure
+- **`packages/core`** - Pure TypeScript utilities (no React dependencies)
+  - Schema manipulation (`getSchemaDefaults`, `checkIfFieldIsRequired`)
+  - Type unwrapping (`getPrimitiveType`, `removeDefault`, `extractDefault`)
+  - Zero dependencies except Zod peer dependency
+
+- **`packages/react-hook-form`** - React Hook Form integration
+  - `useZodForm` hook with automatic type transformation
+  - Uses `MakeOptionalAndNullable<T>` type utility for form inputs
+  - Re-exports all `@zod-utils/core` utilities for convenience
+  - Depends on `@zod-utils/core` internally
+
+- **`apps/demo`** - Next.js demo application
+  - Shows comprehensive examples of required/optional fields
+  - All field types: string, number, array, object
+
+### Dependency Flow
+```
+@zod-utils/core (standalone)
+       ↑
+@zod-utils/react-hook-form (depends on core)
+       ↑
+apps/demo (uses react-hook-form package)
+```
+
+## Development Commands
+
+### Building
+```bash
+# Build all packages (required before testing cross-package dependencies)
+npm run build
+
+# Build individual packages
+npm run build:core      # @zod-utils/core
+npm run build:rhf       # @zod-utils/react-hook-form
+npm run build:demo      # Next.js demo app
+```
+
+**Important:** Always build packages before testing to ensure latest changes are reflected in dependent packages.
+
+### Testing
+```bash
+# Run all tests across workspaces
+npm test
+
+# Test individual packages
+npm test --workspace=packages/core
+npm test --workspace=packages/react-hook-form
+
+# Watch mode for development
+npm run test:watch --workspace=packages/core
+
+# Coverage reports
+npm run test:coverage
+npm run test:coverage --workspace=packages/core
+```
+
+Each package uses **Vitest** for testing. The react-hook-form package uses `@testing-library/react` with jsdom environment.
+
+### Linting
+```bash
+# Run all linters (Biome + ESLint + TypeScript)
+npm run lint
+
+# Auto-fix with Biome
+npm run lint:fix
+
+# Individual checks
+npx biome check .               # Biome only
+npm run lint:eslint             # ESLint only
+npm run lint:typescript         # TypeScript compiler only
+```
+
+Uses **Biome** as primary linter/formatter. ESLint is used for additional rules. TypeScript strict mode enabled.
+
+### Development Server
+```bash
+# Run demo app
+npm run dev  # or npm run dev --workspace=apps/demo
+
+# Watch mode for package development
+npm run dev --workspace=packages/core       # Rebuilds on changes
+npm run dev --workspace=packages/react-hook-form
+```
+
+**⚠️ IMPORTANT: Claude should NEVER start the dev server automatically.**
+- Dev servers run in background and cause lock file conflicts
+- Multiple instances can bind to the same port
+- **Instead, ask the developer to run the dev server themselves**
+- When checking for errors, use `npm run build` or `npm run lint:typescript` instead
+- If accidentally started, stop immediately with `pkill -f "next dev"` or `KillShell`
+
+### Publishing
+```bash
+# Individual packages
+npm run publish:core
+npm run publish:rhf
+
+# All packages (builds first)
+npm run publish:all
+```
+
+Both packages configured with `publishConfig.access: "public"` for npm.
+
+### Bundle Size Checking
+```bash
+npm run size
+```
+
+Size limits enforced:
+- `@zod-utils/core`: 10 KB (excluding zod)
+- `@zod-utils/react-hook-form`: 10 KB (excluding zod, react, react-hook-form, @hookform/resolvers, @zod-utils/core)
+
+## Key Technical Concepts
+
+### Type Transformation in useZodForm
+The `useZodForm` hook uses a two-type schema pattern:
+```typescript
+schema: z.ZodType<T, MakeOptionalAndNullable<T>>
+```
+- **Input type** (`MakeOptionalAndNullable<T>`): Form fields accept `null | undefined` during editing
+- **Output type** (`T`): Validated data matches exact schema type
+
+This eliminates the common TypeScript friction where React Hook Form expects nullable values but Zod schemas define strict types.
+
+### Required Field Detection
+`checkIfFieldIsRequired()` returns `false` if a field accepts:
+- `undefined` (via `.optional()` or `.default()`)
+- `null` (via `.nullable()`)
+- Empty string (plain `z.string()` without `.min(1)` or `.nonempty()`)
+- Empty array (plain `z.array()` without `.min(1)` or `.nonempty()`)
+
+Use `.nonempty()` or `.min(1)` to make strings/arrays truly required.
+
+### Default Extraction Behavior
+`getSchemaDefaults()` only extracts fields with **explicit** `.default()`:
+- `z.string().default('hello')` ✅ extracted
+- `z.object({ nested: z.string().default('hello') })` ❌ NOT extracted (parent has no `.default()`)
+- `z.object({ nested: z.string().default('hello') }).default({})` ✅ extracted as `{}`
+
+Nested defaults are NOT extracted unless the parent object also has an explicit `.default()`.
+
+## Build System
+
+### tsup Configuration
+Both packages use **tsup** for building:
+- Outputs: CJS (`dist/index.js`) and ESM (`dist/index.mjs`)
+- Type declarations: `dist/index.d.ts`
+- Source maps enabled
+- Tree-shaking enabled
+- Development mode: Uses `src/index.ts` directly (via exports.development)
+
+### Workspace Conventions
+- Use `--workspace=` or `--workspaces` flags with npm commands
+- Cross-package dependencies use `"@zod-utils/core": "*"` (workspace protocol)
+- All packages share root-level devDependencies for tooling
+
+## Git Hooks
+
+Pre-commit hook (`.husky/pre-commit`) runs:
+```bash
+npm test  # All tests must pass before commit
+```
+
+Also uses **lint-staged** with Biome for formatting staged files.
+
+## Zod Version Requirements
+
+All packages target **Zod v4.x** specifically. This is a peer dependency - users must install it themselves. Not compatible with Zod v3.
+
+## Documentation Guidelines
+
+When updating package functionality:
+1. Update the relevant package README (`packages/*/README.md`)
+2. Update examples in demo app if applicable (`apps/demo/src/app/page.tsx`)
+3. Maintain the "💡 Why Use This?" section prominence in react-hook-form README
+
+The react-hook-form README emphasizes the key value proposition (type transformation) at the top with concrete examples showing:
+- Schema with required fields (NOT optional)
+- `form.reset()` and `form.setValue()` accepting `null | undefined`
+- Output type being exact `z.infer<typeof schema>` without `null | undefined`

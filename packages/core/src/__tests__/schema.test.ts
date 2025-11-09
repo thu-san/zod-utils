@@ -37,28 +37,16 @@ describe('getPrimitiveType', () => {
     expect(result).toBeInstanceOf(z.ZodString);
   });
 
-  it('should stop at array by default (unwrapArrays=false)', () => {
+  it('should stop at arrays', () => {
     const schema = z.array(z.string());
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodArray);
   });
 
-  it('should unwrap array when unwrapArrays=true', () => {
-    const schema = z.array(z.string());
-    const result = getPrimitiveType(schema, { unwrapArrays: true });
-    expect(result).toBeInstanceOf(z.ZodString);
-  });
-
-  it('should stop at array even with wrappers when unwrapArrays=false', () => {
+  it('should stop at arrays even with wrappers', () => {
     const schema = z.array(z.string()).optional();
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodArray);
-  });
-
-  it('should unwrap nested array with wrappers when unwrapArrays=true', () => {
-    const schema = z.array(z.string()).optional();
-    const result = getPrimitiveType(schema, { unwrapArrays: true });
-    expect(result).toBeInstanceOf(z.ZodString);
   });
 
   it('should handle number types', () => {
