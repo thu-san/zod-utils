@@ -24,11 +24,29 @@ jobs:
       - name: Run lint (Biome + TypeScript)
         run: npm run lint
 
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: false
+
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [24]
+        node-version: [18, 20, 22, 24]
     steps:
       - uses: actions/checkout@v4
 
@@ -48,11 +66,20 @@ jobs:
         if: matrix.node-version == 24
         run: npm run test:coverage
 
-      - name: Upload coverage reports
+      - name: Upload coverage for @zod-utils/core
         if: matrix.node-version == 24
         uses: codecov/codecov-action@v4
         with:
-          files: ./packages/core/coverage/coverage-final.json,./packages/react-hook-form/coverage/coverage-final.json
+          files: ./packages/core/coverage/coverage-final.json
+          flags: core
+          fail_ci_if_error: false
+
+      - name: Upload coverage for @zod-utils/react-hook-form
+        if: matrix.node-version == 24
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./packages/react-hook-form/coverage/coverage-final.json
+          flags: react-hook-form
           fail_ci_if_error: false
 
   build:

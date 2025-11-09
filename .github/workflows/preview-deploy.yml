@@ -1,0 +1,94 @@
+name: Preview Deployment
+
+# Note: If you have Vercel GitHub App installed, it will automatically
+# create preview deployments for PRs. This workflow is optional and can
+# be used for manual deployments or custom deployment logic.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+# Uncomment below to enable automatic preview deployments on PRs
+# pull_request:
+#   branches: [main]
+#   paths:
+#     - 'apps/demo/**'
+#     - 'packages/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: |
+          npm run build:core
+          npm run build:rhf
+
+      - name: Build demo app
+        run: npm run build:demo
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to Vercel
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          # Install Vercel CLI
+          npm install --global vercel@latest
+
+          # Deploy to Vercel
+          if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+            DEPLOYMENT_URL=$(vercel --prod --token=$VERCEL_TOKEN --yes)
+          else
+            DEPLOYMENT_URL=$(vercel --token=$VERCEL_TOKEN --yes)
+          fi
+
+          echo "url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOYMENT_URL"
+
+      - name: Comment PR with deployment URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deploymentUrl = '${{ steps.deploy.outputs.url }}';
+            const comment = `## 🚀 Preview Deployment Ready
+
+            Your changes have been deployed to Vercel!
+
+            🔗 **Preview URL:** ${deploymentUrl}
+
+            > This preview will be automatically updated when you push new commits to this PR.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

@@ -6,14 +6,17 @@ import {
   useForm,
 } from 'react-hook-form';
 import type { z } from 'zod';
-import type { MakeOptionalAndNullable } from './types';
+import type {
+  PartialWithAllNullables,
+  PartialWithNullableObjects,
+} from './types';
 
 /**
  * Type-safe React Hook Form wrapper with automatic Zod v4 schema validation and type transformation.
  *
  * This hook eliminates the TypeScript friction between React Hook Form's nullable field values
  * and Zod's strict output types. It uses a two-type schema pattern where:
- * - **Input type** (`MakeOptionalAndNullable<T>`): Form fields accept `null | undefined` during editing
+ * - **Input type** (`PartialWithNullableObjects<T>`): Form fields accept `null | undefined` during editing
  * - **Output type** (`T`): Validated data matches exact schema type (no `null | undefined`)
  *
  * **Key Benefits:**
@@ -25,7 +28,7 @@ import type { MakeOptionalAndNullable } from './types';
  * @template T - The Zod schema output type (extends FieldValues)
  *
  * @param options - Configuration object
- * @param options.schema - Zod schema with two-type signature `z.ZodType<T, MakeOptionalAndNullable<T>>`
+ * @param options.schema - Zod schema with two-type signature `z.ZodType<T, PartialWithNullableObjects<T>>`
  * @param options.defaultValues - Default form values (accepts nullable/undefined values)
  * @param options.zodResolverOptions - Optional zodResolver configuration
  * @param options....formOptions - All other react-hook-form useForm options
@@ -146,23 +149,23 @@ import type { MakeOptionalAndNullable } from './types';
  * }
  * ```
  *
- * @see {@link MakeOptionalAndNullable} for the type transformation utility
+ * @see {@link PartialWithNullableObjects} for the type transformation utility
  * @see https://react-hook-form.com/docs/useform for React Hook Form documentation
  * @see https://zod.dev for Zod schema documentation
  * @since 0.1.0
  */
-export const useZodForm = <T extends FieldValues>({
+export const useZodForm = <
+  T extends FieldValues,
+  I extends PartialWithAllNullables<T> = PartialWithNullableObjects<T>,
+>({
   schema,
   zodResolverOptions,
   ...formOptions
 }: {
-  schema: z.ZodType<T, MakeOptionalAndNullable<T>>;
-  defaultValues?: DefaultValues<MakeOptionalAndNullable<T>>;
+  schema: z.ZodType<T, I>;
+  defaultValues?: DefaultValues<I>;
   zodResolverOptions?: Parameters<typeof zodResolver>[1];
-} & Omit<
-  UseFormProps<MakeOptionalAndNullable<T>, unknown, T>,
-  'resolver' | 'defaultValues'
->) => {
+} & Omit<UseFormProps<I, unknown, T>, 'resolver' | 'defaultValues'>) => {
   const resolver = zodResolver(schema, zodResolverOptions);
 
   return useForm({

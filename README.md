@@ -6,6 +6,12 @@
 [![codecov](https://codecov.io/gh/thu-san/zod-utils/branch/main/graph/badge.svg)](https://codecov.io/gh/thu-san/zod-utils)
 [![Monorepo](https://img.shields.io/badge/monorepo-npm%20workspaces-blue)](https://docs.npmjs.com/cli/v7/using-npm/workspaces)
 
+[![npm (core)](https://img.shields.io/npm/v/@zod-utils/core?label=%40zod-utils%2Fcore)](https://www.npmjs.com/package/@zod-utils/core)
+[![npm (rhf)](https://img.shields.io/npm/v/@zod-utils/react-hook-form?label=%40zod-utils%2Freact-hook-form)](https://www.npmjs.com/package/@zod-utils/react-hook-form)
+[![npm downloads](https://img.shields.io/npm/dm/@zod-utils/core?label=downloads)](https://www.npmjs.com/package/@zod-utils/core)
+[![Bundle Size (core)](https://img.shields.io/bundlephobia/minzip/@zod-utils/core?label=core%20size)](https://bundlephobia.com/package/@zod-utils/core)
+[![Bundle Size (rhf)](https://img.shields.io/bundlephobia/minzip/@zod-utils/react-hook-form?label=rhf%20size)](https://bundlephobia.com/package/@zod-utils/react-hook-form)
+
 A collection of TypeScript utilities for Zod schemas, with React Hook Form integration.
 
 **[🚀 Live Demo](https://thu-san.github.io/zod-utils/)** | [📦 Packages](#packages) | [📖 Documentation](./GITHUB_PAGES.md)
@@ -98,6 +104,64 @@ npm run test:watch --workspace=packages/core
 - **@zod-utils/react-hook-form**: [![codecov](https://codecov.io/gh/thu-san/zod-utils/branch/main/graph/badge.svg?flag=react-hook-form)](https://codecov.io/gh/thu-san/zod-utils?flags[0]=react-hook-form)
 
 Coverage is automatically tracked via [Codecov](https://codecov.io/gh/thu-san/zod-utils) on every push to main.
+
+## Performance
+
+All utilities are designed for high performance and minimal overhead.
+
+### Benchmarking
+
+We use [Vitest benchmarks](https://vitest.dev/guide/features.html#benchmarking) to track performance:
+
+```bash
+# Run all benchmarks
+npm run bench
+
+# Run benchmarks for specific packages
+npm run bench:core  # @zod-utils/core
+npm run bench:rhf   # @zod-utils/react-hook-form
+```
+
+### Benchmark Coverage
+
+**@zod-utils/core:**
+
+- **Default extraction** (`getSchemaDefaults`, `extractDefault`)
+  - Simple schemas (3 fields)
+  - Complex nested schemas
+  - Large schemas (100+ fields)
+- **Schema utilities** (`checkIfFieldIsRequired`, `getPrimitiveType`, `removeDefault`, `canUnwrap`)
+  - Various schema types and edge cases
+
+**@zod-utils/react-hook-form:**
+
+- **Resolver performance** (zodResolver creation and validation)
+  - Simple to complex schemas
+  - Valid and invalid data validation
+  - Schemas with refinements and async validation
+- **Integration workflows** (complete form setup and validation)
+  - Form initialization with defaults
+  - Optional/nullable field handling
+  - Array, object, and nested validations
+
+### CI Integration
+
+Benchmarks run automatically on every push to main and on all PRs. Results are stored as artifacts for 30 days, allowing you to track performance trends over time.
+
+**View benchmark results:**
+
+1. Go to [GitHub Actions](https://github.com/thu-san/zod-utils/actions)
+2. Select a workflow run
+3. Download benchmark artifacts
+
+### Bundle Size
+
+Bundle sizes are enforced and monitored:
+
+- **@zod-utils/core**: ≤ 10 KB (minified + gzipped, excluding zod)
+- **@zod-utils/react-hook-form**: ≤ 10 KB (minified + gzipped, excluding dependencies)
+
+See live bundle sizes: [Core](https://bundlephobia.com/package/@zod-utils/core) | [React Hook Form](https://bundlephobia.com/package/@zod-utils/react-hook-form)
 
 ## Development
 

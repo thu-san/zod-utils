@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build:core && npm run build:rhf && npm run build:demo",
+  "devCommand": "npm run dev --workspace=apps/demo",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "outputDirectory": "apps/demo/.next",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./apps/demo ./packages/core ./packages/react-hook-form",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true
+  },
+  "crons": []
+}

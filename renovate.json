@@ -1,0 +1,87 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":preserveSemverRanges"
+  ],
+  "schedule": ["before 4am on Monday"],
+  "timezone": "UTC",
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "description": "Group all dev dependencies together",
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev dependencies",
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Group zod updates separately (peer dependency)",
+      "matchPackageNames": ["zod"],
+      "groupName": "zod",
+      "automerge": false
+    },
+    {
+      "description": "Auto-merge patch and minor updates for prod dependencies",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Require manual review for major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["dependencies", "major-update"]
+    },
+    {
+      "description": "Group all TypeScript-related packages",
+      "matchPackageNames": ["typescript", "@types/**"],
+      "groupName": "typescript"
+    },
+    {
+      "description": "Group all testing-related packages",
+      "matchPackageNames": [
+        "vitest",
+        "@vitest/**",
+        "@testing-library/**",
+        "jsdom"
+      ],
+      "groupName": "testing"
+    },
+    {
+      "description": "Group all build tools",
+      "matchPackageNames": ["tsup", "esbuild", "@changesets/**"],
+      "groupName": "build tools"
+    },
+    {
+      "description": "Group all linting/formatting tools",
+      "matchPackageNames": [
+        "@biomejs/biome",
+        "eslint",
+        "eslint-**",
+        "@eslint/**",
+        "lint-staged",
+        "husky"
+      ],
+      "groupName": "linting"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "automerge": true
+  },
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "updateNotScheduled": false,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 4am on the first day of the month"]
+  }
+}

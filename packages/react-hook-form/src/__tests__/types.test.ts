@@ -1,32 +1,34 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { MakeOptionalAndNullable } from '../types';
+import type {
+  PartialWithAllNullables,
+  PartialWithNullableObjects,
+} from '../types';
 
-describe('MakeOptionalAndNullable', () => {
-  it('should make all properties optional and accept null/undefined', () => {
+describe('PartialWithNullableObjects', () => {
+  it('should make properties optional with different nullable behavior for primitives vs objects', () => {
     type Input = {
       name: string;
       age: number;
       active: boolean;
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // All properties should be optional
+    // All are primitives: optional but NOT nullable
     expectTypeOf<Result>().toMatchTypeOf<{
-      name?: string | null | undefined;
-      age?: number | null | undefined;
-      active?: boolean | null | undefined;
+      name?: string | undefined;
+      age?: number | undefined;
+      active?: boolean | undefined;
     }>();
 
     // Should accept objects with missing properties
     expectTypeOf<Record<string, never>>().toMatchTypeOf<Result>();
     expectTypeOf<{ name: 'test' }>().toMatchTypeOf<Result>();
 
-    // Should accept null and undefined values
-    expectTypeOf<{ name: null }>().toMatchTypeOf<Result>();
+    // Primitives accept undefined but NOT null
     expectTypeOf<{ name: undefined }>().toMatchTypeOf<Result>();
-    expectTypeOf<{ age: null }>().toMatchTypeOf<Result>();
     expectTypeOf<{ age: undefined }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ active: undefined }>().toMatchTypeOf<Result>();
   });
 
   it('should preserve existing optional properties', () => {
@@ -35,12 +37,12 @@ describe('MakeOptionalAndNullable', () => {
       optional?: number;
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // Both should be optional and accept null/undefined
+    // Both are primitives: optional but not nullable
     expectTypeOf<Result>().toMatchTypeOf<{
-      required?: string | null | undefined;
-      optional?: number | null | undefined;
+      required?: string | undefined;
+      optional?: number | undefined;
     }>();
   });
 
@@ -50,9 +52,10 @@ describe('MakeOptionalAndNullable', () => {
       nullableNumber: number | null;
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // Should add optional and undefined
+    // Union types with null don't extend object, so treated as primitives
+    // Preserves the null in the union, just adds optional and undefined
     expectTypeOf<Result>().toMatchTypeOf<{
       nullableString?: string | null | undefined;
       nullableNumber?: number | null | undefined;
@@ -67,7 +70,7 @@ describe('MakeOptionalAndNullable', () => {
       };
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
     // Nested object itself becomes optional and nullable
     // (Note: doesn't deeply transform nested properties)
@@ -93,15 +96,16 @@ describe('MakeOptionalAndNullable', () => {
       scores: number[];
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
+    // Arrays: optional but NOT nullable
     expectTypeOf<Result>().toMatchTypeOf<{
-      tags?: string[] | null | undefined;
-      scores?: number[] | null | undefined;
+      tags?: string[] | undefined;
+      scores?: number[] | undefined;
     }>();
 
-    // Should accept null/undefined arrays
-    expectTypeOf<{ tags: null }>().toMatchTypeOf<Result>();
+    // Arrays accept undefined but NOT null
+    expectTypeOf<{ tags: undefined }>().toMatchTypeOf<Result>();
     expectTypeOf<{ scores: undefined }>().toMatchTypeOf<Result>();
   });
 
@@ -111,11 +115,12 @@ describe('MakeOptionalAndNullable', () => {
       value: string | number;
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
+    // Union types of primitives don't extend object: optional but NOT nullable
     expectTypeOf<Result>().toMatchTypeOf<{
-      status?: 'active' | 'inactive' | null | undefined;
-      value?: string | number | null | undefined;
+      status?: 'active' | 'inactive' | undefined;
+      value?: string | number | undefined;
     }>();
   });
 
@@ -125,7 +130,7 @@ describe('MakeOptionalAndNullable', () => {
       pattern: RegExp;
     };
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
     expectTypeOf<Result>().toMatchTypeOf<{
       createdAt?: Date | null | undefined;
@@ -137,10 +142,41 @@ describe('MakeOptionalAndNullable', () => {
     // biome-ignore lint/complexity/noBannedTypes: Testing empty object type
     type Input = {};
 
-    type Result = MakeOptionalAndNullable<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
     // biome-ignore lint/complexity/noBannedTypes: Testing empty object type
     expectTypeOf<Result>().toEqualTypeOf<{}>();
+  });
+
+  it('should NOT allow null for primitives and arrays, but allow for objects', () => {
+    type Input = {
+      name: string;
+      tags: string[];
+      age: number;
+      profile: { bio: string };
+    };
+
+    type Result = PartialWithNullableObjects<Input>;
+
+    // Primitive fields should NOT accept null
+    // @ts-expect-error - primitive fields don't accept null
+    const invalid1: Result = { name: null };
+
+    // @ts-expect-error - primitive fields don't accept null
+    const invalid2: Result = { age: null };
+
+    // Array fields should NOT accept null
+    // @ts-expect-error - array fields don't accept null
+    const invalid3: Result = { tags: null };
+
+    // Object fields CAN accept null
+    const valid: Result = { profile: null };
+
+    // Suppress unused variable warnings
+    void invalid1;
+    void invalid2;
+    void invalid3;
+    void valid;
   });
 
   it('should work with complex real-world example', () => {
@@ -158,14 +194,16 @@ describe('MakeOptionalAndNullable', () => {
       isActive: boolean;
     };
 
-    type FormInput = MakeOptionalAndNullable<UserForm>;
+    type FormInput = PartialWithNullableObjects<UserForm>;
 
-    // All fields should be optional and nullable for form input
+    // Primitives: optional but NOT nullable
+    // Arrays: optional but NOT nullable
+    // Objects: optional AND nullable
     expectTypeOf<FormInput>().toMatchTypeOf<{
-      firstName?: string | null | undefined;
-      lastName?: string | null | undefined;
-      email?: string | null | undefined;
-      age?: number | null | undefined;
+      firstName?: string | undefined;
+      lastName?: string | undefined;
+      email?: string | undefined;
+      age?: number | undefined;
       address?:
         | {
             street: string;
@@ -174,8 +212,8 @@ describe('MakeOptionalAndNullable', () => {
           }
         | null
         | undefined;
-      hobbies?: string[] | null | undefined;
-      isActive?: boolean | null | undefined;
+      hobbies?: string[] | undefined;
+      isActive?: boolean | undefined;
     }>();
 
     // Should accept partial forms during editing
@@ -183,9 +221,66 @@ describe('MakeOptionalAndNullable', () => {
       firstName: 'John';
     }>().toMatchTypeOf<FormInput>();
 
+    // Primitives and arrays accept undefined but NOT null
+    // Objects accept both
     expectTypeOf<{
-      firstName: null;
+      firstName: undefined;
       email: undefined;
+      age: undefined;
+      isActive: undefined;
+      hobbies: undefined;
+      address: null;
     }>().toMatchTypeOf<FormInput>();
+  });
+});
+
+describe('PartialWithAllNullables', () => {
+  it('should make all fields optional and nullable', () => {
+    type Input = {
+      name: string;
+      age: number;
+      active: boolean;
+      tags: string[];
+    };
+
+    type Result = PartialWithAllNullables<Input>;
+
+    // All fields: optional AND nullable
+    expectTypeOf<Result>().toMatchTypeOf<{
+      name?: string | null | undefined;
+      age?: number | null | undefined;
+      active?: boolean | null | undefined;
+      tags?: string[] | null | undefined;
+    }>();
+
+    // All fields accept both null and undefined
+    expectTypeOf<{ name: null }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ name: undefined }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ age: null }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ age: undefined }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ tags: null }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ tags: undefined }>().toMatchTypeOf<Result>();
+  });
+
+  it('should handle complex types', () => {
+    type Input = {
+      name: string;
+      profile: { bio: string; age: number };
+      tags: string[];
+    };
+
+    type Result = PartialWithAllNullables<Input>;
+
+    // All fields nullable and optional
+    expectTypeOf<Result>().toMatchTypeOf<{
+      name?: string | null | undefined;
+      profile?: { bio: string; age: number } | null | undefined;
+      tags?: string[] | null | undefined;
+    }>();
+
+    // All accept null
+    expectTypeOf<{ name: null }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ profile: null }>().toMatchTypeOf<Result>();
+    expectTypeOf<{ tags: null }>().toMatchTypeOf<Result>();
   });
 });
