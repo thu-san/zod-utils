@@ -1,86 +1,134 @@
 import * as z from 'zod';
+import { canUnwrap } from './schema';
+import type { Simplify } from './types';
 
 /**
- * Extract the default value from a Zod field (recursively unwraps optional/nullable)
+ * Extracts the default value from a Zod field, recursively unwrapping optional and nullable layers.
+ *
+ * This function traverses through wrapper types (like `ZodOptional`, `ZodNullable`) to find
+ * the underlying `ZodDefault` and returns its default value. If no default is found, returns `undefined`.
+ *
+ * @template T - The Zod type to extract default from
  * @param field - The Zod field to extract default from
  * @returns The default value if present, undefined otherwise
+ *
+ * @example
+ * Basic usage with default value
+ * ```typescript
+ * const field = z.string().default('hello');
+ * const defaultValue = extractDefault(field);
+ * // Result: 'hello'
+ * ```
+ *
+ * @example
+ * Unwrapping optional/nullable layers
+ * ```typescript
+ * const field = z.string().default('world').optional();
+ * const defaultValue = extractDefault(field);
+ * // Result: 'world' (unwraps optional to find default)
+ * ```
+ *
+ * @example
+ * Field without default
+ * ```typescript
+ * const field = z.string().optional();
+ * const defaultValue = extractDefault(field);
+ * // Result: undefined
+ * ```
+ *
+ * @see {@link getSchemaDefaults} for extracting defaults from entire schemas
+ * @since 0.1.0
  */
-export function extractDefault(field: z.ZodTypeAny): any {
+export function extractDefault<T extends z.ZodTypeAny>(
+  field: T,
+): z.infer<T> | undefined {
   if (field instanceof z.ZodDefault) {
-    const defaultValue = field._def.defaultValue;
-    return typeof defaultValue === 'function' ? defaultValue() : defaultValue;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return field.def.defaultValue as z.infer<T>;
   }
 
-  if ('unwrap' in field && typeof field.unwrap === 'function') {
-    return extractDefault(field.unwrap());
+  if (canUnwrap(field)) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return extractDefault(field.unwrap()) as z.infer<T>;
   }
 
   return undefined;
 }
 
 /**
- * Get the unwrapped type without going through defaults
- * Useful for detecting nested objects/arrays while preserving defaults
- * @param field - The Zod field to unwrap
- * @returns The unwrapped type
- */
-export function getUnwrappedType(field: z.ZodTypeAny): z.ZodTypeAny {
-  if (field instanceof z.ZodDefault) {
-    // Don't unwrap defaults - we want to preserve them
-    return field;
-  }
-
-  if ('unwrap' in field && typeof field.unwrap === 'function') {
-    return getUnwrappedType(field.unwrap());
-  }
-
-  return field;
-}
-
-/**
- * Extract all default values from a Zod object schema
- * Recursively handles nested objects and only returns fields with defaults
+ * Extracts default values from a Zod object schema while skipping fields without defaults.
+ *
+ * This function recursively traverses the schema and collects all fields that have
+ * explicit default values defined. Fields without defaults are excluded from the result.
+ *
+ * **Important:** Nested defaults are NOT extracted unless the parent object also has
+ * an explicit `.default()`. This is by design to match Zod's default value behavior.
+ *
+ * @template T - The Zod object schema type
  * @param schema - The Zod object schema to extract defaults from
- * @returns Partial object with only fields that have defaults
+ * @returns A partial object containing only fields with default values
  *
  * @example
- * ```ts
+ * Basic usage
+ * ```typescript
  * const schema = z.object({
  *   name: z.string().default('John'),
- *   age: z.number(), // no default - skipped
- *   settings: z.object({
- *     theme: z.string().default('light')
- *   })
+ *   age: z.number(), // no default - will be skipped
+ *   email: z.string().email().optional(),
  * });
  *
- * getSchemaDefaults(schema);
- * // Returns: { name: 'John', settings: { theme: 'light' } }
+ * const defaults = getSchemaDefaults(schema);
+ * // Result: { name: 'John' }
  * ```
+ *
+ * @example
+ * Nested objects with defaults
+ * ```typescript
+ * const schema = z.object({
+ *   user: z.object({
+ *     name: z.string().default('Guest')
+ *   }).default({ name: 'Guest' }), // ✅ Extracted because parent has .default()
+ *
+ *   settings: z.object({
+ *     theme: z.string().default('light')
+ *   }), // ❌ NOT extracted - parent has no .default()
+ * });
+ *
+ * const defaults = getSchemaDefaults(schema);
+ * // Result: { user: { name: 'Guest' } }
+ * ```
+ *
+ * @example
+ * Unwrapping optional/nullable fields
+ * ```typescript
+ * const schema = z.object({
+ *   title: z.string().default('Untitled').optional(),
+ *   count: z.number().default(0).nullable(),
+ * });
+ *
+ * const defaults = getSchemaDefaults(schema);
+ * // Result: { title: 'Untitled', count: 0 }
+ * ```
+ *
+ * @see {@link extractDefault} for extracting defaults from individual fields
+ * @since 0.1.0
  */
-export function getSchemaDefaults<T extends z.ZodObject<any>>(
+export function getSchemaDefaults<T extends z.ZodObject>(
   schema: T,
-): Partial<z.infer<T>> {
-  const defaults: Record<string, any> = {};
+): Simplify<Partial<z.infer<T>>> {
+  const defaults: Record<string, unknown> = {};
 
   for (const key in schema.shape) {
     const field = schema.shape[key];
+    if (!field) continue;
 
-    // First, check if this field has an explicit default value
+    // Check if this field has an explicit default value
     const defaultValue = extractDefault(field);
     if (defaultValue !== undefined) {
       defaults[key] = defaultValue;
-      continue;
-    }
-
-    // If no explicit default, check if it's a nested object with defaults
-    const unwrapped = getUnwrappedType(field);
-    if (unwrapped instanceof z.ZodObject) {
-      const nestedDefaults = getSchemaDefaults(unwrapped);
-      if (Object.keys(nestedDefaults).length > 0) {
-        defaults[key] = nestedDefaults;
-      }
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return defaults as Partial<z.infer<T>>;
 }

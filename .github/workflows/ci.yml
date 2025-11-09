@@ -54,8 +54,6 @@ jobs:
         with:
           files: ./packages/core/coverage/coverage-final.json,./packages/react-hook-form/coverage/coverage-final.json
           fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     runs-on: ubuntu-latest

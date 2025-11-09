@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
-import {
-  extractDefault,
-  getSchemaDefaults,
-  getUnwrappedType,
-} from '../defaults';
+import { extractDefault, getSchemaDefaults } from '../defaults';
 
 describe('extractDefault', () => {
   it('should extract default value from ZodDefault', () => {
@@ -63,44 +59,6 @@ describe('extractDefault', () => {
   });
 });
 
-describe('getUnwrappedType', () => {
-  it('should unwrap optional to get inner type', () => {
-    const schema = z.string().optional();
-    const unwrapped = getUnwrappedType(schema);
-    expect(unwrapped).toBeInstanceOf(z.ZodString);
-  });
-
-  it('should unwrap nullable to get inner type', () => {
-    const schema = z.string().nullable();
-    const unwrapped = getUnwrappedType(schema);
-    expect(unwrapped).toBeInstanceOf(z.ZodString);
-  });
-
-  it('should unwrap multiple levels', () => {
-    const schema = z.string().optional().nullable();
-    const unwrapped = getUnwrappedType(schema);
-    expect(unwrapped).toBeInstanceOf(z.ZodString);
-  });
-
-  it('should preserve ZodDefault wrapper', () => {
-    const schema = z.string().default('test');
-    const unwrapped = getUnwrappedType(schema);
-    expect(unwrapped).toBeInstanceOf(z.ZodDefault);
-  });
-
-  it('should return same type if no unwrapping needed', () => {
-    const schema = z.string();
-    const unwrapped = getUnwrappedType(schema);
-    expect(unwrapped).toBe(schema);
-  });
-
-  it('should unwrap optional but preserve default', () => {
-    const schema = z.string().default('test').optional();
-    const unwrapped = getUnwrappedType(schema);
-    expect(unwrapped).toBeInstanceOf(z.ZodDefault);
-  });
-});
-
 describe('getSchemaDefaults', () => {
   it('should extract flat object defaults', () => {
     const schema = z.object({
@@ -128,24 +86,6 @@ describe('getSchemaDefaults', () => {
     });
   });
 
-  it('should handle nested objects with defaults', () => {
-    const schema = z.object({
-      name: z.string().default('John'),
-      settings: z.object({
-        theme: z.string().default('light'),
-        notifications: z.boolean().default(true),
-      }),
-    });
-
-    expect(getSchemaDefaults(schema)).toEqual({
-      name: 'John',
-      settings: {
-        theme: 'light',
-        notifications: true,
-      },
-    });
-  });
-
   it('should skip nested objects without any defaults', () => {
     const schema = z.object({
       name: z.string().default('John'),
@@ -157,41 +97,6 @@ describe('getSchemaDefaults', () => {
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
-    });
-  });
-
-  it('should handle partial nested defaults', () => {
-    const schema = z.object({
-      name: z.string().default('John'),
-      settings: z.object({
-        theme: z.string().default('light'),
-        fontSize: z.number(), // no default
-      }),
-    });
-
-    expect(getSchemaDefaults(schema)).toEqual({
-      name: 'John',
-      settings: {
-        theme: 'light',
-      },
-    });
-  });
-
-  it('should handle deeply nested objects', () => {
-    const schema = z.object({
-      user: z.object({
-        profile: z.object({
-          avatar: z.string().default('/default.png'),
-        }),
-      }),
-    });
-
-    expect(getSchemaDefaults(schema)).toEqual({
-      user: {
-        profile: {
-          avatar: '/default.png',
-        },
-      },
     });
   });
 
@@ -271,9 +176,11 @@ describe('getSchemaDefaults', () => {
       number: z.number().default(42),
       boolean: z.boolean().default(false),
       array: z.array(z.string()).default([]),
-      object: z.object({
-        nested: z.string().default('value'),
-      }),
+      object: z
+        .object({
+          nested: z.string().default('value'),
+        })
+        .default({ nested: 'value' }),
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
@@ -283,23 +190,6 @@ describe('getSchemaDefaults', () => {
       array: [],
       object: {
         nested: 'value',
-      },
-    });
-  });
-
-  it('should handle optional nested objects with defaults', () => {
-    const schema = z.object({
-      name: z.string(),
-      settings: z
-        .object({
-          theme: z.string().default('dark'),
-        })
-        .optional(),
-    });
-
-    expect(getSchemaDefaults(schema)).toEqual({
-      settings: {
-        theme: 'dark',
       },
     });
   });

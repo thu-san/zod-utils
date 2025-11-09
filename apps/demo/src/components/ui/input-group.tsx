@@ -68,6 +68,7 @@ function InputGroupAddon({
       data-align={align}
       className={cn(inputGroupAddonVariants({ align }), className)}
       onClick={(e) => {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         if ((e.target as HTMLElement).closest('button')) {
           return;
         }

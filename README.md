@@ -3,6 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![CI](https://github.com/thu-san/zod-utils/workflows/CI/badge.svg)](https://github.com/thu-san/zod-utils/actions)
+[![codecov](https://codecov.io/gh/thu-san/zod-utils/branch/main/graph/badge.svg)](https://codecov.io/gh/thu-san/zod-utils)
 [![Monorepo](https://img.shields.io/badge/monorepo-npm%20workspaces-blue)](https://docs.npmjs.com/cli/v7/using-npm/workspaces)
 
 A collection of TypeScript utilities for Zod schemas, with React Hook Form integration.
@@ -22,6 +23,7 @@ npm install @zod-utils/core zod
 ```
 
 **Features:**
+
 - Extract default values from schemas (`getSchemaDefaults`)
 - Check if fields are required (`checkIfFieldIsRequired`)
 - Unwrap and manipulate schema types
@@ -36,6 +38,7 @@ npm install @zod-utils/react-hook-form zod react react-hook-form @hookform/resol
 ```
 
 **Features:**
+
 - Type-safe `useZodForm` hook
 - Custom error resolver with i18n support (Japanese)
 - Re-exports all `@zod-utils/core` utilities
@@ -43,13 +46,13 @@ npm install @zod-utils/react-hook-form zod react react-hook-form @hookform/resol
 ## Quick Start
 
 ```typescript
-import { getSchemaDefaults } from '@zod-utils/core';
-import { useZodForm } from '@zod-utils/react-hook-form';
-import { z } from 'zod';
+import { getSchemaDefaults } from "@zod-utils/core";
+import { useZodForm } from "@zod-utils/react-hook-form";
+import { z } from "zod";
 
 // Define your schema
 const schema = z.object({
-  name: z.string().default('John Doe'),
+  name: z.string().default("John Doe"),
   age: z.number().default(25),
   email: z.string().email(),
 });
@@ -73,6 +76,29 @@ function MyForm() {
 
 See the [demo app](./apps/demo) for complete examples.
 
+## Testing & Coverage
+
+All packages are thoroughly tested with [Vitest](https://vitest.dev/).
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Watch mode for development
+npm run test:watch --workspace=packages/core
+```
+
+### Coverage Reports
+
+- **Overall**: [![codecov](https://codecov.io/gh/thu-san/zod-utils/branch/main/graph/badge.svg)](https://codecov.io/gh/thu-san/zod-utils)
+- **@zod-utils/core**: [![codecov](https://codecov.io/gh/thu-san/zod-utils/branch/main/graph/badge.svg?flag=core)](https://codecov.io/gh/thu-san/zod-utils?flags[0]=core)
+- **@zod-utils/react-hook-form**: [![codecov](https://codecov.io/gh/thu-san/zod-utils/branch/main/graph/badge.svg?flag=react-hook-form)](https://codecov.io/gh/thu-san/zod-utils?flags[0]=react-hook-form)
+
+Coverage is automatically tracked via [Codecov](https://codecov.io/gh/thu-san/zod-utils) on every push to main.
+
 ## Development
 
 ```bash
@@ -90,6 +116,8 @@ npm run build:rhf    # @zod-utils/react-hook-form
 npm run dev
 ```
 
+For release instructions, see [RELEASING.md](./RELEASING.md).
+
 ## Monorepo Structure
 
 ```
@@ -105,6 +133,7 @@ zod-utils/
 ## Future Packages
 
 Planned additions:
+
 - `@zod-utils/openapi` - OpenAPI/Swagger integration
 - `@zod-utils/i18n` - Internationalization utilities
 

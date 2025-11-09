@@ -1,44 +1,169 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { MakeOptionalAndNullable } from '@zod-utils/core';
 import {
   type DefaultValues,
   type FieldValues,
   type UseFormProps,
   useForm,
 } from 'react-hook-form';
-import type { ZodTypeAny } from 'zod';
+import type { z } from 'zod';
+import type { MakeOptionalAndNullable } from './types';
 
 /**
- * Type-safe wrapper around useForm with Zod v4 schema integration
- * Automatically sets up zodResolver and provides better type inference
+ * Type-safe React Hook Form wrapper with automatic Zod v4 schema validation and type transformation.
+ *
+ * This hook eliminates the TypeScript friction between React Hook Form's nullable field values
+ * and Zod's strict output types. It uses a two-type schema pattern where:
+ * - **Input type** (`MakeOptionalAndNullable<T>`): Form fields accept `null | undefined` during editing
+ * - **Output type** (`T`): Validated data matches exact schema type (no `null | undefined`)
+ *
+ * **Key Benefits:**
+ * - ✅ No more "Type 'null' is not assignable to..." TypeScript errors
+ * - ✅ Use `form.setValue()` and `form.reset()` with `null` values freely
+ * - ✅ Validated output is still type-safe with exact Zod schema types
+ * - ✅ Automatic zodResolver setup - no manual configuration needed
+ *
+ * @template T - The Zod schema output type (extends FieldValues)
+ *
+ * @param options - Configuration object
+ * @param options.schema - Zod schema with two-type signature `z.ZodType<T, MakeOptionalAndNullable<T>>`
+ * @param options.defaultValues - Default form values (accepts nullable/undefined values)
+ * @param options.zodResolverOptions - Optional zodResolver configuration
+ * @param options....formOptions - All other react-hook-form useForm options
+ *
+ * @returns React Hook Form instance with type-safe methods
  *
  * @example
- * ```ts
+ * Basic usage with required fields
+ * ```typescript
+ * import { useZodForm } from '@zod-utils/react-hook-form';
+ * import { z } from 'zod';
+ *
  * const schema = z.object({
- *   name: z.string(),
- *   age: z.number()
- * });
+ *   name: z.string().min(1), // Required field
+ *   age: z.number().min(0),
+ * }) satisfies z.ZodType<{ name: string; age: number }, any>;
+ *
+ * function MyForm() {
+ *   const form = useZodForm({ schema });
+ *
+ *   // ✅ These work without type errors:
+ *   form.setValue('name', null); // Accepts null during editing
+ *   form.reset({ name: null, age: null }); // Reset with null
+ *
+ *   const onSubmit = (data: { name: string; age: number }) => {
+ *     // ✅ data is exact type - no null | undefined
+ *     console.log(data.name.toUpperCase()); // Safe to use string methods
+ *   };
+ *
+ *   return <form onSubmit={form.handleSubmit(onSubmit)}>...</form>;
+ * }
+ * ```
+ *
+ * @example
+ * With default values
+ * ```typescript
+ * const schema = z.object({
+ *   username: z.string(),
+ *   email: z.string().email(),
+ *   notifications: z.boolean().default(true),
+ * }) satisfies z.ZodType<{
+ *   username: string;
+ *   email: string;
+ *   notifications: boolean;
+ * }, any>;
  *
  * const form = useZodForm({
  *   schema,
- *   defaultValues: { name: '', age: 0 }
+ *   defaultValues: {
+ *     username: '',
+ *     email: '',
+ *     // notifications gets default from schema
+ *   },
  * });
  * ```
+ *
+ * @example
+ * With optional and nullable fields
+ * ```typescript
+ * const schema = z.object({
+ *   title: z.string(),
+ *   description: z.string().optional(), // Optional in output
+ *   tags: z.array(z.string()).nullable(), // Nullable in output
+ * }) satisfies z.ZodType<{
+ *   title: string;
+ *   description?: string;
+ *   tags: string[] | null;
+ * }, any>;
+ *
+ * const form = useZodForm({ schema });
+ *
+ * // All fields accept null/undefined during editing
+ * form.setValue('title', null);
+ * form.setValue('description', undefined);
+ * form.setValue('tags', null);
+ * ```
+ *
+ * @example
+ * With zodResolver options
+ * ```typescript
+ * const form = useZodForm({
+ *   schema,
+ *   zodResolverOptions: {
+ *     async: true, // Enable async validation
+ *     errorMap: customErrorMap, // Custom error messages
+ *   },
+ * });
+ * ```
+ *
+ * @example
+ * Complete form example
+ * ```typescript
+ * const userSchema = z.object({
+ *   name: z.string().min(1, 'Name is required'),
+ *   email: z.string().email('Invalid email'),
+ *   age: z.number().min(18, 'Must be 18+'),
+ * }) satisfies z.ZodType<{ name: string; email: string; age: number }, any>;
+ *
+ * function UserForm() {
+ *   const form = useZodForm({
+ *     schema: userSchema,
+ *     defaultValues: { name: '', email: '', age: null },
+ *   });
+ *
+ *   const onSubmit = (data: { name: string; email: string; age: number }) => {
+ *     // Type-safe: data has exact types, no null/undefined
+ *     console.log(`${data.name} is ${data.age} years old`);
+ *   };
+ *
+ *   return (
+ *     <form onSubmit={form.handleSubmit(onSubmit)}>
+ *       <input {...form.register('name')} />
+ *       <input {...form.register('email')} type="email" />
+ *       <input {...form.register('age', { valueAsNumber: true })} type="number" />
+ *       <button type="submit">Submit</button>
+ *     </form>
+ *   );
+ * }
+ * ```
+ *
+ * @see {@link MakeOptionalAndNullable} for the type transformation utility
+ * @see https://react-hook-form.com/docs/useform for React Hook Form documentation
+ * @see https://zod.dev for Zod schema documentation
+ * @since 0.1.0
  */
 export const useZodForm = <T extends FieldValues>({
   schema,
   zodResolverOptions,
   ...formOptions
 }: {
-  schema: ZodTypeAny;
+  schema: z.ZodType<T, MakeOptionalAndNullable<T>>;
   defaultValues?: DefaultValues<MakeOptionalAndNullable<T>>;
   zodResolverOptions?: Parameters<typeof zodResolver>[1];
 } & Omit<
   UseFormProps<MakeOptionalAndNullable<T>, unknown, T>,
   'resolver' | 'defaultValues'
 >) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resolver = zodResolver(schema as any, zodResolverOptions);
+  const resolver = zodResolver(schema, zodResolverOptions);
 
   return useForm({
     resolver,

@@ -13,16 +13,25 @@
         "noUnusedVariables": "warn",
         "noUnreachable": "warn",
         "noConstantCondition": "warn",
-        "noUnusedImports": "warn"
+        "noUnusedImports": "warn",
+        "useExhaustiveDependencies": "warn"
       },
       "suspicious": {
-        "noExplicitAny": "off",
+        "noExplicitAny": "error",
         "noArrayIndexKey": "warn",
         "noDoubleEquals": "error"
       },
       "style": {
         "useImportType": "error",
         "noNonNullAssertion": "warn"
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
       }
     }
   },
@@ -36,7 +45,8 @@
     "formatter": {
       "quoteStyle": "single",
       "trailingCommas": "all",
-      "semicolons": "always"
+      "semicolons": "always",
+      "arrowParentheses": "always"
     }
   },
   "css": {
