@@ -4,10 +4,10 @@
  */
 type AddNullToObjects<T> = {
   [K in keyof T]: T[K] extends readonly unknown[]
-    ? T[K]  // Arrays: no null
+    ? T[K] // Arrays: no null
     : T[K] extends object
-    ? T[K] | null  // Objects: add null
-    : T[K];  // Primitives: no null
+      ? T[K] | null // Objects: add null
+      : T[K]; // Primitives: no null
 };
 
 /**

@@ -1,5 +1,8 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type { PartialWithNullableObjects, PartialWithAllNullables } from '../types';
+import type {
+  PartialWithAllNullables,
+  PartialWithNullableObjects,
+} from '../types';
 
 describe('PartialWithNullableObjects', () => {
   it('should make properties optional with different nullable behavior for primitives vs objects', () => {
