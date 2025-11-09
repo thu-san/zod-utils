@@ -10,8 +10,8 @@ Please read and follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ### Prerequisites
 
-- Node.js 20.x (see `.nvmrc`)
-- npm 9.x or higher
+- Node.js 24.x (see `.nvmrc` - currently 24.11.0)
+- npm 10.x or higher
 
 ### Setup
 
@@ -161,6 +161,47 @@ export function myFunction(paramName: string): ReturnType {
 }
 ````
 
+## Automated Dependency Management
+
+This project uses **Renovate** for automated dependency updates. You generally don't need to manually update dependencies.
+
+### How It Works
+
+- **Renovate bot** automatically creates PRs for dependency updates
+- Updates are grouped intelligently:
+  - Dev dependencies grouped together
+  - TypeScript packages grouped together
+  - Testing packages grouped together
+  - Build tools grouped together
+- Minor and patch updates are **auto-merged** after CI passes
+- Major updates require manual review
+
+### What This Means for Contributors
+
+- **Don't manually update dependencies** unless specifically needed for your feature
+- If you see Renovate PRs, they'll be handled by maintainers
+- Focus on your feature work - dependency updates happen automatically
+- Security vulnerabilities are patched automatically with high priority
+
+### Dependency Update PRs
+
+If you need to add a new dependency:
+
+1. Add it to the appropriate `package.json`
+2. Run `npm install` to update `package-lock.json`
+3. Include the dependency change in your PR
+4. Renovate will manage future updates automatically
+
+### Security Scans
+
+All PRs are automatically scanned for:
+
+- **Vulnerable dependencies** (via npm audit)
+- **License compliance** (GPL/AGPL licenses are blocked)
+- **Dependency security** (via GitHub Dependency Review)
+
+If your PR introduces a vulnerability or incompatible license, CI will fail and provide details.
+
 ## Pull Request Process
 
 1. **Create a Pull Request**
@@ -181,9 +222,12 @@ export function myFunction(paramName: string): ReturnType {
    All PRs must pass:
 
    - Biome linting/formatting
-   - Unit tests on Node 18 & 20
+   - Unit tests on Node 18, 20, 22 & 24
    - Build verification
    - TypeScript type checking
+   - npm security audit
+   - Dependency review (security & license checks)
+   - Performance benchmarks
 
 4. **Review Process**
    - Maintainers will review your PR
@@ -211,6 +255,7 @@ We use **automated releases** with Changesets and GitHub Actions.
 ### For Contributors
 
 Add a changeset to your PR:
+
 ```bash
 npx changeset
 ```
@@ -222,10 +267,12 @@ The changeset describes what changed and will be used for version bumps and chan
 Releases are automated via GitHub Actions:
 
 1. **Changesets bot creates a "Version Packages" PR** (automatic)
+
    - Triggered when changeset files are merged to main
    - Contains version bumps and CHANGELOG updates
 
 2. **Merge the PR when ready to release** (manual approval)
+
    - Review the changes
    - Merge to trigger automatic publishing
 

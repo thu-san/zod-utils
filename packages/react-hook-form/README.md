@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@zod-utils/react-hook-form.svg)](https://www.npmjs.com/package/@zod-utils/react-hook-form)
 [![npm downloads](https://img.shields.io/npm/dm/@zod-utils/react-hook-form.svg)](https://www.npmjs.com/package/@zod-utils/react-hook-form)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/@zod-utils/react-hook-form)](https://bundlephobia.com/package/@zod-utils/react-hook-form)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![CI](https://github.com/thu-san/zod-utils/workflows/CI/badge.svg)](https://github.com/thu-san/zod-utils/actions)
@@ -48,6 +49,10 @@ const onSubmit = form.handleSubmit((data) => {
 ```bash
 npm install @zod-utils/react-hook-form zod react react-hook-form @hookform/resolvers
 ```
+
+## Related Packages
+
+- **[@zod-utils/core](https://www.npmjs.com/package/@zod-utils/core)** - Pure TypeScript utilities for Zod schema manipulation (no React dependencies). All utilities are re-exported from this package for convenience.
 
 ## Features
 

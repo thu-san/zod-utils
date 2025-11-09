@@ -123,6 +123,60 @@ Size limits enforced:
 - `@zod-utils/core`: 10 KB (excluding zod)
 - `@zod-utils/react-hook-form`: 10 KB (excluding zod, react, react-hook-form, @hookform/resolvers, @zod-utils/core)
 
+### Performance Benchmarking
+```bash
+# Run all benchmarks across packages
+npm run bench
+
+# Run benchmarks for specific package
+npm run bench:core                                      # @zod-utils/core only
+npm run bench:rhf                                       # @zod-utils/react-hook-form only
+
+# Watch mode for benchmark development
+npm run bench:watch --workspace=packages/core           # Core package
+npm run bench:watch --workspace=packages/react-hook-form # React Hook Form package
+```
+
+**Benchmark Organization:**
+- Benchmarks are located in `packages/*/benchmarks/*.bench.ts`
+- Uses Vitest's built-in benchmark functionality
+- Automatically run in CI on every push to main and PRs
+- Results stored as artifacts for 30 days
+
+**Core Package Benchmarks:**
+- `defaults.bench.ts` - Tests `getSchemaDefaults` and `extractDefault` performance
+  - Simple schemas (3 fields)
+  - Complex nested schemas
+  - Large schemas (100+ fields)
+- `schema.bench.ts` - Tests utility functions like `checkIfFieldIsRequired`, `getPrimitiveType`, etc.
+
+**React Hook Form Package Benchmarks:**
+- `resolver.bench.ts` - Tests zodResolver creation and validation performance
+  - Simple schemas (3 fields)
+  - Complex nested schemas
+  - Large schemas (50+ fields)
+  - Validation with valid/invalid data
+  - Schemas with refinements
+  - Async validation
+- `integration.bench.ts` - Tests complete form setup and validation workflows
+  - Form setup (defaults extraction + resolver creation)
+  - Complete validation cycles
+  - Optional/nullable field handling
+  - Array and object validations
+  - Refinements and transformations
+
+**When to Run Benchmarks:**
+- Before and after performance optimizations
+- When adding new utility functions
+- When refactoring core algorithms
+- CI automatically runs them on every PR
+
+**Interpreting Results:**
+- Vitest bench shows ops/sec (operations per second)
+- Higher numbers are better
+- Compare results before/after changes to detect regressions
+- CI artifacts show historical performance trends
+
 ## Key Technical Concepts
 
 ### Type Transformation in useZodForm
