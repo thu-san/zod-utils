@@ -22,6 +22,7 @@ type FormFieldContextValue<
 };
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   {} as FormFieldContextValue,
 );
 
@@ -66,6 +67,7 @@ type FormItemContextValue = {
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>(
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   {} as FormItemContextValue,
 );
 
