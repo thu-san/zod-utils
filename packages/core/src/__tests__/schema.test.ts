@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import {
+  canUnwrap,
   getPrimitiveType,
   removeDefault,
   requiresValidInput,
@@ -70,6 +71,39 @@ describe('getPrimitiveType', () => {
 
   it('should handle deeply nested wrappers', () => {
     const schema = z.string().default('test').optional().nullable();
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should unwrap direct union to get first primitive type', () => {
+    const schema = z.union([z.string(), z.number()]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should handle union with object types', () => {
+    const schema = z.union([
+      z.object({ type: z.literal('a') }),
+      z.object({ type: z.literal('b') }),
+    ]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodObject);
+  });
+
+  it('should handle union with array as first option', () => {
+    const schema = z.union([z.array(z.string()), z.number()]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodArray);
+  });
+
+  it('should handle union with literals', () => {
+    const schema = z.union([z.literal('foo'), z.literal('bar')]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodLiteral);
+  });
+
+  it('should handle nested union wrapped in optional', () => {
+    const schema = z.union([z.string(), z.number()]).optional();
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodString);
   });
@@ -223,6 +257,11 @@ describe('requiresValidInput', () => {
     expect(requiresValidInput(schema)).toBe(true);
   });
 
+  it('should return true for array with nonempty', () => {
+    const schema = z.array(z.string()).nonempty();
+    expect(requiresValidInput(schema)).toBe(true);
+  });
+
   it('should return false for optional array', () => {
     const schema = z.array(z.string()).optional();
     expect(requiresValidInput(schema)).toBe(false);
@@ -271,6 +310,30 @@ describe('requiresValidInput', () => {
 
   it('should return false for optional literal', () => {
     const schema = z.literal('test').optional();
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should handle z.any() type', () => {
+    const schema = z.any();
+    // z.any() accepts everything including undefined, null, empty strings
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should handle z.unknown() type', () => {
+    const schema = z.unknown();
+    // z.unknown() accepts everything including undefined, null, empty strings
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should handle z.never() type', () => {
+    const schema = z.never();
+    // z.never() rejects everything
+    expect(requiresValidInput(schema)).toBe(true);
+  });
+
+  it('should handle z.void() type', () => {
+    const schema = z.void();
+    // z.void() only accepts undefined
     expect(requiresValidInput(schema)).toBe(false);
   });
 });
@@ -427,5 +490,42 @@ describe('unwrapUnion', () => {
     const { field, union } = unwrapUnion(schema);
     expect(field).toBeInstanceOf(z.ZodString);
     expect(union).toHaveLength(2);
+  });
+});
+
+describe('canUnwrap', () => {
+  it('should return true for optional fields', () => {
+    const schema = z.string().optional();
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return true for nullable fields', () => {
+    const schema = z.string().nullable();
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return true for fields with default', () => {
+    const schema = z.string().default('test');
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return false for plain string', () => {
+    const schema = z.string();
+    expect(canUnwrap(schema)).toBe(false);
+  });
+
+  it('should return false for plain number', () => {
+    const schema = z.number();
+    expect(canUnwrap(schema)).toBe(false);
+  });
+
+  it('should return true for wrapped array', () => {
+    const schema = z.array(z.string()).optional();
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return false for plain object', () => {
+    const schema = z.object({ foo: z.string() });
+    expect(canUnwrap(schema)).toBe(false);
   });
 });

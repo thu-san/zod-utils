@@ -227,7 +227,7 @@ type StripZodDefault<T> = T extends z.ZodDefault<infer Inner>
  * // Result: z.string().nullable()
  * ```
  *
- * @see {@link checkIfFieldIsRequired} for usage with requirement checking
+ * @see {@link requiresValidInput} for usage with requirement checking
  * @since 0.1.0
  */
 export function removeDefault<T extends z.ZodType>(
