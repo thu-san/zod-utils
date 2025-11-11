@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import {
-  checkIfFieldIsRequired,
+  canUnwrap,
   getPrimitiveType,
   removeDefault,
+  requiresValidInput,
+  unwrapUnion,
 } from '../schema';
 
 describe('getPrimitiveType', () => {
@@ -72,6 +74,39 @@ describe('getPrimitiveType', () => {
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodString);
   });
+
+  it('should unwrap direct union to get first primitive type', () => {
+    const schema = z.union([z.string(), z.number()]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should handle union with object types', () => {
+    const schema = z.union([
+      z.object({ type: z.literal('a') }),
+      z.object({ type: z.literal('b') }),
+    ]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodObject);
+  });
+
+  it('should handle union with array as first option', () => {
+    const schema = z.union([z.array(z.string()), z.number()]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodArray);
+  });
+
+  it('should handle union with literals', () => {
+    const schema = z.union([z.literal('foo'), z.literal('bar')]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodLiteral);
+  });
+
+  it('should handle nested union wrapped in optional', () => {
+    const schema = z.union([z.string(), z.number()]).optional();
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
 });
 
 describe('removeDefault', () => {
@@ -134,142 +169,363 @@ describe('removeDefault', () => {
   });
 });
 
-describe('checkIfFieldIsRequired', () => {
+describe('requiresValidInput', () => {
   it('should return false for basic string (empty strings allowed)', () => {
     const schema = z.string();
     // z.string() accepts empty strings by default
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return false for optional string', () => {
     const schema = z.string().optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return false for nullable string', () => {
     const schema = z.string().nullable();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return false for string with default', () => {
     const schema = z.string().default('test');
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return false for string that accepts empty string', () => {
     const schema = z.string();
     // Note: by default z.string() accepts empty strings
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return true for string with min length', () => {
     const schema = z.string().min(1);
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional string with min length', () => {
     const schema = z.string().min(1).optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return true for required number', () => {
     const schema = z.number();
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional number', () => {
     const schema = z.number().optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
-  it('should return false for number with default', () => {
+  it('should return true for number with default', () => {
     const schema = z.number().default(0);
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return true for required boolean', () => {
     const schema = z.boolean();
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional boolean', () => {
     const schema = z.boolean().optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
-  it('should return false for boolean with default', () => {
+  it('should return true for boolean with default', () => {
     const schema = z.boolean().default(false);
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return true for required object', () => {
     const schema = z.object({ foo: z.string() });
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional object', () => {
     const schema = z.object({ foo: z.string() }).optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return false for required array (empty arrays are valid)', () => {
     const schema = z.array(z.string());
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return true for array with min length', () => {
     const schema = z.array(z.string()).min(1);
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
+  });
+
+  it('should return true for array with nonempty', () => {
+    const schema = z.array(z.string()).nonempty();
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional array', () => {
     const schema = z.array(z.string()).optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return false for array with default', () => {
     const schema = z.array(z.string()).default([]);
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should handle complex nested types', () => {
     const schema = z.string().optional().nullable();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should return true for string with email validation', () => {
     const schema = z.string().email();
     // email() validation rejects empty strings
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should handle non-empty string', () => {
     const schema = z.string().nonempty();
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional non-empty string', () => {
     const schema = z.string().nonempty().optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should handle enum types', () => {
     const schema = z.enum(['a', 'b', 'c']);
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional enum', () => {
     const schema = z.enum(['a', 'b', 'c']).optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
   });
 
   it('should handle literal types', () => {
     const schema = z.literal('test');
-    expect(checkIfFieldIsRequired(schema)).toBe(true);
+    expect(requiresValidInput(schema)).toBe(true);
   });
 
   it('should return false for optional literal', () => {
     const schema = z.literal('test').optional();
-    expect(checkIfFieldIsRequired(schema)).toBe(false);
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should handle z.any() type', () => {
+    const schema = z.any();
+    // z.any() accepts everything including undefined, null, empty strings
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should handle z.unknown() type', () => {
+    const schema = z.unknown();
+    // z.unknown() accepts everything including undefined, null, empty strings
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should handle z.never() type', () => {
+    const schema = z.never();
+    // z.never() rejects everything
+    expect(requiresValidInput(schema)).toBe(true);
+  });
+
+  it('should handle z.void() type', () => {
+    const schema = z.void();
+    // z.void() only accepts undefined
+    expect(requiresValidInput(schema)).toBe(false);
+  });
+});
+
+describe('unwrapUnion', () => {
+  it('should unwrap a basic union and return first field and all options', () => {
+    const schema = z.union([z.string(), z.number()]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(2);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+    expect(result.union[1]).toBeInstanceOf(z.ZodNumber);
+  });
+
+  it('should filter out null types by default', () => {
+    const schema = z.union([z.string(), z.null()]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should filter out undefined types by default', () => {
+    const schema = z.union([z.string(), z.undefined()]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should filter out both null and undefined by default', () => {
+    const schema = z.union([z.string(), z.number(), z.null(), z.undefined()]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(2);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+    expect(result.union[1]).toBeInstanceOf(z.ZodNumber);
+  });
+
+  it('should keep null when filterNullish is false', () => {
+    const schema = z.union([z.string(), z.null()]);
+    const result = unwrapUnion(schema, { filterNullish: false });
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(2);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+    expect(result.union[1]).toBeInstanceOf(z.ZodNull);
+  });
+
+  it('should keep undefined when filterNullish is false', () => {
+    const schema = z.union([z.string(), z.undefined()]);
+    const result = unwrapUnion(schema, { filterNullish: false });
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(2);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+    expect(result.union[1]).toBeInstanceOf(z.ZodUndefined);
+  });
+
+  it('should return field and single-element union for non-union types', () => {
+    const schema = z.string();
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should handle nullable (not a union, returns as-is)', () => {
+    const schema = z.string().nullable();
+    const result = unwrapUnion(schema);
+    // .nullable() creates ZodNullable, not ZodUnion, so it returns as-is
+    expect(result.field).toBeInstanceOf(z.ZodNullable);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodNullable);
+  });
+
+  it('should handle optional (non-union) types', () => {
+    const schema = z.string().optional();
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodOptional);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodOptional);
+  });
+
+  it('should handle union with multiple types', () => {
+    const schema = z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.array(z.string()),
+    ]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodString);
+    expect(result.union).toHaveLength(4);
+    expect(result.union[0]).toBeInstanceOf(z.ZodString);
+    expect(result.union[1]).toBeInstanceOf(z.ZodNumber);
+    expect(result.union[2]).toBeInstanceOf(z.ZodBoolean);
+    expect(result.union[3]).toBeInstanceOf(z.ZodArray);
+  });
+
+  it('should handle union with objects', () => {
+    const schema = z.union([
+      z.object({ type: z.literal('a') }),
+      z.object({ type: z.literal('b') }),
+    ]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodObject);
+    expect(result.union).toHaveLength(2);
+    expect(result.union[0]).toBeInstanceOf(z.ZodObject);
+    expect(result.union[1]).toBeInstanceOf(z.ZodObject);
+  });
+
+  it('should handle union with literals', () => {
+    const schema = z.union([z.literal('foo'), z.literal('bar')]);
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodLiteral);
+    expect(result.union).toHaveLength(2);
+    expect(result.union[0]).toBeInstanceOf(z.ZodLiteral);
+    expect(result.union[1]).toBeInstanceOf(z.ZodLiteral);
+  });
+
+  it('should handle number types', () => {
+    const schema = z.number();
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodNumber);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodNumber);
+  });
+
+  it('should handle boolean types', () => {
+    const schema = z.boolean();
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodBoolean);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodBoolean);
+  });
+
+  it('should handle object types', () => {
+    const schema = z.object({ foo: z.string() });
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodObject);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodObject);
+  });
+
+  it('should handle array types', () => {
+    const schema = z.array(z.string());
+    const result = unwrapUnion(schema);
+    expect(result.field).toBeInstanceOf(z.ZodArray);
+    expect(result.union).toHaveLength(1);
+    expect(result.union[0]).toBeInstanceOf(z.ZodArray);
+  });
+
+  it('should destructure field and union correctly', () => {
+    const schema = z.union([z.string(), z.number()]);
+    const { field, union } = unwrapUnion(schema);
+    expect(field).toBeInstanceOf(z.ZodString);
+    expect(union).toHaveLength(2);
+  });
+});
+
+describe('canUnwrap', () => {
+  it('should return true for optional fields', () => {
+    const schema = z.string().optional();
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return true for nullable fields', () => {
+    const schema = z.string().nullable();
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return true for fields with default', () => {
+    const schema = z.string().default('test');
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return false for plain string', () => {
+    const schema = z.string();
+    expect(canUnwrap(schema)).toBe(false);
+  });
+
+  it('should return false for plain number', () => {
+    const schema = z.number();
+    expect(canUnwrap(schema)).toBe(false);
+  });
+
+  it('should return true for wrapped array', () => {
+    const schema = z.array(z.string()).optional();
+    expect(canUnwrap(schema)).toBe(true);
+  });
+
+  it('should return false for plain object', () => {
+    const schema = z.object({ foo: z.string() });
+    expect(canUnwrap(schema)).toBe(false);
   });
 });

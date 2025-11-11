@@ -187,7 +187,7 @@ All utilities from `@zod-utils/core` are re-exported for convenience:
 import {
   // Schema utilities (from @zod-utils/core)
   getSchemaDefaults,
-  checkIfFieldIsRequired,
+  requiresValidInput,
   getPrimitiveType,
   removeDefault,
   extractDefault,

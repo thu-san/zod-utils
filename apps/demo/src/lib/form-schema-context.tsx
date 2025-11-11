@@ -1,6 +1,6 @@
 'use client';
 
-import { checkIfFieldIsRequired } from '@zod-utils/core';
+import { requiresValidInput } from '@zod-utils/core';
 import { createContext, useContext } from 'react';
 import type { z } from 'zod';
 
@@ -69,17 +69,24 @@ export function useIsFieldRequired(fieldName: string): boolean {
 }
 
 /**
- * Utility function to check if a field in a Zod schema is required
+ * Utility function to determine if a field will show validation errors on empty/invalid input
  *
- * Uses the comprehensive checkIfFieldIsRequired from @zod-utils/core which:
- * - Checks for undefined (optional fields)
- * - Checks for null (nullable fields)
- * - Checks for empty strings (string().min(1) vs string())
- * - Checks for empty arrays (array().min(1) vs array())
+ * Uses requiresValidInput from @zod-utils/core which checks the underlying field after
+ * removing defaults. This tells you if the field will error when user submits empty input.
+ *
+ * Returns false if the underlying field accepts:
+ * - undefined (via .optional())
+ * - null (via .nullable())
+ * - Empty strings (plain string() without .min(1))
+ * - Empty arrays (plain array() without .min(1))
+ *
+ * Note: Fields with .default() are checked based on their underlying validation:
+ * - number().default(0) → true (will error on empty input)
+ * - string().default('hi') → false (won't error if user clears it)
  *
  * @param schema - The Zod object schema
  * @param fieldName - The name of the field to check
- * @returns true if the field is required, false otherwise
+ * @returns true if the field requires valid input (will show validation error), false otherwise
  */
 export function isFieldRequired(
   schema: z.ZodObject<z.ZodRawShape>,
@@ -93,5 +100,5 @@ export function isFieldRequired(
   }
 
   // Use the comprehensive check from @zod-utils/core
-  return checkIfFieldIsRequired(field);
+  return requiresValidInput(field);
 }

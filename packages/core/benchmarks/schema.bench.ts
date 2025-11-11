@@ -2,13 +2,13 @@ import { bench, describe } from 'vitest';
 import { z } from 'zod';
 import {
   canUnwrap,
-  checkIfFieldIsRequired,
   getPrimitiveType,
   removeDefault,
+  requiresValidInput,
 } from '../src/schema';
 
 describe('Schema Utilities Benchmarks', () => {
-  // Test schemas for checkIfFieldIsRequired
+  // Test schemas for requiresValidInput
   const requiredString = z.string().min(1);
   const optionalString = z.string().optional();
   const nullableString = z.string().nullable();
@@ -39,28 +39,28 @@ describe('Schema Utilities Benchmarks', () => {
   const unwrappableDefault = z.string().default('test');
   const nonUnwrappableString = z.string();
 
-  bench('checkIfFieldIsRequired - required string', () => {
-    checkIfFieldIsRequired(requiredString);
+  bench('requiresValidInput - required string', () => {
+    requiresValidInput(requiredString);
   });
 
-  bench('checkIfFieldIsRequired - optional string', () => {
-    checkIfFieldIsRequired(optionalString);
+  bench('requiresValidInput - optional string', () => {
+    requiresValidInput(optionalString);
   });
 
-  bench('checkIfFieldIsRequired - nullable string', () => {
-    checkIfFieldIsRequired(nullableString);
+  bench('requiresValidInput - nullable string', () => {
+    requiresValidInput(nullableString);
   });
 
-  bench('checkIfFieldIsRequired - string with default', () => {
-    checkIfFieldIsRequired(stringWithDefault);
+  bench('requiresValidInput - string with default', () => {
+    requiresValidInput(stringWithDefault);
   });
 
-  bench('checkIfFieldIsRequired - required array', () => {
-    checkIfFieldIsRequired(requiredArray);
+  bench('requiresValidInput - required array', () => {
+    requiresValidInput(requiredArray);
   });
 
-  bench('checkIfFieldIsRequired - optional array', () => {
-    checkIfFieldIsRequired(optionalArray);
+  bench('requiresValidInput - optional array', () => {
+    requiresValidInput(optionalArray);
   });
 
   bench('getPrimitiveType - string', () => {
