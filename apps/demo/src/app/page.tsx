@@ -9,6 +9,7 @@ import {
   createCheckboxFormField,
   createInputFormField,
   createNumberFormField,
+  TFormLabel,
 } from '@/components/share/form';
 import { Button } from '@/components/ui/button';
 import {
@@ -277,9 +278,10 @@ export default function UserProfileForm() {
                         name="arrayOfStringRequired"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>
-                              {t('form.arrayOfStringRequired')}
-                            </FormLabel>
+                            <TFormLabel
+                              namespace="user"
+                              name="arrayOfStringRequired"
+                            />
                             <FormControl>
                               <Input
                                 value={
@@ -348,9 +350,10 @@ export default function UserProfileForm() {
                         name="arrayOfStringRequiredWithDefault"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>
-                              {t('form.arrayOfStringRequiredWithDefault')}
-                            </FormLabel>
+                            <TFormLabel
+                              namespace="user"
+                              name="arrayOfStringRequiredWithDefault"
+                            />
                             <FormControl>
                               <Input
                                 value={

@@ -39,7 +39,9 @@ export function InputFormField<
           {...inputProps}
           placeholder={
             placeholder ||
-            (autoPlaceholder ? `Please enter ${label.toLowerCase()}` : undefined)
+            (autoPlaceholder
+              ? `Please enter ${label.toLowerCase()}`
+              : undefined)
           }
         />
       )}

@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import type {
   Control,
@@ -5,7 +6,6 @@ import type {
   FieldPath,
   FieldValues,
 } from 'react-hook-form';
-import { useTranslations } from 'next-intl';
 import {
   FormControl,
   FormDescription,

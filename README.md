@@ -31,7 +31,7 @@ npm install @zod-utils/core zod
 **Features:**
 
 - Extract default values from schemas (`getSchemaDefaults`)
-- Check if fields are required (`checkIfFieldIsRequired`)
+- Check if fields will error on empty input (`requiresValidInput`)
 - Unwrap and manipulate schema types
 - TypeScript utility types
 
@@ -130,7 +130,7 @@ npm run bench:rhf   # @zod-utils/react-hook-form
   - Simple schemas (3 fields)
   - Complex nested schemas
   - Large schemas (100+ fields)
-- **Schema utilities** (`checkIfFieldIsRequired`, `getPrimitiveType`, `removeDefault`, `canUnwrap`)
+- **Schema utilities** (`requiresValidInput`, `getPrimitiveType`, `removeDefault`, `canUnwrap`)
   - Various schema types and edge cases
 
 **@zod-utils/react-hook-form:**

@@ -12,7 +12,7 @@ This is a TypeScript monorepo containing utilities for Zod schema manipulation w
 
 ### Package Structure
 - **`packages/core`** - Pure TypeScript utilities (no React dependencies)
-  - Schema manipulation (`getSchemaDefaults`, `checkIfFieldIsRequired`)
+  - Schema manipulation (`getSchemaDefaults`, `requiresValidInput`)
   - Type unwrapping (`getPrimitiveType`, `removeDefault`, `extractDefault`)
   - Zero dependencies except Zod peer dependency
 
@@ -148,7 +148,7 @@ npm run bench:watch --workspace=packages/react-hook-form # React Hook Form packa
   - Simple schemas (3 fields)
   - Complex nested schemas
   - Large schemas (100+ fields)
-- `schema.bench.ts` - Tests utility functions like `checkIfFieldIsRequired`, `getPrimitiveType`, etc.
+- `schema.bench.ts` - Tests utility functions like `requiresValidInput`, `getPrimitiveType`, etc.
 
 **React Hook Form Package Benchmarks:**
 - `resolver.bench.ts` - Tests zodResolver creation and validation performance
@@ -189,12 +189,26 @@ schema: z.ZodType<T, MakeOptionalAndNullable<T>>
 
 This eliminates the common TypeScript friction where React Hook Form expects nullable values but Zod schemas define strict types.
 
-### Required Field Detection
-`checkIfFieldIsRequired()` returns `false` if a field accepts:
-- `undefined` (via `.optional()` or `.default()`)
-- `null` (via `.nullable()`)
-- Empty string (plain `z.string()` without `.min(1)` or `.nonempty()`)
-- Empty array (plain `z.array()` without `.min(1)` or `.nonempty()`)
+### Form Validation Requirements
+`requiresValidInput()` determines if a field will show validation errors when the user submits empty/invalid input. This is for form UIs to indicate which fields need valid user input.
+
+**Key insight:** Defaults are initial values - they don't prevent validation errors if the user clears the field.
+
+**How it works:**
+1. Removes `.default()` wrappers (defaults ≠ validation rules)
+2. Checks if underlying field accepts empty/invalid input:
+   - `undefined` (via `.optional()`)
+   - `null` (via `.nullable()`)
+   - Empty string (plain `z.string()` without `.min(1)` or `.nonempty()`)
+   - Empty array (plain `z.array()` without `.min(1)` or `.nonempty()`)
+3. Returns `true` if validation will fail on empty input
+
+**Examples:**
+- `z.string().default('hello')` → `false` (won't error if user clears - plain strings accept empty)
+- `z.string().min(1).default('hello')` → `true` (will error if user clears - .min(1) rejects empty)
+- `z.number().default(0)` → `true` (will error on empty - numbers reject empty strings)
+- `z.boolean().default(false)` → `true` (will error on empty - booleans require true/false)
+- `z.array(z.string()).default([])` → `false` (won't error - arrays accept empty)
 
 Use `.nonempty()` or `.min(1)` to make strings/arrays truly required.
 

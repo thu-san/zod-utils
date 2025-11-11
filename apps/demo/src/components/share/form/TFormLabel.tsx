@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import type { ComponentProps } from 'react';
 import { FormLabel } from '@/components/ui/form';
+import { useIsFieldRequired } from '@/lib/form-schema-context';
 import type {
   FormNamespace,
   FormTranslationKey,
@@ -23,7 +24,14 @@ export function TFormLabel<T extends FormNamespace>({
     `form.${name as translationKeys<FormTranslationKey>}`,
   );
 
-  return <FormLabel {...props}>{value}</FormLabel>;
+  const isRequired = useIsFieldRequired(name);
+
+  return (
+    <FormLabel {...props}>
+      {value}
+      {isRequired && <span className="text-red-500 ml-1">*</span>}
+    </FormLabel>
+  );
 }
 
 export function createTFormLabel<T extends FormNamespace>(namespace: T) {

@@ -28,7 +28,10 @@ export function NumberFormField<
   placeholder?: string;
   description?: string;
   nullable?: boolean;
-} & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder' | 'type' | 'onChange'>) {
+} & Omit<
+  ComponentProps<typeof Input>,
+  'name' | 'placeholder' | 'type' | 'onChange'
+>) {
   return (
     <TFormField
       control={control}
@@ -42,7 +45,9 @@ export function NumberFormField<
           type="number"
           placeholder={
             placeholder ||
-            (autoPlaceholder ? `Please enter ${label.toLowerCase()}` : undefined)
+            (autoPlaceholder
+              ? `Please enter ${label.toLowerCase()}`
+              : undefined)
           }
           onChange={(e) => {
             if (nullable) {
@@ -82,7 +87,10 @@ export function createNumberFormField<TNamespace extends FormNamespace>(
     placeholder?: string;
     description?: string;
     nullable?: boolean;
-  } & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder' | 'type' | 'onChange'>) {
+  } & Omit<
+    ComponentProps<typeof Input>,
+    'name' | 'placeholder' | 'type' | 'onChange'
+  >) {
     return (
       <NumberFormField
         control={control}

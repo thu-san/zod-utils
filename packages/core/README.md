@@ -23,7 +23,7 @@ npm install @zod-utils/core zod
 ## Features
 
 - 🎯 **Extract defaults** - Get default values from Zod schemas
-- ✅ **Check required fields** - Determine if fields are required
+- ✅ **Check validation requirements** - Determine if fields will error on empty input
 - 🔧 **Schema utilities** - Unwrap and manipulate schema types
 - 📦 **Zero dependencies** - Only requires Zod as a peer dependency
 - 🌐 **Universal** - Works in Node.js, browsers, and any TypeScript project
@@ -72,48 +72,64 @@ const defaults = getSchemaDefaults(schema);
 
 ---
 
-### `checkIfFieldIsRequired(field)`
+### `requiresValidInput(field)`
 
-Check if a Zod field is required. Returns `false` if the field accepts any of:
+Determines if a field will show validation errors when the user submits empty or invalid input. Useful for form UIs to show which fields need valid user input (asterisks, validation indicators).
 
-- `undefined` (via `.optional()` or `.default()`)
-- `null` (via `.nullable()`)
-- Empty string (plain `z.string()` without `.min(1)` or `.nonempty()`)
-- Empty array (plain `z.array()` without `.min(1)` or `.nonempty()`)
+**Key insight:** Defaults are just initial values - they don't prevent validation errors if the user clears the field.
+
+**Real-world example:**
 
 ```typescript
-import { checkIfFieldIsRequired } from "@zod-utils/core";
+// Marital status with default but validation rules
+const maritalStatus = z.string().min(1).default('single');
+
+// What happens in the form:
+// 1. Initial: field shows "single" (from default)
+// 2. User deletes the value → empty string
+// 3. User submits form → validation fails (.min(1) rejects empty)
+// 4. requiresValidInput(maritalStatus) → true (show *, show error)
+```
+
+**How it works:**
+
+1. Removes `.default()` wrappers (defaults ≠ validation rules)
+2. Tests if underlying schema accepts empty/invalid input:
+   - `undefined` (via `.optional()`)
+   - `null` (via `.nullable()`)
+   - Empty string (plain `z.string()`)
+   - Empty array (plain `z.array()`)
+3. Returns `true` if validation will fail on empty input
+
+**Examples:**
+
+```typescript
+import { requiresValidInput } from "@zod-utils/core";
 import { z } from "zod";
 
-// Required fields - return true
-const requiredString = z.string().min(1);
-const nonemptyString = z.string().nonempty();
-const requiredArray = z.array(z.string()).min(1);
-const nonemptyArray = z.array(z.string()).nonempty();
+// User name - required, no default
+const userName = z.string().min(1);
+requiresValidInput(userName); // true - will error if empty
 
-checkIfFieldIsRequired(requiredString); // true
-checkIfFieldIsRequired(nonemptyString); // true
-checkIfFieldIsRequired(requiredArray); // true
-checkIfFieldIsRequired(nonemptyArray); // true
+// Marital status - required WITH default
+const maritalStatus = z.string().min(1).default('single');
+requiresValidInput(maritalStatus); // true - will error if user clears it
 
-// Fields accepting undefined - return false
-const optionalField = z.string().optional();
-const fieldWithDefault = z.string().default("hello");
+// Age with default - requires valid input
+const age = z.number().default(0);
+requiresValidInput(age); // true - numbers reject empty strings
 
-checkIfFieldIsRequired(optionalField); // false
-checkIfFieldIsRequired(fieldWithDefault); // false
+// Optional bio - doesn't require input
+const bio = z.string().optional();
+requiresValidInput(bio); // false - user can leave empty
 
-// Fields accepting empty values - return false
-const emptyStringAllowed = z.string();
-const emptyArrayAllowed = z.array(z.string());
+// Notes with default but NO validation
+const notes = z.string().default('N/A');
+requiresValidInput(notes); // false - plain z.string() accepts empty
 
-checkIfFieldIsRequired(emptyStringAllowed); // false
-checkIfFieldIsRequired(emptyArrayAllowed); // false
-
-// Fields accepting null - return false
-const nullableField = z.string().nullable();
-
-checkIfFieldIsRequired(nullableField); // false
+// Nullable middle name
+const middleName = z.string().nullable();
+requiresValidInput(middleName); // false - user can leave null
 ```
 
 ---

@@ -4,9 +4,10 @@
 export { extractDefault, getSchemaDefaults } from './defaults';
 export {
   canUnwrap,
-  checkIfFieldIsRequired,
   getPrimitiveType,
   removeDefault,
+  requiresValidInput,
+  unwrapUnion,
 } from './schema';
 
 // Type utilities

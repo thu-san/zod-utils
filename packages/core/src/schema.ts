@@ -32,6 +32,103 @@ export function canUnwrap(
 }
 
 /**
+ * Unwraps a ZodUnion type and returns the first field and all union options.
+ *
+ * This function extracts the individual type options from a union type.
+ * By default, it filters out `ZodNull` and `ZodUndefined` types, returning only
+ * the meaningful type options. You can disable this filtering to get all options.
+ *
+ * @template T - The Zod type to unwrap
+ * @param field - The Zod field (union or single type)
+ * @param options - Configuration options
+ * @param options.filterNullish - Whether to filter out null and undefined types (default: true)
+ * @returns Object with `field` (first option) and `union` (all options array)
+ *
+ * @example
+ * Basic union unwrapping
+ * ```typescript
+ * const field = z.union([z.string(), z.number()]);
+ * const result = unwrapUnion(field);
+ * // Result: { field: z.string(), union: [z.string(), z.number()] }
+ * ```
+ *
+ * @example
+ * Union with null (filtered by default)
+ * ```typescript
+ * const field = z.union([z.string(), z.null()]);
+ * const result = unwrapUnion(field);
+ * // Result: { field: z.string(), union: [z.string()] }
+ * ```
+ *
+ * @example
+ * Union with null (keep all options)
+ * ```typescript
+ * const field = z.union([z.string(), z.null()]);
+ * const result = unwrapUnion(field, { filterNullish: false });
+ * // Result: { field: z.string(), union: [z.string(), z.null()] }
+ * ```
+ *
+ * @example
+ * Non-union type (returns single field)
+ * ```typescript
+ * const field = z.string();
+ * const result = unwrapUnion(field);
+ * // Result: { field: z.string(), union: [z.string()] }
+ * ```
+ *
+ * @example
+ * Nullable as union
+ * ```typescript
+ * const field = z.string().nullable(); // This is z.union([z.string(), z.null()])
+ * const result = unwrapUnion(field);
+ * // Result: { field: z.string(), union: [z.string()] } (null filtered out)
+ * ```
+ *
+ * @example
+ * Using the first field for type checking
+ * ```typescript
+ * const field = z.union([z.string(), z.number()]);
+ * const { field: firstField, union } = unwrapUnion(field);
+ * if (firstField instanceof z.ZodString) {
+ *   console.log('First type is string');
+ * }
+ * ```
+ *
+ * @see {@link getPrimitiveType} for unwrapping wrapper types
+ * @since 0.1.0
+ */
+export function unwrapUnion<T extends z.ZodTypeAny>(
+  field: T,
+  options: { filterNullish?: boolean } = {},
+): { field: z.ZodTypeAny; union: z.ZodTypeAny[] } {
+  const { filterNullish = true } = options;
+
+  if (field instanceof z.ZodUnion) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const unionOptions = [...field.def.options] as z.ZodTypeAny[];
+
+    const filteredOptions = filterNullish
+      ? unionOptions.filter(
+          (option) =>
+            !(option instanceof z.ZodNull) &&
+            !(option instanceof z.ZodUndefined),
+        )
+      : unionOptions;
+
+    return {
+      field: filteredOptions[0] || field,
+      union: filteredOptions,
+    };
+  }
+
+  // If it's not a union, return the field itself
+  return {
+    field,
+    union: [field],
+  };
+}
+
+/**
  * Gets the underlying primitive type of a Zod field by recursively unwrapping wrapper types.
  *
  * This function removes wrapper layers (optional, nullable, default) to reveal the base type.
@@ -68,7 +165,7 @@ export function canUnwrap(
  * @see {@link canUnwrap} for checking if a field can be unwrapped
  * @since 0.1.0
  */
-export const getPrimitiveType = <T extends z.ZodTypeAny>(
+export const getPrimitiveType = <T extends z.ZodType>(
   field: T,
 ): z.ZodTypeAny => {
   // Stop at arrays - don't unwrap them
@@ -78,6 +175,10 @@ export const getPrimitiveType = <T extends z.ZodTypeAny>(
 
   if (canUnwrap(field)) {
     return getPrimitiveType(field.unwrap());
+  }
+
+  if (field instanceof z.ZodUnion) {
+    return getPrimitiveType(unwrapUnion(field).field);
   }
 
   return field;
@@ -155,79 +256,89 @@ export function removeDefault<T extends z.ZodType>(
 }
 
 /**
- * Checks if a Zod field is truly required by testing multiple acceptance criteria.
+ * Determines if a field will show validation errors when the user submits empty or invalid input.
  *
- * A field is considered **not required** if it accepts any of the following:
- * - `undefined` (via `.optional()` or `.default()`)
- * - `null` (via `.nullable()`)
- * - Empty string (plain `z.string()` without `.min(1)` or `.nonempty()`)
- * - Empty array (plain `z.array()` without `.min(1)` or `.nonempty()`)
+ * This is useful for form UIs to indicate which fields require valid user input (e.g., showing
+ * asterisks, validation states). The key insight: **defaults are just initial values** - they
+ * don't prevent validation errors if the user clears the field.
  *
- * **Note:** Fields with `.default()` are considered not required since they'll have a value
- * even if the user doesn't provide one.
+ * **Real-world example:**
+ * ```typescript
+ * // Marital status field with default but validation rules
+ * const maritalStatus = z.string().min(1).default('single');
+ *
+ * // Initial: field shows "single" (from default)
+ * // User deletes the value → field is now empty string
+ * // User submits form → validation fails because .min(1) rejects empty strings
+ * // requiresValidInput(maritalStatus) → true (shows * indicator, validation error)
+ * ```
+ *
+ * **How it works:**
+ * 1. Removes `.default()` wrappers (defaults are initial values, not validation rules)
+ * 2. Tests if the underlying schema accepts empty/invalid input:
+ *    - `undefined` (via `.optional()`)
+ *    - `null` (via `.nullable()`)
+ *    - Empty string (plain `z.string()` without `.min(1)` or `.nonempty()`)
+ *    - Empty array (plain `z.array()` without `.min(1)` or `.nonempty()`)
+ * 3. Returns `true` if validation will fail, `false` if empty input is accepted
  *
  * @template T - The Zod type to check
- * @param field - The Zod field to check for required status
- * @returns True if the field is required, false otherwise
+ * @param field - The Zod field to check
+ * @returns True if the field will show validation errors on empty/invalid input, false otherwise
  *
  * @example
- * Required field
+ * User name field - required, no default
  * ```typescript
- * const field = z.string().min(1);
- * console.log(checkIfFieldIsRequired(field)); // true
+ * const userName = z.string().min(1);
+ * requiresValidInput(userName); // true - will error if user submits empty
  * ```
  *
  * @example
- * Optional field (not required)
+ * Marital status - required WITH default
  * ```typescript
- * const field = z.string().optional();
- * console.log(checkIfFieldIsRequired(field)); // false
+ * const maritalStatus = z.string().min(1).default('single');
+ * requiresValidInput(maritalStatus); // true - will error if user clears and submits
  * ```
  *
  * @example
- * Field with default (not required)
+ * Age with default - requires valid input
  * ```typescript
- * const field = z.string().default('hello');
- * console.log(checkIfFieldIsRequired(field)); // false
+ * const age = z.number().default(0);
+ * requiresValidInput(age); // true - numbers reject empty strings
  * ```
  *
  * @example
- * String without min length (not required - accepts empty string)
+ * Optional bio field - doesn't require input
  * ```typescript
- * const field = z.string();
- * console.log(checkIfFieldIsRequired(field)); // false
+ * const bio = z.string().optional();
+ * requiresValidInput(bio); // false - user can leave empty
  * ```
  *
  * @example
- * String with nonempty (required)
+ * String with default but NO validation - doesn't require input
  * ```typescript
- * const field = z.string().nonempty();
- * console.log(checkIfFieldIsRequired(field)); // true
+ * const notes = z.string().default('N/A');
+ * requiresValidInput(notes); // false - plain z.string() accepts empty strings
  * ```
  *
  * @example
- * Nullable field (not required)
+ * Nullable field - doesn't require input
  * ```typescript
- * const field = z.number().nullable();
- * console.log(checkIfFieldIsRequired(field)); // false
+ * const middleName = z.string().nullable();
+ * requiresValidInput(middleName); // false - user can leave null
  * ```
  *
  * @see {@link removeDefault} for understanding how defaults are handled
  * @see {@link getPrimitiveType} for understanding type unwrapping
  * @since 0.1.0
  */
-export const checkIfFieldIsRequired = <T extends z.ZodType>(field: T) => {
-  // First check the original field for undefined - this catches fields with defaults
-  const undefinedResult = field.safeParse(undefined).success;
-  if (undefinedResult) {
-    return false;
-  }
-
+export const requiresValidInput = <T extends z.ZodType>(field: T) => {
   const defaultRemovedField = removeDefault(field);
-
   if (!(defaultRemovedField instanceof z.ZodType)) {
     return false;
   }
+
+  const undefinedResult = defaultRemovedField.safeParse(undefined).success;
 
   // Check if field accepts null (nullable)
   const nullResult = defaultRemovedField.safeParse(null).success;
