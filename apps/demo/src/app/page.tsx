@@ -5,7 +5,11 @@ import { useTranslations } from 'next-intl';
 import { type CSSProperties, useId } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
-
+import {
+  createCheckboxFormField,
+  createInputFormField,
+  createNumberFormField,
+} from '@/components/share/form';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -120,6 +124,10 @@ const formSchema = z.object({
     .default({ notifications: true, frequency: 'daily' }),
 });
 
+const UserInputFormField = createInputFormField('user');
+const UserNumberFormField = createNumberFormField('user');
+const UserCheckboxFormField = createCheckboxFormField('user');
+
 export default function UserProfileForm() {
   const formId = useId();
   const t = useTranslations('user');
@@ -167,67 +175,27 @@ export default function UserProfileForm() {
                       String Fields
                     </h3>
                     <div className="space-y-4">
-                      <FormField
+                      <UserInputFormField
                         control={form.control}
                         name="stringRequired"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('form.stringRequired')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
                       />
-                      <FormField
+                      <UserInputFormField
                         control={form.control}
                         name="stringNullish"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('form.stringNullish')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
                       />
-                      <FormField
+                      <UserInputFormField
                         control={form.control}
                         name="stringRequiredWithDefault"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t('form.stringRequiredWithDefault')}
-                            </FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Default: "Default String"
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
+                        description='Default: "Default String"'
                       />
-                      <FormField
+                      <UserInputFormField
                         control={form.control}
                         name="stringNullishWithDefault"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t('form.stringNullishWithDefault')}
-                            </FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormDescription>
-                              Default: "Optional Default"
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
+                        description='Default: "Optional Default"'
                       />
                     </div>
                   </div>
@@ -240,93 +208,29 @@ export default function UserProfileForm() {
                       Number Fields
                     </h3>
                     <div className="space-y-4">
-                      <FormField
+                      <UserNumberFormField
                         control={form.control}
                         name="numberRequired"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('form.numberRequired')}</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                onChange={(e) =>
-                                  field.onChange(e.target.valueAsNumber)
-                                }
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
                       />
-                      <FormField
+                      <UserNumberFormField
                         control={form.control}
                         name="numberNullish"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('form.numberNullish')}</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  field.onChange(
-                                    val === '' ? undefined : Number(val),
-                                  );
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
+                        nullable
                       />
-                      <FormField
+                      <UserNumberFormField
                         control={form.control}
                         name="numberRequiredWithDefault"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t('form.numberRequiredWithDefault')}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                onChange={(e) =>
-                                  field.onChange(e.target.valueAsNumber)
-                                }
-                              />
-                            </FormControl>
-                            <FormDescription>Default: 42</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
+                        description="Default: 42"
                       />
-                      <FormField
+                      <UserNumberFormField
                         control={form.control}
                         name="numberNullishWithDefault"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>
-                              {t('form.numberNullishWithDefault')}
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                type="number"
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  field.onChange(
-                                    val === '' ? undefined : Number(val),
-                                  );
-                                }}
-                              />
-                            </FormControl>
-                            <FormDescription>Default: 100</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        autoPlaceholder
+                        nullable
+                        description="Default: 100"
                       />
                     </div>
                   </div>
@@ -339,95 +243,23 @@ export default function UserProfileForm() {
                       Boolean Fields
                     </h3>
                     <div className="space-y-4">
-                      <FormField
+                      <UserCheckboxFormField
                         control={form.control}
                         name="booleanRequired"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <input
-                                  {...field}
-                                  type="checkbox"
-                                  checked={field.value ?? false}
-                                  value={undefined}
-                                />
-                              </FormControl>
-                              <FormLabel className="mt-0!">
-                                {t('form.booleanRequired')}
-                              </FormLabel>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
                       />
-                      <FormField
+                      <UserCheckboxFormField
                         control={form.control}
                         name="booleanNullish"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <input
-                                  {...field}
-                                  type="checkbox"
-                                  checked={field.value ?? false}
-                                  value={undefined}
-                                />
-                              </FormControl>
-                              <FormLabel className="mt-0!">
-                                {t('form.booleanNullish')}
-                              </FormLabel>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
                       />
-                      <FormField
+                      <UserCheckboxFormField
                         control={form.control}
                         name="booleanRequiredWithDefault"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <input
-                                  {...field}
-                                  type="checkbox"
-                                  checked={field.value ?? false}
-                                  value={undefined}
-                                />
-                              </FormControl>
-                              <FormLabel className="mt-0!">
-                                {t('form.booleanRequiredWithDefault')}
-                              </FormLabel>
-                            </div>
-                            <FormDescription>Default: true</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        description="Default: true"
                       />
-                      <FormField
+                      <UserCheckboxFormField
                         control={form.control}
                         name="booleanNullishWithDefault"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <input
-                                  {...field}
-                                  type="checkbox"
-                                  checked={field.value ?? false}
-                                  value={undefined}
-                                />
-                              </FormControl>
-                              <FormLabel className="mt-0!">
-                                {t('form.booleanNullishWithDefault')}
-                              </FormLabel>
-                            </div>
-                            <FormDescription>Default: false</FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        description="Default: false"
                       />
                     </div>
                   </div>
