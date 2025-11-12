@@ -1,0 +1,1 @@
+export { useValidationDescription } from './useValidationDescription';

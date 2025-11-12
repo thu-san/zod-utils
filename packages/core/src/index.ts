@@ -4,10 +4,12 @@
 export { extractDefault, getSchemaDefaults } from './defaults';
 export {
   canUnwrap,
+  getFieldChecks,
   getPrimitiveType,
   removeDefault,
   requiresValidInput,
   unwrapUnion,
+  type ZodUnionCheck,
 } from './schema';
 
 // Type utilities

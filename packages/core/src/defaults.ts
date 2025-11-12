@@ -1,12 +1,15 @@
 import * as z from 'zod';
-import { canUnwrap } from './schema';
+import { canUnwrap, unwrapUnion } from './schema';
 import type { Simplify } from './types';
 
 /**
- * Extracts the default value from a Zod field, recursively unwrapping optional and nullable layers.
+ * Extracts the default value from a Zod field, recursively unwrapping optional, nullable, and union layers.
  *
- * This function traverses through wrapper types (like `ZodOptional`, `ZodNullable`) to find
+ * This function traverses through wrapper types (like `ZodOptional`, `ZodNullable`, `ZodUnion`) to find
  * the underlying `ZodDefault` and returns its default value. If no default is found, returns `undefined`.
+ *
+ * **Union handling:** For union types, extracts the default from the first option. If the first option
+ * has no default, returns `undefined` (defaults in other union options are not checked).
  *
  * @template T - The Zod type to extract default from
  * @param field - The Zod field to extract default from
@@ -26,6 +29,22 @@ import type { Simplify } from './types';
  * const field = z.string().default('world').optional();
  * const defaultValue = extractDefault(field);
  * // Result: 'world' (unwraps optional to find default)
+ * ```
+ *
+ * @example
+ * Union with default in first option
+ * ```typescript
+ * const field = z.union([z.string().default('hello'), z.number()]);
+ * const defaultValue = extractDefault(field);
+ * // Result: 'hello' (extracts from first union option)
+ * ```
+ *
+ * @example
+ * Union with default in second option
+ * ```typescript
+ * const field = z.union([z.string(), z.number().default(42)]);
+ * const defaultValue = extractDefault(field);
+ * // Result: undefined (only checks first option)
  * ```
  *
  * @example
@@ -50,6 +69,11 @@ export function extractDefault<T extends z.ZodTypeAny>(
   if (canUnwrap(field)) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return extractDefault(field.unwrap()) as z.infer<T>;
+  }
+
+  if (field instanceof z.ZodUnion) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return extractDefault(unwrapUnion(field).field) as z.infer<T>;
   }
 
   return undefined;

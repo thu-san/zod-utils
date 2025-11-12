@@ -24,6 +24,7 @@ npm install @zod-utils/core zod
 
 - 🎯 **Extract defaults** - Get default values from Zod schemas
 - ✅ **Check validation requirements** - Determine if fields will error on empty input
+- 🔍 **Extract validation checks** - Get all validation constraints (min/max, formats, patterns, etc.)
 - 🔧 **Schema utilities** - Unwrap and manipulate schema types
 - 📦 **Zero dependencies** - Only requires Zod as a peer dependency
 - 🌐 **Universal** - Works in Node.js, browsers, and any TypeScript project
@@ -173,17 +174,100 @@ withoutDefault.parse(undefined); // throws error
 
 ### `extractDefault(field)`
 
-Extract the default value from a Zod field (recursively unwraps optional/nullable).
+Extract the default value from a Zod field (recursively unwraps optional/nullable/union layers).
+
+**Union handling:** For union types, extracts the default from the first option. If the first option has no default, returns `undefined` (defaults in other union options are not checked).
 
 ```typescript
 import { extractDefault } from "@zod-utils/core";
 import { z } from "zod";
 
+// Basic usage
 const field = z.string().optional().default("hello");
 extractDefault(field); // 'hello'
 
 const noDefault = z.string();
 extractDefault(noDefault); // undefined
+
+// Union with default in first option
+const unionField = z.union([z.string().default('hello'), z.number()]);
+extractDefault(unionField); // 'hello'
+
+// Union with default in second option (only checks first)
+const unionField2 = z.union([z.string(), z.number().default(42)]);
+extractDefault(unionField2); // undefined
+
+// Union wrapped in optional
+const wrappedUnion = z.union([z.string().default('test'), z.number()]).optional();
+extractDefault(wrappedUnion); // 'test'
+```
+
+---
+
+### `getFieldChecks(field)`
+
+Extract all validation check definitions from a Zod schema field. Returns Zod's raw check definition objects directly, including all properties like `check`, `minimum`, `maximum`, `value`, `inclusive`, `format`, `pattern`, etc.
+
+**Automatically unwraps:** optional, nullable, and default layers. For unions, checks only the first option.
+
+**Supported check types:** Returns any of 21 check types:
+- **Length checks**: `min_length`, `max_length`, `length_equals` (strings, arrays)
+- **Size checks**: `min_size`, `max_size`, `size_equals` (files, sets, maps)
+- **Numeric checks**: `greater_than`, `less_than`, `multiple_of`
+- **Format checks**: `number_format`, `bigint_format`, `string_format` (email, url, uuid, etc.)
+- **String pattern checks**: `regex`, `lowercase`, `uppercase`, `includes`, `starts_with`, `ends_with`
+- **Other checks**: `property`, `mime_type`, `overwrite`
+
+```typescript
+import { getFieldChecks } from "@zod-utils/core";
+import { z } from "zod";
+
+// String with length constraints
+const username = z.string().min(3).max(20);
+const checks = getFieldChecks(username);
+// [
+//   { check: 'min_length', minimum: 3, when: [Function], ... },
+//   { check: 'max_length', maximum: 20, when: [Function], ... }
+// ]
+
+// Number with range constraints
+const age = z.number().min(18).max(120);
+const checks = getFieldChecks(age);
+// [
+//   { check: 'greater_than', value: 18, inclusive: true, ... },
+//   { check: 'less_than', value: 120, inclusive: true, ... }
+// ]
+
+// Array with item count constraints
+const tags = z.array(z.string()).min(1).max(5);
+const checks = getFieldChecks(tags);
+// [
+//   { check: 'min_length', minimum: 1, ... },
+//   { check: 'max_length', maximum: 5, ... }
+// ]
+
+// String with format validation
+const email = z.string().email();
+const checks = getFieldChecks(email);
+// [{ check: 'string_format', format: 'email', ... }]
+
+// Unwrapping optional/nullable/default layers
+const bio = z.string().min(10).max(500).optional();
+const checks = getFieldChecks(bio);
+// [
+//   { check: 'min_length', minimum: 10, ... },
+//   { check: 'max_length', maximum: 500, ... }
+// ]
+
+// No checks
+const plainString = z.string();
+getFieldChecks(plainString); // []
+```
+
+**Type:** The return type is `ZodUnionCheck[]`, a union of all 21 Zod check definition types. You can also import the `ZodUnionCheck` type:
+
+```typescript
+import { getFieldChecks, type ZodUnionCheck } from "@zod-utils/core";
 ```
 
 ---

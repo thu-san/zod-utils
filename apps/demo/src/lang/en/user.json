@@ -22,5 +22,11 @@
     "arrayOfStringNullish": "Comma-separated",
     "arrayOfStringRequiredWithDefault": "Comma-separated",
     "arrayOfStringNullishWithDefault": "Comma-separated"
+  },
+  "validation": {
+    "max_length": "Max {maximum}",
+    "length_equals": "Length {length}",
+    "greater_than": "Min {value}",
+    "less_than": "Max {value}"
   }
 }
