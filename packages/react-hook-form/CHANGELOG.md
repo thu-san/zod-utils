@@ -1,5 +1,16 @@
 # @zod-utils/react-hook-form
 
+## 0.5.0
+
+### Minor Changes
+
+- 900bfa3: Add getFieldChecks to show validation rules as descriptions
+
+### Patch Changes
+
+- Updated dependencies [900bfa3]
+  - @zod-utils/core@0.5.0
+
 ## 0.4.0
 
 ### Minor Changes
