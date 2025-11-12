@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import {
   canUnwrap,
+  getFieldChecks,
   getPrimitiveType,
   removeDefault,
   requiresValidInput,
@@ -527,5 +528,239 @@ describe('canUnwrap', () => {
   it('should return false for plain object', () => {
     const schema = z.object({ foo: z.string() });
     expect(canUnwrap(schema)).toBe(false);
+  });
+});
+
+describe('getFieldChecks', () => {
+  describe('string validations', () => {
+    it('should extract min length constraint', () => {
+      const schema = z.string().min(3);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+      ]);
+    });
+
+    it('should extract max length constraint', () => {
+      const schema = z.string().max(100);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'max_length', maximum: 100 },
+      ]);
+    });
+
+    it('should extract both min and max length', () => {
+      const schema = z.string().min(3).max(20);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+        { check: 'max_length', maximum: 20 },
+      ]);
+    });
+
+    it('should extract exact length constraint', () => {
+      const schema = z.string().length(10);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'length_equals', length: 10 },
+      ]);
+    });
+  });
+
+  describe('number validations', () => {
+    it('should extract min value constraint', () => {
+      const schema = z.number().min(18);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 18, inclusive: true },
+      ]);
+    });
+
+    it('should extract max value constraint', () => {
+      const schema = z.number().max(120);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'less_than', value: 120, inclusive: true },
+      ]);
+    });
+
+    it('should extract both min and max value', () => {
+      const schema = z.number().min(18).max(120);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 18, inclusive: true },
+        { check: 'less_than', value: 120, inclusive: true },
+      ]);
+    });
+  });
+
+  describe('array validations', () => {
+    it('should extract min items constraint', () => {
+      const schema = z.array(z.string()).min(1);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 1 },
+      ]);
+    });
+
+    it('should extract max items constraint', () => {
+      const schema = z.array(z.string()).max(10);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'max_length', maximum: 10 },
+      ]);
+    });
+
+    it('should extract both min and max items', () => {
+      const schema = z.array(z.string()).min(1).max(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 1 },
+        { check: 'max_length', maximum: 5 },
+      ]);
+    });
+  });
+
+  describe('date validations', () => {
+    it('should extract min date constraint', () => {
+      const minDate = new Date('2024-01-01');
+      const schema = z.date().min(minDate);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: minDate, inclusive: true },
+      ]);
+    });
+
+    it('should extract max date constraint', () => {
+      const maxDate = new Date('2024-12-31');
+      const schema = z.date().max(maxDate);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'less_than', value: maxDate, inclusive: true },
+      ]);
+    });
+
+    it('should extract both min and max date', () => {
+      const minDate = new Date('2024-01-01');
+      const maxDate = new Date('2024-12-31');
+      const schema = z.date().min(minDate).max(maxDate);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: minDate, inclusive: true },
+        { check: 'less_than', value: maxDate, inclusive: true },
+      ]);
+    });
+  });
+
+  describe('unwrapping behavior', () => {
+    it('should unwrap optional fields', () => {
+      const schema = z.string().min(3).max(20).optional();
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+        { check: 'max_length', maximum: 20 },
+      ]);
+    });
+
+    it('should unwrap nullable fields', () => {
+      const schema = z.number().min(0).max(100).nullable();
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 0, inclusive: true },
+        { check: 'less_than', value: 100, inclusive: true },
+      ]);
+    });
+
+    it('should unwrap fields with defaults', () => {
+      const schema = z.string().min(5).max(50).default('test');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 5 },
+        { check: 'max_length', maximum: 50 },
+      ]);
+    });
+
+    it('should unwrap multiple layers', () => {
+      const schema = z
+        .string()
+        .min(10)
+        .max(500)
+        .optional()
+        .nullable()
+        .default('test');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 10 },
+        { check: 'max_length', maximum: 500 },
+      ]);
+    });
+
+    it('should extract from first option of union', () => {
+      const schema = z.union([z.string().min(3), z.number()]);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+      ]);
+    });
+
+    it('should ignore constraints in second union option', () => {
+      const schema = z.union([z.string(), z.number().min(10)]);
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+  });
+
+  describe('fields with no constraints', () => {
+    it('should return empty array for plain string', () => {
+      const schema = z.string();
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for plain number', () => {
+      const schema = z.number();
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for plain array', () => {
+      const schema = z.array(z.string());
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for plain date', () => {
+      const schema = z.date();
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for object', () => {
+      const schema = z.object({ name: z.string() });
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for boolean', () => {
+      const schema = z.boolean();
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+  });
+
+  describe('complex real-world examples', () => {
+    it('should extract constraints from username field', () => {
+      const schema = z.string().min(3).max(20);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+        { check: 'max_length', maximum: 20 },
+      ]);
+    });
+
+    it('should extract constraints from email field', () => {
+      const schema = z.string().max(255).optional();
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'max_length', maximum: 255 },
+      ]);
+    });
+
+    it('should extract constraints from age field', () => {
+      const schema = z.number().min(18).max(120).default(25);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 18, inclusive: true },
+        { check: 'less_than', value: 120, inclusive: true },
+      ]);
+    });
+
+    it('should extract constraints from tags field', () => {
+      const schema = z.array(z.string()).min(1).max(5).default([]);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 1 },
+        { check: 'max_length', maximum: 5 },
+      ]);
+    });
+
+    it('should extract constraints from bio field', () => {
+      const schema = z.string().min(10).max(500).optional();
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 10 },
+        { check: 'max_length', maximum: 500 },
+      ]);
+    });
   });
 });

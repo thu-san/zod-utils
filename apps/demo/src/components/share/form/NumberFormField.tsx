@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
+import { useValidationDescription } from '@/hooks/useValidationDescription';
 import type { FormNamespace, translationKeys } from '@/types/i18n';
 import { TFormField } from './TFormField';
 
@@ -32,12 +33,17 @@ export function NumberFormField<
   ComponentProps<typeof Input>,
   'name' | 'placeholder' | 'type' | 'onChange'
 >) {
+  // Auto-generate validation description if not provided
+  const autoDescription = useValidationDescription(name);
+  const finalDescription =
+    description !== undefined ? description : autoDescription;
+
   return (
     <TFormField
       control={control}
       name={name}
       namespace={namespace}
-      description={description}
+      description={finalDescription}
       render={({ field, label }) => (
         <Input
           {...field}

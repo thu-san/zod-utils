@@ -34,7 +34,7 @@ import { FormSchemaProvider } from '@/lib/form-schema-context';
 
 const formSchema = z.object({
   // String fields
-  stringRequired: z.string().nonempty(),
+  stringRequired: z.string().nonempty().max(100),
   stringNullish: z.string().optional(),
   stringRequiredWithDefault: z.string().min(3).default('Default String'),
   stringNullishWithDefault: z.string().optional().default('Optional Default'),
@@ -190,7 +190,7 @@ export default function UserProfileForm() {
                         control={form.control}
                         name="stringRequiredWithDefault"
                         autoPlaceholder
-                        description='Default: "Default String"'
+                        description='Min 3, Default: "Default String"'
                       />
                       <UserInputFormField
                         control={form.control}

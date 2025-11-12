@@ -1,4 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) demo application showcasing [@zod-utils](https://github.com/thu-san/zod-utils) with React Hook Form integration.
+
+## Features Demonstrated
+
+- ✅ **Automatic type transformation** - `useZodForm` hook transforms schema types so form inputs accept `null | undefined`
+- 🎯 **Auto-populated defaults** - `getSchemaDefaults()` extracts defaults from schema
+- 🔍 **Auto-generated validation descriptions** - `useValidationDescription` hook shows validation constraints
+- 🌐 **i18n support** - Multilingual form labels and validation messages with `next-intl`
+- 📝 **Type-safe forms** - Full TypeScript integration with form fields and translations
+
+## Validation Description Feature
+
+The demo includes a custom `useValidationDescription` hook that automatically generates validation descriptions from Zod schema constraints:
+
+### Supported Constraints
+
+- `max_length` - Maximum length for strings/arrays (e.g., "Max 20")
+- `length_equals` - Exact length requirement (e.g., "Length 10")
+- `greater_than` - Minimum value for numbers (e.g., "Min 18")
+- `less_than` - Maximum value for numbers (e.g., "Max 100")
+
+**Note:** `min_length` is intentionally excluded as it's considered a "required" indicator shown via the asterisk (*) label, not a validation description.
+
+### Example
+
+```typescript
+const schema = z.object({
+  username: z.string().min(3).max(20),  // Shows: "Max 20"
+  age: z.number().min(18).max(120),     // Shows: "Min 18, Max 120"
+  tags: z.array(z.string()).max(5),     // Shows: "Max 5"
+});
+```
+
+The descriptions are automatically:
+- **Extracted** from schema using `getFieldChecks()` from `@zod-utils/core`
+- **Translated** using i18n keys in `lang/en/user.json`
+- **Displayed** below form fields via form components
 
 ## Getting Started
 

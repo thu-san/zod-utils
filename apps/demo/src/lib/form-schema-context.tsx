@@ -5,9 +5,8 @@ import { createContext, useContext } from 'react';
 import type { z } from 'zod';
 
 // Context to provide Zod schema to child components
-const FormSchemaContext = createContext<z.ZodObject<z.ZodRawShape> | null>(
-  null,
-);
+export const FormSchemaContext =
+  createContext<z.ZodObject<z.ZodRawShape> | null>(null);
 
 /**
  * Provider component that makes Zod schema available to all child components

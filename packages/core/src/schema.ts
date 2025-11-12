@@ -1,4 +1,27 @@
 import * as z from 'zod';
+import type {
+  $ZodCheckBigIntFormatDef,
+  $ZodCheckEndsWithDef,
+  $ZodCheckGreaterThanDef,
+  $ZodCheckIncludesDef,
+  $ZodCheckLengthEqualsDef,
+  $ZodCheckLessThanDef,
+  $ZodCheckLowerCaseDef,
+  $ZodCheckMaxLengthDef,
+  $ZodCheckMaxSizeDef,
+  $ZodCheckMimeTypeDef,
+  $ZodCheckMinLengthDef,
+  $ZodCheckMinSizeDef,
+  $ZodCheckMultipleOfDef,
+  $ZodCheckNumberFormatDef,
+  $ZodCheckOverwriteDef,
+  $ZodCheckPropertyDef,
+  $ZodCheckRegexDef,
+  $ZodCheckSizeEqualsDef,
+  $ZodCheckStartsWithDef,
+  $ZodCheckStringFormatDef,
+  $ZodCheckUpperCaseDef,
+} from 'zod/v4/core';
 
 /**
  * Type representing a Zod type that has an unwrap method
@@ -356,3 +379,123 @@ export const requiresValidInput = <T extends z.ZodType>(field: T) => {
     !undefinedResult && !nullResult && !emptyStringResult && !emptyArrayResult
   );
 };
+
+/**
+ * Union type of all Zod check definition types.
+ *
+ * Includes all validation check types supported by Zod v4:
+ * - **Length checks**: `min_length`, `max_length`, `length_equals` (strings, arrays)
+ * - **Size checks**: `min_size`, `max_size`, `size_equals` (files, sets, maps)
+ * - **Numeric checks**: `greater_than`, `less_than`, `multiple_of`
+ * - **Format checks**: `number_format` (int32, float64, etc.), `bigint_format`, `string_format` (email, url, uuid, etc.)
+ * - **String pattern checks**: `regex`, `lowercase`, `uppercase`, `includes`, `starts_with`, `ends_with`
+ * - **Other checks**: `property`, `mime_type`, `overwrite`
+ *
+ * @since 0.4.0
+ */
+export type ZodUnionCheck =
+  | $ZodCheckLessThanDef
+  | $ZodCheckGreaterThanDef
+  | $ZodCheckMultipleOfDef
+  | $ZodCheckNumberFormatDef
+  | $ZodCheckBigIntFormatDef
+  | $ZodCheckMaxSizeDef
+  | $ZodCheckMinSizeDef
+  | $ZodCheckSizeEqualsDef
+  | $ZodCheckMaxLengthDef
+  | $ZodCheckMinLengthDef
+  | $ZodCheckLengthEqualsDef
+  | $ZodCheckStringFormatDef
+  | $ZodCheckRegexDef
+  | $ZodCheckLowerCaseDef
+  | $ZodCheckUpperCaseDef
+  | $ZodCheckIncludesDef
+  | $ZodCheckStartsWithDef
+  | $ZodCheckEndsWithDef
+  | $ZodCheckPropertyDef
+  | $ZodCheckMimeTypeDef
+  | $ZodCheckOverwriteDef;
+
+/**
+ * Extracts all validation check definitions from a Zod schema field.
+ *
+ * This function analyzes a Zod field and returns all check definitions as defined
+ * by Zod's internal structure. Returns Zod's raw check definition objects directly,
+ * including all properties like `check`, `minimum`, `maximum`, `value`, `inclusive`,
+ * `format`, `pattern`, etc.
+ *
+ * **Unwrapping behavior:** Automatically unwraps optional, nullable, and default layers.
+ * For unions, checks only the first option (same as other schema utilities).
+ *
+ * **Supported check types:** Returns any of the 21 check types defined in {@link ZodUnionCheck},
+ * including length, size, numeric range, format validation, string patterns, and more.
+ *
+ * @template T - The Zod type to extract checks from
+ * @param field - The Zod field to analyze
+ * @returns Array of Zod check definition objects (see {@link ZodUnionCheck})
+ *
+ * @example
+ * String with length constraints
+ * ```typescript
+ * const username = z.string().min(3).max(20);
+ * const checks = getFieldChecks(username);
+ * // [
+ * //   { check: 'min_length', minimum: 3, when: [Function], ... },
+ * //   { check: 'max_length', maximum: 20, when: [Function], ... }
+ * // ]
+ * ```
+ *
+ * @example
+ * Number with range constraints
+ * ```typescript
+ * const age = z.number().min(18).max(120);
+ * const checks = getFieldChecks(age);
+ * // [
+ * //   { check: 'greater_than', value: 18, inclusive: true, when: [Function], ... },
+ * //   { check: 'less_than', value: 120, inclusive: true, when: [Function], ... }
+ * // ]
+ * ```
+ *
+ * @example
+ * Array with item count constraints
+ * ```typescript
+ * const tags = z.array(z.string()).min(1).max(5);
+ * const checks = getFieldChecks(tags);
+ * // [
+ * //   { check: 'min_length', minimum: 1, ... },
+ * //   { check: 'max_length', maximum: 5, ... }
+ * // ]
+ * ```
+ *
+ * @example
+ * String with format validation
+ * ```typescript
+ * const email = z.string().email();
+ * const checks = getFieldChecks(email);
+ * // [
+ * //   { check: 'string_format', format: 'email', ... }
+ * // ]
+ * ```
+ *
+ * @example
+ * Unwrapping optional/nullable/default layers
+ * ```typescript
+ * const bio = z.string().min(10).max(500).optional();
+ * const checks = getFieldChecks(bio);
+ * // [
+ * //   { check: 'min_length', minimum: 10, ... },
+ * //   { check: 'max_length', maximum: 500, ... }
+ * // ]
+ * ```
+ *
+ * @see {@link ZodUnionCheck} for all supported check types
+ * @since 0.4.0
+ */
+export function getFieldChecks<T extends z.ZodTypeAny>(
+  field: T,
+): Array<ZodUnionCheck> {
+  const primitiveType = getPrimitiveType(field);
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return (primitiveType.def.checks?.map((check) => check._zod.def) ||
+    []) as Array<ZodUnionCheck>;
+}
