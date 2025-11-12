@@ -57,6 +57,48 @@ describe('extractDefault', () => {
     const schema = z.boolean().default(true);
     expect(extractDefault(schema)).toBe(true);
   });
+
+  it('should extract default from union with default in first option', () => {
+    const schema = z.union([z.string().default('hello'), z.number()]);
+    expect(extractDefault(schema)).toBe('hello');
+  });
+
+  it('should return undefined for union with default in second option', () => {
+    const schema = z.union([z.string(), z.number().default(42)]);
+    // extractDefault uses unwrapUnion which returns first field, so default in second option is ignored
+    expect(extractDefault(schema)).toBeUndefined();
+  });
+
+  it('should extract default from union wrapped in optional', () => {
+    const schema = z.union([z.string().default('test'), z.number()]).optional();
+    expect(extractDefault(schema)).toBe('test');
+  });
+
+  it('should extract default from union wrapped in nullable', () => {
+    const schema = z.union([z.string().default('test'), z.number()]).nullable();
+    expect(extractDefault(schema)).toBe('test');
+  });
+
+  it('should return undefined for union with no defaults', () => {
+    const schema = z.union([z.string(), z.number()]);
+    expect(extractDefault(schema)).toBeUndefined();
+  });
+
+  it('should extract default from nested union', () => {
+    const schema = z.union([
+      z.union([z.string().default('nested'), z.number()]),
+      z.boolean(),
+    ]);
+    expect(extractDefault(schema)).toBe('nested');
+  });
+
+  it('should extract default from union with object type', () => {
+    const schema = z.union([
+      z.object({ id: z.string() }).default({ id: 'default' }),
+      z.string(),
+    ]);
+    expect(extractDefault(schema)).toEqual({ id: 'default' });
+  });
 });
 
 describe('getSchemaDefaults', () => {

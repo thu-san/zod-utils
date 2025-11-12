@@ -173,17 +173,32 @@ withoutDefault.parse(undefined); // throws error
 
 ### `extractDefault(field)`
 
-Extract the default value from a Zod field (recursively unwraps optional/nullable).
+Extract the default value from a Zod field (recursively unwraps optional/nullable/union layers).
+
+**Union handling:** For union types, extracts the default from the first option. If the first option has no default, returns `undefined` (defaults in other union options are not checked).
 
 ```typescript
 import { extractDefault } from "@zod-utils/core";
 import { z } from "zod";
 
+// Basic usage
 const field = z.string().optional().default("hello");
 extractDefault(field); // 'hello'
 
 const noDefault = z.string();
 extractDefault(noDefault); // undefined
+
+// Union with default in first option
+const unionField = z.union([z.string().default('hello'), z.number()]);
+extractDefault(unionField); // 'hello'
+
+// Union with default in second option (only checks first)
+const unionField2 = z.union([z.string(), z.number().default(42)]);
+extractDefault(unionField2); // undefined
+
+// Union wrapped in optional
+const wrappedUnion = z.union([z.string().default('test'), z.number()]).optional();
+extractDefault(wrappedUnion); // 'test'
 ```
 
 ---
