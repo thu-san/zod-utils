@@ -507,10 +507,9 @@ export default function UserProfileForm() {
                             <FormControl>
                               <Input
                                 value={
-                                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                                  (
-                                    field.value as string[] | null | undefined
-                                  )?.join(', ') || ''
+                                  Array.isArray(field.value)
+                                    ? field.value.join(', ')
+                                    : ''
                                 }
                                 onChange={(e) => {
                                   const val = e.target.value;
@@ -544,10 +543,9 @@ export default function UserProfileForm() {
                             <FormControl>
                               <Input
                                 value={
-                                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                                  (
-                                    field.value as string[] | null | undefined
-                                  )?.join(', ') || ''
+                                  Array.isArray(field.value)
+                                    ? field.value.join(', ')
+                                    : ''
                                 }
                                 onChange={(e) => {
                                   const val = e.target.value;
