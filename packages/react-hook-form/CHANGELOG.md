@@ -1,5 +1,16 @@
 # @zod-utils/react-hook-form
 
+## 0.6.0
+
+### Minor Changes
+
+- 0fa9e36: Fix import and update demo
+
+### Patch Changes
+
+- Updated dependencies [0fa9e36]
+  - @zod-utils/core@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
