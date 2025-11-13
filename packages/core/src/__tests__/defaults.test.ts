@@ -116,15 +116,16 @@ describe('getSchemaDefaults', () => {
     });
   });
 
-  it('should skip fields without defaults', () => {
+  it('should handle fields without explicit defaults', () => {
     const schema = z.object({
       name: z.string().default('John'),
-      age: z.number(), // no default
-      email: z.string(), // no default
+      age: z.number(), // no default - skipped (not a string)
+      email: z.string(), // no explicit default - gets empty string
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      email: '', // empty string for string without explicit default
     });
   });
 
@@ -134,11 +135,12 @@ describe('getSchemaDefaults', () => {
       settings: z.object({
         theme: z.string(), // no default
         notifications: z.boolean(), // no default
-      }),
+      }), // parent object has no default, so entire object is skipped
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      // settings is skipped because parent object has no .default()
     });
   });
 
@@ -146,10 +148,12 @@ describe('getSchemaDefaults', () => {
     const schema = z.object({
       name: z.string().default('John').optional(),
       age: z.number().optional(),
+      email: z.string().optional(), // optional string - gets empty string
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      email: '', // empty string for optional string without explicit default
     });
   });
 
@@ -157,20 +161,24 @@ describe('getSchemaDefaults', () => {
     const schema = z.object({
       name: z.string().default('John').nullable(),
       age: z.number().nullable(),
+      bio: z.string().nullable(), // nullable string - gets empty string
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      bio: '', // empty string for nullable string without explicit default
     });
   });
 
-  it('should return empty object if no defaults exist', () => {
+  it('should return empty strings for string fields even without explicit defaults', () => {
     const schema = z.object({
       name: z.string(),
       age: z.number(),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({});
+    expect(getSchemaDefaults(schema)).toEqual({
+      name: '', // empty string for string without explicit default
+    });
   });
 
   it('should handle array defaults', () => {
@@ -181,6 +189,7 @@ describe('getSchemaDefaults', () => {
 
     expect(getSchemaDefaults(schema)).toEqual({
       tags: ['default'],
+      name: '', // empty string for string without explicit default
     });
   });
 
@@ -233,6 +242,120 @@ describe('getSchemaDefaults', () => {
       object: {
         nested: 'value',
       },
+    });
+  });
+
+  describe('emptyStringDefaults option', () => {
+    it('should return empty string for string fields without defaults (default behavior)', () => {
+      const schema = z.object({
+        name: z.string(),
+        age: z.number(),
+        email: z.string().optional(),
+        title: z.string().default('Mr.'),
+      });
+
+      expect(getSchemaDefaults(schema)).toEqual({
+        name: '',
+        email: '',
+        title: 'Mr.',
+      });
+    });
+
+    it('should skip string fields when emptyStringDefaults is false', () => {
+      const schema = z.object({
+        name: z.string(),
+        age: z.number(),
+        email: z.string().optional(),
+        title: z.string().default('Mr.'),
+      });
+
+      expect(getSchemaDefaults(schema, { emptyStringDefaults: false })).toEqual(
+        {
+          title: 'Mr.',
+        },
+      );
+    });
+
+    it('should return empty string for nullable strings', () => {
+      const schema = z.object({
+        name: z.string().nullable(),
+        bio: z.string(),
+      });
+
+      expect(getSchemaDefaults(schema)).toEqual({
+        name: '',
+        bio: '',
+      });
+    });
+
+    it('should prefer explicit default over empty string', () => {
+      const schema = z.object({
+        withDefault: z.string().default('hello'),
+        withoutDefault: z.string(),
+      });
+
+      expect(getSchemaDefaults(schema)).toEqual({
+        withDefault: 'hello',
+        withoutDefault: '',
+      });
+    });
+
+    it('should return empty string for string unions', () => {
+      const schema = z.object({
+        status: z.union([z.literal('active'), z.literal('inactive')]),
+        name: z.string(),
+      });
+
+      expect(getSchemaDefaults(schema)).toEqual({
+        name: '',
+      });
+    });
+
+    it('should handle complex schema with mixed string defaults', () => {
+      const schema = z.object({
+        // Strings without defaults - should get ""
+        firstName: z.string(),
+        lastName: z.string().optional(),
+        middleName: z.string().nullable(),
+
+        // Strings with explicit defaults - should use those
+        title: z.string().default('Mr.'),
+        greeting: z.string().default('Hello').optional(),
+
+        // Other types without defaults - should be skipped
+        age: z.number(),
+        active: z.boolean(),
+        tags: z.array(z.string()),
+
+        // Other types with defaults - should use those
+        count: z.number().default(0),
+        enabled: z.boolean().default(true),
+      });
+
+      expect(getSchemaDefaults(schema)).toEqual({
+        firstName: '',
+        lastName: '',
+        middleName: '',
+        title: 'Mr.',
+        greeting: 'Hello',
+        count: 0,
+        enabled: true,
+      });
+    });
+
+    it('should disable empty strings for all string fields when option is false', () => {
+      const schema = z.object({
+        name: z.string(),
+        email: z.string().optional(),
+        bio: z.string().nullable(),
+        title: z.string().default('Dr.'),
+      });
+
+      expect(getSchemaDefaults(schema, { emptyStringDefaults: false })).toEqual(
+        {
+          title: 'Dr.',
+        },
+      );
     });
   });
 });
