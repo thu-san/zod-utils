@@ -35,33 +35,46 @@ import { FormSchemaProvider } from '@/lib/form-schema-context';
 const formSchema = z.object({
   // String fields
   stringRequired: z.string().nonempty().max(100),
-  stringNullish: z.string().optional(),
+  stringOptional: z.string().optional(),
   stringRequiredWithDefault: z.string().min(3).default('Default String'),
-  stringNullishWithDefault: z.string().optional().default('Optional Default'),
+  stringOptionalWithDefault: z.string().optional().default('Optional Default'),
+  stringNullish: z.string().nullable(),
+  stringNullishWithDefault: z.string().nullable().default('Nullable Default'),
 
   // Number fields
+  // NOTE: *OptionalWithDefault fields can't be cleared (reverts to default).
+  // Use *NullishWithDefault instead and set null to clear.
   numberRequired: z.number(),
-  numberNullish: z.number().optional(),
+  numberOptional: z.number().optional(),
   numberRequiredWithDefault: z.number().default(42),
-  numberNullishWithDefault: z.number().optional().default(100),
+  numberOptionalWithDefault: z.number().optional().default(100),
+  numberNullish: z.number().nullable(),
+  numberNullishWithDefault: z.number().nullable().default(200),
 
   // Boolean fields
   booleanRequired: z.boolean(),
-  booleanNullish: z.boolean().optional(),
+  booleanOptional: z.boolean().optional(),
   booleanRequiredWithDefault: z.boolean().default(true),
-  booleanNullishWithDefault: z.boolean().optional().default(false),
+  booleanOptionalWithDefault: z.boolean().optional().default(false),
+  booleanNullish: z.boolean().nullable(),
+  booleanNullishWithDefault: z.boolean().nullable().default(true),
 
   // Array of String fields
   arrayOfStringRequired: z.array(z.string()).nonempty(),
-  arrayOfStringNullish: z.array(z.string()).optional(),
+  arrayOfStringOptional: z.array(z.string()).optional(),
   arrayOfStringRequiredWithDefault: z
     .array(z.string())
     .nonempty()
     .default(['tag1', 'tag2']),
-  arrayOfStringNullishWithDefault: z
+  arrayOfStringOptionalWithDefault: z
     .array(z.string())
     .optional()
     .default(['optional1']),
+  arrayOfStringNullish: z.array(z.string()).nullable(),
+  arrayOfStringNullishWithDefault: z
+    .array(z.string())
+    .nullable()
+    .default(['nullable1']),
 
   // Array of Objects fields
   arrayOfObjectsRequired: z
@@ -72,7 +85,7 @@ const formSchema = z.object({
       }),
     )
     .nonempty(),
-  arrayOfObjectsNullish: z
+  arrayOfObjectsOptional: z
     .array(
       z.object({
         name: z.string(),
@@ -89,7 +102,7 @@ const formSchema = z.object({
     )
     .nonempty()
     .default([{ name: 'item1', value: 'value1' }]),
-  arrayOfObjectsNullishWithDefault: z
+  arrayOfObjectsOptionalWithDefault: z
     .array(
       z.object({
         name: z.string(),
@@ -98,13 +111,30 @@ const formSchema = z.object({
     )
     .optional()
     .default([{ name: 'optional', value: 'optValue' }]),
+  arrayOfObjectsNullish: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.string(),
+      }),
+    )
+    .nullable(),
+  arrayOfObjectsNullishWithDefault: z
+    .array(
+      z.object({
+        name: z.string(),
+        value: z.string(),
+      }),
+    )
+    .nullable()
+    .default([{ name: 'nullable', value: 'nullValue' }]),
 
   // Object fields
   objectRequired: z.object({
     street: z.string(),
     city: z.string(),
   }),
-  objectNullish: z
+  objectOptional: z
     .object({
       twitter: z.string().optional(),
       linkedin: z.string().optional(),
@@ -116,13 +146,26 @@ const formSchema = z.object({
       language: z.string(),
     })
     .default({ theme: 'light', language: 'en' }),
-  objectNullishWithDefault: z
+  objectOptionalWithDefault: z
     .object({
       notifications: z.boolean(),
       frequency: z.string(),
     })
     .optional()
     .default({ notifications: true, frequency: 'daily' }),
+  objectNullish: z
+    .object({
+      email: z.string().optional(),
+      phone: z.string().optional(),
+    })
+    .nullable(),
+  objectNullishWithDefault: z
+    .object({
+      alerts: z.boolean(),
+      interval: z.string(),
+    })
+    .nullable()
+    .default({ alerts: false, interval: 'weekly' }),
 });
 
 const UserInputFormField = createInputFormField('user');
@@ -183,7 +226,7 @@ export default function UserProfileForm() {
                       />
                       <UserInputFormField
                         control={form.control}
-                        name="stringNullish"
+                        name="stringOptional"
                         autoPlaceholder
                       />
                       <UserInputFormField
@@ -194,9 +237,20 @@ export default function UserProfileForm() {
                       />
                       <UserInputFormField
                         control={form.control}
-                        name="stringNullishWithDefault"
+                        name="stringOptionalWithDefault"
                         autoPlaceholder
                         description='Default: "Optional Default"'
+                      />
+                      <UserInputFormField
+                        control={form.control}
+                        name="stringNullish"
+                        autoPlaceholder
+                      />
+                      <UserInputFormField
+                        control={form.control}
+                        name="stringNullishWithDefault"
+                        autoPlaceholder
+                        description='Nullable, Default: "Nullable Default" (can clear with null)'
                       />
                     </div>
                   </div>
@@ -216,9 +270,8 @@ export default function UserProfileForm() {
                       />
                       <UserNumberFormField
                         control={form.control}
-                        name="numberNullish"
+                        name="numberOptional"
                         autoPlaceholder
-                        nullable
                       />
                       <UserNumberFormField
                         control={form.control}
@@ -228,10 +281,20 @@ export default function UserProfileForm() {
                       />
                       <UserNumberFormField
                         control={form.control}
+                        name="numberOptionalWithDefault"
+                        autoPlaceholder
+                        description="Optional with default: 100 (will error if cleared with null)"
+                      />
+                      <UserNumberFormField
+                        control={form.control}
+                        name="numberNullish"
+                        autoPlaceholder
+                      />
+                      <UserNumberFormField
+                        control={form.control}
                         name="numberNullishWithDefault"
                         autoPlaceholder
-                        nullable
-                        description="Default: 100"
+                        description="Nullable with default: 200 (can clear with null)"
                       />
                     </div>
                   </div>
@@ -250,7 +313,7 @@ export default function UserProfileForm() {
                       />
                       <UserCheckboxFormField
                         control={form.control}
-                        name="booleanNullish"
+                        name="booleanOptional"
                       />
                       <UserCheckboxFormField
                         control={form.control}
@@ -259,8 +322,17 @@ export default function UserProfileForm() {
                       />
                       <UserCheckboxFormField
                         control={form.control}
+                        name="booleanOptionalWithDefault"
+                        description="Optional with default: false"
+                      />
+                      <UserCheckboxFormField
+                        control={form.control}
+                        name="booleanNullish"
+                      />
+                      <UserCheckboxFormField
+                        control={form.control}
                         name="booleanNullishWithDefault"
-                        description="Default: false"
+                        description="Nullable with default: true"
                       />
                     </div>
                   </div>
@@ -310,11 +382,11 @@ export default function UserProfileForm() {
                       />
                       <FormField
                         control={form.control}
-                        name="arrayOfStringNullish"
+                        name="arrayOfStringOptional"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              {t('form.arrayOfStringNullish')}
+                              {t('form.arrayOfStringOptional')}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -337,7 +409,7 @@ export default function UserProfileForm() {
                                 }}
                                 onBlur={field.onBlur}
                                 placeholder={t(
-                                  'placeholders.arrayOfStringNullish',
+                                  'placeholders.arrayOfStringOptional',
                                 )}
                               />
                             </FormControl>
@@ -385,11 +457,11 @@ export default function UserProfileForm() {
                       />
                       <FormField
                         control={form.control}
-                        name="arrayOfStringNullishWithDefault"
+                        name="arrayOfStringOptionalWithDefault"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              {t('form.arrayOfStringNullishWithDefault')}
+                              {t('form.arrayOfStringOptionalWithDefault')}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -412,12 +484,88 @@ export default function UserProfileForm() {
                                 }}
                                 onBlur={field.onBlur}
                                 placeholder={t(
+                                  'placeholders.arrayOfStringOptionalWithDefault',
+                                )}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Default: ["optional1"] (CAN'T clear - reverts to
+                              default)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="arrayOfStringNullish"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t('form.arrayOfStringNullish')}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                value={
+                                  Array.isArray(field.value)
+                                    ? field.value.join(', ')
+                                    : ''
+                                }
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  field.onChange(
+                                    val
+                                      ? val
+                                          .split(',')
+                                          .map((s) => s.trim())
+                                          .filter(Boolean)
+                                      : null,
+                                  );
+                                }}
+                                onBlur={field.onBlur}
+                                placeholder={t(
+                                  'placeholders.arrayOfStringNullish',
+                                )}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="arrayOfStringNullishWithDefault"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t('form.arrayOfStringNullishWithDefault')}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                value={
+                                  Array.isArray(field.value)
+                                    ? field.value.join(', ')
+                                    : ''
+                                }
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  field.onChange(
+                                    val
+                                      ? val
+                                          .split(',')
+                                          .map((s) => s.trim())
+                                          .filter(Boolean)
+                                      : null,
+                                  );
+                                }}
+                                onBlur={field.onBlur}
+                                placeholder={t(
                                   'placeholders.arrayOfStringNullishWithDefault',
                                 )}
                               />
                             </FormControl>
                             <FormDescription>
-                              Default: ["optional1"]
+                              Default: ["nullable1"] (CAN clear with null)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

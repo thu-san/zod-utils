@@ -80,29 +80,33 @@ export function extractDefault<T extends z.ZodTypeAny>(
 }
 
 /**
- * Extracts default values from a Zod object schema while skipping fields without defaults.
+ * Extracts default values from a Zod object schema, returning only fields with explicit `.default()`.
  *
- * This function recursively traverses the schema and collects all fields that have
- * explicit default values defined. Fields without defaults are excluded from the result.
+ * This function traverses the schema and collects fields that have explicit default values.
+ * Fields without defaults are excluded from the result.
  *
  * **Important:** Nested defaults are NOT extracted unless the parent object also has
  * an explicit `.default()`. This is by design to match Zod's default value behavior.
  *
+ * **Component handling:** For form inputs without explicit defaults (like `z.string()` or `z.number()`),
+ * use the `?? ''` pattern in your components: `<Input value={field.value ?? ''} />`
+ *
  * @template T - The Zod object schema type
  * @param schema - The Zod object schema to extract defaults from
- * @returns A partial object containing only fields with default values
+ * @returns A partial object containing only fields with explicit default values
  *
  * @example
- * Basic usage
+ * Basic usage - only explicit defaults
  * ```typescript
  * const schema = z.object({
- *   name: z.string().default('John'),
- *   age: z.number(), // no default - will be skipped
- *   email: z.string().email().optional(),
+ *   name: z.string(), // no default → NOT included
+ *   age: z.number(), // no default → NOT included
+ *   role: z.string().default('user'), // explicit default → included
+ *   count: z.number().default(0), // explicit default → included
  * });
  *
  * const defaults = getSchemaDefaults(schema);
- * // Result: { name: 'John' }
+ * // Result: { role: 'user', count: 0 }
  * ```
  *
  * @example
@@ -128,10 +132,20 @@ export function extractDefault<T extends z.ZodTypeAny>(
  * const schema = z.object({
  *   title: z.string().default('Untitled').optional(),
  *   count: z.number().default(0).nullable(),
+ *   name: z.string().optional(), // no default → NOT included
+ *   age: z.number().optional(), // no default → NOT included
  * });
  *
  * const defaults = getSchemaDefaults(schema);
  * // Result: { title: 'Untitled', count: 0 }
+ * ```
+ *
+ * @example
+ * Component usage for fields without defaults
+ * ```typescript
+ * // For string/number fields without defaults, handle in components:
+ * <Input value={field.value ?? ''} />
+ * <Input type="number" value={field.value ?? ''} />
  * ```
  *
  * @see {@link extractDefault} for extracting defaults from individual fields
@@ -146,7 +160,6 @@ export function getSchemaDefaults<T extends z.ZodObject>(
     const field = schema.shape[key];
     if (!field) continue;
 
-    // Check if this field has an explicit default value
     const defaultValue = extractDefault(field);
     if (defaultValue !== undefined) {
       defaults[key] = defaultValue;

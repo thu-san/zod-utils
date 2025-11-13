@@ -12,7 +12,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@zod-utils/core": ["../../packages/core/src"],
+      "@zod-utils/react-hook-form": ["../../packages/react-hook-form/src"]
     }
   },
   "include": [

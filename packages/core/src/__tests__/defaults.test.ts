@@ -116,15 +116,16 @@ describe('getSchemaDefaults', () => {
     });
   });
 
-  it('should skip fields without defaults', () => {
+  it('should handle fields without explicit defaults', () => {
     const schema = z.object({
       name: z.string().default('John'),
-      age: z.number(), // no default
-      email: z.string(), // no default
+      age: z.number(), // no explicit default - NOT included
+      email: z.string(), // no explicit default - NOT included
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      // age and email are NOT included (no explicit defaults)
     });
   });
 
@@ -134,43 +135,50 @@ describe('getSchemaDefaults', () => {
       settings: z.object({
         theme: z.string(), // no default
         notifications: z.boolean(), // no default
-      }),
+      }), // parent object has no default, so entire object is skipped
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      // settings is skipped because parent object has no .default()
     });
   });
 
-  it('should handle optional fields with defaults', () => {
+  it('should include optional fields with defaults', () => {
     const schema = z.object({
-      name: z.string().default('John').optional(),
-      age: z.number().optional(),
+      name: z.string().default('John').optional(), // optional with default - included
+      age: z.number().optional(), // optional without default - NOT included
+      email: z.string().optional(), // optional without default - NOT included
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      // age and email are NOT included (no explicit defaults)
     });
   });
 
-  it('should handle nullable fields with defaults', () => {
+  it('should include nullable fields with defaults', () => {
     const schema = z.object({
-      name: z.string().default('John').nullable(),
-      age: z.number().nullable(),
+      name: z.string().default('John').nullable(), // nullable with default - included
+      age: z.number().nullable(), // nullable without default - NOT included
+      bio: z.string().nullable(), // nullable without default - NOT included
     });
 
     expect(getSchemaDefaults(schema)).toEqual({
       name: 'John',
+      // age and bio are NOT included (no explicit defaults)
     });
   });
 
-  it('should return empty object if no defaults exist', () => {
+  it('should skip string and number fields without explicit defaults', () => {
     const schema = z.object({
       name: z.string(),
       age: z.number(),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({});
+    expect(getSchemaDefaults(schema)).toEqual({
+      // name and age are NOT included (no explicit defaults)
+    });
   });
 
   it('should handle array defaults', () => {
@@ -181,6 +189,7 @@ describe('getSchemaDefaults', () => {
 
     expect(getSchemaDefaults(schema)).toEqual({
       tags: ['default'],
+      // name is NOT included (no explicit default)
     });
   });
 
@@ -233,6 +242,44 @@ describe('getSchemaDefaults', () => {
       object: {
         nested: 'value',
       },
+    });
+  });
+
+  it('should skip fields without explicit defaults in complex schemas', () => {
+    const schema = z.object({
+      // Strings without defaults - should be skipped
+      firstName: z.string(),
+      lastName: z.string().optional(),
+      middleName: z.string().nullable(),
+
+      // Numbers without defaults - should be skipped
+      age: z.number(),
+      weight: z.number().optional(),
+      height: z.number().nullable(),
+
+      // Strings with explicit defaults
+      title: z.string().default('Mr.'), // required with default - included
+      greeting: z.string().default('Hello').optional(), // optional with default - included
+
+      // Numbers with explicit defaults
+      count: z.number().default(0), // required with default - included
+      quantity: z.number().default(1).optional(), // optional with default - included
+
+      // Other types without defaults - should be skipped
+      active: z.boolean(),
+      tags: z.array(z.string()),
+
+      // Other types with defaults
+      enabled: z.boolean().default(true), // required with default - included
+    });
+
+    expect(getSchemaDefaults(schema)).toEqual({
+      title: 'Mr.',
+      greeting: 'Hello',
+      count: 0,
+      quantity: 1,
+      enabled: true,
+      // All fields with explicit defaults are included
     });
   });
 });
