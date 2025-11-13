@@ -1,5 +1,11 @@
 # @zod-utils/core
 
+## 0.6.0
+
+### Minor Changes
+
+- 0fa9e36: Fix import and update demo
+
 ## 0.5.0
 
 ### Minor Changes
