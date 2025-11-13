@@ -49,8 +49,8 @@ export function NumberFormField<
           value={field.value ?? ''}
           onChange={(e) => {
             const value = e.target.value;
-            // Convert empty string to undefined to avoid NaN
-            field.onChange(value === '' ? '' : Number(value));
+            // Convert empty string to null (works with nullable fields)
+            field.onChange(value === '' ? null : Number(value));
           }}
           onBlur={field.onBlur}
           name={field.name}
