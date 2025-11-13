@@ -41,8 +41,12 @@ export function InputFormField<
       description={finalDescription}
       render={({ field, label }) => (
         <Input
-          {...field}
           {...inputProps}
+          value={field.value ?? ''}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          name={field.name}
+          ref={field.ref}
           placeholder={
             placeholder ||
             (autoPlaceholder

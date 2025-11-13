@@ -218,7 +218,6 @@ export default function UserProfileForm() {
                         control={form.control}
                         name="numberNullish"
                         autoPlaceholder
-                        nullable
                       />
                       <UserNumberFormField
                         control={form.control}
@@ -230,7 +229,6 @@ export default function UserProfileForm() {
                         control={form.control}
                         name="numberNullishWithDefault"
                         autoPlaceholder
-                        nullable
                         description="Default: 100"
                       />
                     </div>

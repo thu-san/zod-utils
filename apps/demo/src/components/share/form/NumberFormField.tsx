@@ -19,7 +19,6 @@ export function NumberFormField<
   autoPlaceholder,
   placeholder,
   description,
-  nullable,
   ...inputProps
 }: {
   control: Control<TFieldValues>;
@@ -28,7 +27,6 @@ export function NumberFormField<
   autoPlaceholder?: boolean;
   placeholder?: string;
   description?: string;
-  nullable?: boolean;
 } & Omit<
   ComponentProps<typeof Input>,
   'name' | 'placeholder' | 'type' | 'onChange'
@@ -46,23 +44,23 @@ export function NumberFormField<
       description={finalDescription}
       render={({ field, label }) => (
         <Input
-          {...field}
           {...inputProps}
           type="number"
+          value={field.value ?? ''}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Convert empty string to undefined to avoid NaN
+            field.onChange(value === '' ? '' : Number(value));
+          }}
+          onBlur={field.onBlur}
+          name={field.name}
+          ref={field.ref}
           placeholder={
             placeholder ||
             (autoPlaceholder
               ? `Please enter ${label.toLowerCase()}`
               : undefined)
           }
-          onChange={(e) => {
-            if (nullable) {
-              const val = e.target.value;
-              field.onChange(val === '' ? undefined : Number(val));
-            } else {
-              field.onChange(e.target.valueAsNumber);
-            }
-          }}
         />
       )}
     />
@@ -84,7 +82,6 @@ export function createNumberFormField<TNamespace extends FormNamespace>(
     autoPlaceholder,
     placeholder,
     description,
-    nullable,
     ...inputProps
   }: {
     control: Control<TFieldValues>;
@@ -92,7 +89,6 @@ export function createNumberFormField<TNamespace extends FormNamespace>(
     autoPlaceholder?: boolean;
     placeholder?: string;
     description?: string;
-    nullable?: boolean;
   } & Omit<
     ComponentProps<typeof Input>,
     'name' | 'placeholder' | 'type' | 'onChange'
@@ -105,7 +101,6 @@ export function createNumberFormField<TNamespace extends FormNamespace>(
         autoPlaceholder={autoPlaceholder}
         placeholder={placeholder}
         description={description}
-        nullable={nullable}
         {...inputProps}
       />
     );
