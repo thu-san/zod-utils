@@ -1,5 +1,16 @@
 # @zod-utils/react-hook-form
 
+## 0.8.0
+
+### Minor Changes
+
+- 23b3073: Fix form input type when default values exists
+
+### Patch Changes
+
+- Updated dependencies [23b3073]
+  - @zod-utils/core@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes
