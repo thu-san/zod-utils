@@ -1,0 +1,177 @@
+# CODEOWNERS - Defines code ownership and automatic review assignments
+
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+#
+
+# Each line is a file pattern followed by one or more owners.
+
+# Owners will be automatically requested for review when someone opens a PR that modifies matching files.
+
+# The last matching pattern takes precedence.
+
+# =============================================================================
+
+# Default Owners
+
+# =============================================================================
+
+# Default owner for everything in the repo
+
+# This will be requested for review unless a more specific rule below applies
+
+- @thu-san
+
+# =============================================================================
+
+# Core Packages
+
+# =============================================================================
+
+# @zod-utils/core package - core utilities
+
+/packages/core/ @thu-san
+
+# @zod-utils/react-hook-form package - React Hook Form integration
+
+/packages/react-hook-form/ @thu-san
+
+# =============================================================================
+
+# Demo Application
+
+# =============================================================================
+
+# Demo Next.js app - lower priority, can be more lenient
+
+/apps/demo/ @thu-san
+
+# =============================================================================
+
+# Critical Configuration Files (Require Extra Review)
+
+# =============================================================================
+
+# Security policy and documentation
+
+/SECURITY.md @thu-san
+/docs/NPM_SECURITY.md @thu-san
+/SECURITY_ENGINEERING_AUDIT.md @thu-san
+
+# Root package.json - affects entire monorepo
+
+/package.json @thu-san
+/package-lock.json @thu-san
+
+# NPM configuration - publishing and security settings
+
+/.npmrc @thu-san
+
+# TypeScript configuration - affects all packages
+
+/tsconfig\*.json @thu-san
+
+# Build configuration
+
+/turbo.json @thu-san
+
+# =============================================================================
+
+# GitHub Configuration (Critical - Security Impact)
+
+# =============================================================================
+
+# GitHub Actions workflows - can execute code, access secrets
+
+/.github/workflows/ @thu-san
+
+# GitHub configuration and templates
+
+/.github/CODEOWNERS @thu-san
+/.github/ISSUE_TEMPLATE/ @thu-san
+/.github/PULL_REQUEST_TEMPLATE/ @thu-san
+/.github/settings.yml @thu-san
+
+# Dependabot and dependency management
+
+/.github/dependabot.yml @thu-san
+/renovate.json @thu-san
+
+# =============================================================================
+
+# Git Hooks and Quality Tools
+
+# =============================================================================
+
+# Git hooks - can execute code locally
+
+/.husky/ @thu-san
+
+# Linting and formatting configuration
+
+/biome.json @thu-san
+/eslint.config.mjs @thu-san
+/.eslintrc\* @thu-san
+
+# Code coverage configuration
+
+/codecov.yml @thu-san
+
+# =============================================================================
+
+# Documentation (Lower Priority)
+
+# =============================================================================
+
+# Documentation can have auto-merge for minor updates
+
+\*.md @thu-san
+/docs/ @thu-san
+
+# Changesets - version and release management
+
+/.changeset/ @thu-san
+
+# =============================================================================
+
+# Testing
+
+# =============================================================================
+
+# Test files - maintainer should review to ensure quality
+
+**/\*.test.ts @thu-san
+**/_.test.tsx @thu-san
+\*\*/_.spec.ts @thu-san \*_/_.bench.ts @thu-san
+
+# =============================================================================
+
+# Package-Specific Configurations
+
+# =============================================================================
+
+# Individual package configurations
+
+/packages/_/package.json @thu-san
+/packages/_/tsconfig.json @thu-san
+/packages/\*/tsup.config.ts @thu-san
+
+# =============================================================================
+
+# Notes for Contributors
+
+# =============================================================================
+
+#
+
+# - Files matching these patterns will automatically request review from specified owners
+
+# - You can still request additional reviewers manually
+
+# - Owners are notified when PRs touch their files
+
+# - This helps ensure critical files get proper review
+
+# - For questions about ownership, see CONTRIBUTING.md or open a discussion
+
+#

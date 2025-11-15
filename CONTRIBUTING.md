@@ -231,10 +231,28 @@ If your PR introduces a vulnerability or incompatible license, CI will fail and 
    - Dependency review (security & license checks)
    - Performance benchmarks
 
+   **Note:** These checks are enforced by branch protection rules. See [Branch Protection Guide](./docs/BRANCH_PROTECTION.md) for details.
+
 4. **Review Process**
+   - Code owners will be automatically requested for review (see `.github/CODEOWNERS`)
    - Maintainers will review your PR
    - Address any feedback or requested changes
    - Once approved, maintainers will merge
+
+   **Note:** Different files have different reviewers:
+   - Security files, workflows, and configurations require maintainer approval
+   - Package code changes are reviewed by package maintainers
+   - Documentation can be reviewed more quickly
+
+5. **Branch Protection**
+
+   The `main` branch is protected to ensure code quality and security:
+   - No direct pushes allowed (all changes via PR)
+   - All CI checks must pass before merge
+   - Code owner approval required for critical files
+   - Conversations must be resolved
+
+   **For maintainers:** See [Branch Protection Setup Guide](./docs/BRANCH_PROTECTION_SETUP.md) for configuration instructions.
 
 ## Reporting Bugs
 
