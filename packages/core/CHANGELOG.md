@@ -1,5 +1,11 @@
 # @zod-utils/core
 
+## 0.7.0
+
+### Minor Changes
+
+- 9ee5512: Fix bug where form input doesn't become optional if defaultValues is not defined
+
 ## 0.6.0
 
 ### Minor Changes
