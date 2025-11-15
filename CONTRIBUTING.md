@@ -202,6 +202,8 @@ All PRs are automatically scanned for:
 
 If your PR introduces a vulnerability or incompatible license, CI will fail and provide details.
 
+**For more information on npm security practices, see [NPM Security Guide](./docs/NPM_SECURITY.md).**
+
 ## Pull Request Process
 
 1. **Create a Pull Request**
@@ -277,6 +279,8 @@ Releases are automated via GitHub Actions:
    - Merge to trigger automatic publishing
 
 3. **GitHub Actions publishes to npm** (automatic)
+
+**For detailed publishing security information, see [NPM Security Guide](./docs/NPM_SECURITY.md#publishing-security).**
    - Runs tests and builds
    - Publishes packages
    - Creates GitHub release

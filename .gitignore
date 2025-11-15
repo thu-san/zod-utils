@@ -34,6 +34,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# npm (NEVER commit .npmrc with tokens or credentials)
+# The .npmrc in the root is safe to commit as it contains no secrets
+# Local user .npmrc with credentials should remain in ~/.npmrc
+.npmrc.local
+
 # vercel
 .vercel
 
