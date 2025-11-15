@@ -1,5 +1,11 @@
 # @zod-utils/core
 
+## 0.8.0
+
+### Minor Changes
+
+- 23b3073: Fix form input type when default values exists
+
 ## 0.7.0
 
 ### Minor Changes
