@@ -165,6 +165,71 @@ const onSubmit = form.handleSubmit((data) => {
 
 This works because `useZodForm` uses the `Simplify` utility to ensure proper type inference, making all fields optional during editing while preserving exact types after validation.
 
+#### Default Values Type Safety
+
+The `defaultValues` parameter enforces **shallow partial** typing for type safety. This means:
+
+- ✅ **Top-level fields** can be omitted or set to `null`/`undefined`
+- ✅ **Nested objects** can be omitted entirely
+- ❌ **Nested objects** cannot be partially filled - they must be complete if provided
+
+```typescript
+const schema = z.object({
+  user: z.object({
+    name: z.string(),
+    email: z.string().email(),
+    age: z.number(),
+  }),
+  settings: z.object({
+    theme: z.enum(["light", "dark"]),
+    notifications: z.boolean(),
+  }),
+});
+
+// ✅ Correct: Omit nested objects
+const form = useZodForm({
+  schema,
+  defaultValues: {
+    // settings omitted - OK
+  },
+});
+
+// ✅ Correct: Provide complete nested objects
+const form = useZodForm({
+  schema,
+  defaultValues: {
+    user: { name: "John", email: "john@example.com", age: 30 }, // Complete
+    settings: { theme: "dark", notifications: true }, // Complete
+  },
+});
+
+// ❌ TypeScript Error: Partial nested objects not allowed
+const form = useZodForm({
+  schema,
+  defaultValues: {
+    user: { name: "John" }, // ❌ Missing email and age
+  },
+});
+```
+
+**Why this restriction?** This prevents type errors where partial nested objects might be missing required properties. If you need to provide partial nested defaults, use `getSchemaDefaults()` which handles this correctly:
+
+```typescript
+const form = useZodForm({
+  schema,
+  defaultValues: getSchemaDefaults(schema), // ✅ Type-safe partial defaults
+});
+```
+
+**Note:** This restriction only applies to the `defaultValues` parameter. During form editing, all fields still accept `null`/`undefined` as expected:
+
+```typescript
+// ✅ Works! Form inputs still accept null/undefined
+form.setValue("user", null);
+form.setValue("settings", null);
+form.reset({ user: null, settings: undefined });
+```
+
 #### Custom Input Types
 
 You can override the default input type transformation if needed:
