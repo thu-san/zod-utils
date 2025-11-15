@@ -254,6 +254,22 @@ If your PR introduces a vulnerability or incompatible license, CI will fail and 
 
    **For maintainers:** See [Branch Protection Setup Guide](./docs/BRANCH_PROTECTION_SETUP.md) for configuration instructions.
 
+6. **Automatic Labeling**
+
+   PRs are automatically labeled based on:
+   - **Size:** XS, S, M, L, XL (lines changed)
+   - **Package:** core, react-hook-form, demo
+   - **Type:** feature, fix, documentation, chore, test, performance
+   - **Area:** dependencies, tests, CI/CD, security, etc.
+
+   **Tips:**
+   - Use conventional commit format for PR titles: `type(scope): description`
+   - Examples: `feat: add new feature`, `fix(core): resolve bug`, `docs: update README`
+   - Large PRs (XL) will get a comment suggesting to break them up
+   - Draft PRs or titles with "WIP" get labeled as work-in-progress
+
+   See [PR Labels Setup Guide](./docs/PR_LABELS_SETUP.md) for full label reference.
+
 ## Reporting Bugs
 
 - Use the bug report template

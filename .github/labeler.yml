@@ -1,0 +1,177 @@
+# PR Labeler Configuration
+# Automatically labels PRs based on changed files
+# https://github.com/actions/labeler
+
+# =============================================================================
+# Package Labels
+# =============================================================================
+
+'package: core':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/core/**/*'
+
+'package: react-hook-form':
+  - changed-files:
+    - any-glob-to-any-file: 'packages/react-hook-form/**/*'
+
+'package: demo':
+  - changed-files:
+    - any-glob-to-any-file: 'apps/demo/**/*'
+
+# =============================================================================
+# File Type Labels
+# =============================================================================
+
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'package.json'
+      - 'package-lock.json'
+      - '**/package.json'
+      - '**/package-lock.json'
+
+'documentation':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+      - 'README*'
+      - 'CONTRIBUTING.md'
+      - 'CHANGELOG.md'
+
+'tests':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.test.ts'
+      - '**/*.test.tsx'
+      - '**/*.spec.ts'
+      - '**/__tests__/**/*'
+      - '**/vitest.config.ts'
+
+'benchmarks':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.bench.ts'
+      - '**/benchmarks/**/*'
+
+# =============================================================================
+# Infrastructure & Configuration
+# =============================================================================
+
+'CI/CD':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/**/*'
+      - '.github/actions/**/*'
+
+'security':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'SECURITY.md'
+      - 'docs/NPM_SECURITY.md'
+      - 'docs/BRANCH_PROTECTION*.md'
+      - 'SECURITY_ENGINEERING_AUDIT.md'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/dependency-review.yml'
+      - '.github/workflows/secrets-scan.yml'
+
+'build':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/tsconfig*.json'
+      - '**/tsup.config.ts'
+      - '**/vite.config.ts'
+      - '**/next.config.*'
+      - 'turbo.json'
+
+'linting':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'biome.json'
+      - '.biomejs.json'
+      - 'eslint.config.*'
+      - '.eslintrc*'
+      - '.prettierrc*'
+
+'git':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.gitignore'
+      - '.gitattributes'
+      - '.husky/**/*'
+
+# =============================================================================
+# GitHub Configuration
+# =============================================================================
+
+'github':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+      - '!.github/workflows/**/*'  # Exclude workflows (covered by CI/CD)
+
+'codeowners':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/CODEOWNERS'
+
+# =============================================================================
+# Release Management
+# =============================================================================
+
+'changelog':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'CHANGELOG*.md'
+      - '**/CHANGELOG*.md'
+
+'changesets':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.changeset/**/*'
+
+# =============================================================================
+# TypeScript & Types
+# =============================================================================
+
+'typescript':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.d.ts'
+      - 'tsconfig*.json'
+
+# =============================================================================
+# React & UI
+# =============================================================================
+
+'react':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.tsx'
+      - '**/components/**/*'
+      - 'apps/demo/**/*'
+
+'styling':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.css'
+      - '**/tailwind.config.*'
+      - '**/postcss.config.*'
+
+# =============================================================================
+# Special Cases
+# =============================================================================
+
+'breaking change':
+  # This label should be added manually when a PR contains breaking changes
+  # Or detected from commit messages with "BREAKING CHANGE:" or "!"
+  # GitHub Action will check for this in conventional commit format
+
+'needs rebase':
+  # Applied automatically by GitHub when PR has conflicts
+
+'WIP':
+  # Applied automatically when PR title starts with "WIP:" or has "[WIP]"
+  # Or when PR is in draft status

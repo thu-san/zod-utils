@@ -1,0 +1,176 @@
+name: PR Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label-by-files:
+    name: Label by Files Changed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label PR based on changed files
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true  # Remove labels if files no longer match
+
+  label-by-size:
+    name: Label by PR Size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Label PR by size
+        uses: codelytv/pr-size-labeler@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size: XS'
+          xs_max_size: 10
+          s_label: 'size: S'
+          s_max_size: 100
+          m_label: 'size: M'
+          m_max_size: 500
+          l_label: 'size: L'
+          l_max_size: 1000
+          xl_label: 'size: XL'
+          fail_if_xl: false
+          message_if_xl: >
+            This PR is very large. Consider breaking it into smaller PRs for easier review.
+          files_to_ignore: |
+            package-lock.json
+            **/dist/**
+            **/*.lock
+
+  label-by-title:
+    name: Label by PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label WIP PRs
+        if: |
+          contains(github.event.pull_request.title, 'WIP') ||
+          contains(github.event.pull_request.title, '[WIP]') ||
+          github.event.pull_request.draft == true
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: WIP
+
+      - name: Remove WIP label if no longer draft
+        if: |
+          !contains(github.event.pull_request.title, 'WIP') &&
+          !contains(github.event.pull_request.title, '[WIP]') &&
+          github.event.pull_request.draft == false
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: WIP
+
+  label-by-conventional-commits:
+    name: Label by Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for breaking changes in title
+        id: check-breaking
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          if [[ "$TITLE" =~ ^[a-z]+(\([a-z]+\))?!: ]] || [[ "$TITLE" =~ BREAKING[[:space:]]CHANGE ]]; then
+            echo "has_breaking=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_breaking=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add breaking change label
+        if: steps.check-breaking.outputs.has_breaking == 'true'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'breaking change'
+
+      - name: Label by type (feat)
+        if: startsWith(github.event.pull_request.title, 'feat')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'type: feature'
+
+      - name: Label by type (fix)
+        if: startsWith(github.event.pull_request.title, 'fix')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'type: fix'
+
+      - name: Label by type (docs)
+        if: startsWith(github.event.pull_request.title, 'docs')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'type: documentation'
+
+      - name: Label by type (chore)
+        if: |
+          startsWith(github.event.pull_request.title, 'chore') ||
+          startsWith(github.event.pull_request.title, 'refactor')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'type: chore'
+
+      - name: Label by type (test)
+        if: startsWith(github.event.pull_request.title, 'test')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'type: test'
+
+      - name: Label by type (perf)
+        if: startsWith(github.event.pull_request.title, 'perf')
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: 'type: performance'
+
+  auto-assign-reviewers:
+    name: Auto-assign Reviewers
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Auto-assign based on CODEOWNERS
+        uses: hmarr/auto-assign-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Will use CODEOWNERS file automatically
+
+  comment-on-large-pr:
+    name: Comment on Large PRs
+    runs-on: ubuntu-latest
+    needs: label-by-size
+    if: contains(github.event.pull_request.labels.*.name, 'size: XL')
+    steps:
+      - name: Comment on XL PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 📦 Large PR Detected
+
+            This PR is labeled as **XL** (1000+ lines changed).
+
+            **Recommendations:**
+            - Consider breaking this into smaller PRs for easier review
+            - Ensure comprehensive tests are included
+            - Update documentation for all changes
+            - Add detailed description of changes
+
+            **Review checklist:**
+            - [ ] All changes are related and should be in one PR
+            - [ ] Tests cover all new functionality
+            - [ ] Documentation is updated
+            - [ ] Breaking changes are clearly documented
+            - [ ] Changeset is added
+
+            If this is a generated code update or migration, feel free to ignore this message.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
