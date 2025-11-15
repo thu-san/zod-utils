@@ -137,6 +137,34 @@ const form = useZodForm({
 - **Type inference**: No manual type annotations needed - everything is inferred from the schema
 - **Zod integration**: Automatically sets up `zodResolver` for validation
 
+#### Using Without Default Values
+
+The `defaultValues` parameter is **optional**. All form fields are automatically treated as optional during editing:
+
+```typescript
+const schema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  age: z.number(),
+});
+
+// ✅ No defaultValues needed!
+const form = useZodForm({ schema });
+
+// Fields can be set individually as the user types
+form.setValue("name", "John");
+form.setValue("email", "john@example.com");
+form.setValue("age", 25);
+
+// Validation still enforces the schema on submit
+const onSubmit = form.handleSubmit((data) => {
+  // Type: { name: string; email: string; age: number }
+  console.log(data);
+});
+```
+
+This works because `useZodForm` uses the `Simplify` utility to ensure proper type inference, making all fields optional during editing while preserving exact types after validation.
+
 #### Custom Input Types
 
 You can override the default input type transformation if needed:
