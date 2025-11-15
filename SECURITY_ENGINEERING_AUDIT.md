@@ -612,7 +612,11 @@ These can be implemented quickly for immediate value:
    - 31 labels configured: size, package, type, area, special
    - Ready to use after running setup script
 5. [ ] Implement stale issue bot (30 min)
-6. [ ] Add spell checking (1 hour)
+6. [x] Add spell checking (1 hour) ✅
+   - Created `cspell.json` configuration file
+   - Using Code Spell Checker VSCode extension (already in `.vscode/extensions.json`)
+   - Added 40+ project-specific terms (Zod, Turborepo, biomejs, etc.)
+   - Configured to ignore build artifacts, lock files, and URLs
 7. [ ] Enable GitHub Dependabot alerts (15 min)
 8. [ ] Add commit message validation (1 hour)
 9. [ ] Create architecture diagram (2 hours)

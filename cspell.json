@@ -1,0 +1,98 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    // Project specific
+    "zod",
+    "Zod",
+    "zodResolver",
+    "CODEOWNERS",
+
+    // Package names
+    "biome",
+    "biomejs",
+    "vitest",
+    "tsup",
+    "changesets",
+    "Changesets",
+    "pnpm",
+    "turborepo",
+    "Turborepo",
+
+    // React/Form related
+    "hookform",
+    "rhf",
+    "nonempty",
+
+    // TypeScript/Build
+    "devcontainer",
+    "Codespaces",
+    "npmrc",
+    "esno",
+    "esbuild",
+    "unbuild",
+
+    // GitHub Actions
+    "labeler",
+    "dependabot",
+    "Dependabot",
+    "Renovate",
+    "Vercel",
+    "Netlify",
+
+    // Security tools
+    "cspell",
+    "Gitleaks",
+    "gitleaks",
+    "Trivy",
+    "trivy",
+    "Grype",
+    "SBOM",
+    "SLSA",
+
+    // Misc
+    "monorepo",
+    "linting",
+    "semver",
+    "jscpd",
+    "Runbook",
+    "runbook",
+    "Pulumi"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    ".next",
+    "build",
+    "coverage",
+    "*.min.js",
+    "*.map",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    ".git",
+    ".github/workflows/*.yml",
+    "CHANGELOG.md",
+    ".changesets/**"
+  ],
+  "ignoreRegExpList": [
+    // URLs
+    "/https?:\\/\\/[^\\s]+/g",
+    // Hex colors
+    "/#[0-9a-fA-F]{6}/g",
+    // Package versions
+    "/\\d+\\.\\d+\\.\\d+/g",
+    // npm package names with @ and /
+    "/@[a-z0-9-]+\\/[a-z0-9-]+/gi"
+  ],
+  "flagWords": [],
+  "enableFiletypes": [
+    "mdx",
+    "markdown",
+    "typescript",
+    "javascript",
+    "typescriptreact",
+    "javascriptreact"
+  ]
+}
