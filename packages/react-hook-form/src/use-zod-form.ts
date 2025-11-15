@@ -16,8 +16,8 @@ import type {
  *
  * This hook eliminates the TypeScript friction between React Hook Form's nullable field values
  * and Zod's strict output types. It uses a two-type schema pattern where:
- * - **Input type** (`PartialWithNullableObjects<T>`): Form fields accept `null | undefined` during editing
- * - **Output type** (`T`): Validated data matches exact schema type (no `null | undefined`)
+ * - **Input type** (`PartialWithNullableObjects<TOutput>`): Form fields accept `null | undefined` during editing
+ * - **Output type** (`TOutput`): Validated data matches exact schema type (no `null | undefined`)
  *
  * **Key Benefits:**
  * - ✅ No more "Type 'null' is not assignable to..." TypeScript errors
@@ -25,10 +25,11 @@ import type {
  * - ✅ Validated output is still type-safe with exact Zod schema types
  * - ✅ Automatic zodResolver setup - no manual configuration needed
  *
- * @template T - The Zod schema output type (extends FieldValues)
+ * @template TOutput - The Zod schema output type (extends FieldValues)
+ * @template TInput - The Zod schema input type (accepts nullable/undefined values during form editing)
  *
  * @param options - Configuration object
- * @param options.schema - Zod schema with two-type signature `z.ZodType<T, PartialWithNullableObjects<T>>`
+ * @param options.schema - Zod schema with two-type signature `z.ZodType<TOutput, TInput>`
  * @param options.defaultValues - Default form values (accepts nullable/undefined values)
  * @param options.zodResolverOptions - Optional zodResolver configuration
  * @param options....formOptions - All other react-hook-form useForm options
@@ -83,6 +84,26 @@ import type {
  *     // notifications gets default from schema
  *   },
  * });
+ * ```
+ *
+ * @example
+ * Without default values (all fields are optional during editing)
+ * ```typescript
+ * const schema = z.object({
+ *   name: z.string().min(1),
+ *   email: z.string().email(),
+ *   age: z.number(),
+ * }) satisfies z.ZodType<{ name: string; email: string; age: number }, any>;
+ *
+ * // ✅ No defaultValues needed - fields are optional during editing
+ * const form = useZodForm({ schema });
+ *
+ * // Form fields can be set individually as user types
+ * form.setValue('name', 'John');
+ * form.setValue('email', 'john@example.com');
+ * form.setValue('age', 25);
+ *
+ * // All fields must be valid on submit (per schema validation)
  * ```
  *
  * @example
@@ -155,18 +176,26 @@ import type {
  * @since 0.1.0
  */
 export const useZodForm = <
-  T extends FieldValues,
-  I extends PartialWithAllNullables<T> = PartialWithNullableObjects<T>,
+  TOutput extends FieldValues,
+  TFormInput extends
+    PartialWithAllNullables<TOutput> = PartialWithNullableObjects<TOutput>,
+  TInput extends TFormInput = TFormInput,
 >({
   schema,
   zodResolverOptions,
   ...formOptions
 }: {
-  schema: z.ZodType<T, I>;
-  defaultValues?: DefaultValues<I>;
+  schema: z.ZodType<TOutput, TInput>;
+  defaultValues?: DefaultValues<TFormInput>;
   zodResolverOptions?: Parameters<typeof zodResolver>[1];
-} & Omit<UseFormProps<I, unknown, T>, 'resolver' | 'defaultValues'>) => {
-  const resolver = zodResolver(schema, zodResolverOptions);
+} & Omit<
+  UseFormProps<TFormInput, unknown, TOutput>,
+  'resolver' | 'defaultValues'
+>) => {
+  const resolver = zodResolver<TFormInput, unknown, TOutput>(
+    schema,
+    zodResolverOptions,
+  );
 
   return useForm({
     resolver,

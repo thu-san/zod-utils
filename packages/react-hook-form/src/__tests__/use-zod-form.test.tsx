@@ -179,4 +179,79 @@ describe('useZodForm', () => {
 
     expect(result.current.formState).toBeDefined();
   });
+
+  it('should work without defaultValues for simple schema', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        // No defaultValues provided
+      }),
+    );
+
+    expect(result.current).toBeDefined();
+    expect(result.current.setValue).toBeDefined();
+    expect(result.current.getValues).toBeDefined();
+  });
+
+  it('should work without defaultValues for nested schema', () => {
+    const schema = z.object({
+      user: z.object({
+        name: z.string(),
+        email: z.string().email(),
+        profile: z.object({
+          bio: z.string(),
+          age: z.number(),
+        }),
+      }),
+      tags: z.array(z.string()),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        // No defaultValues provided - all fields optional during editing
+      }),
+    );
+
+    expect(result.current).toBeDefined();
+
+    // Should be able to set values individually
+    result.current.setValue('user.name', 'John');
+    result.current.setValue('tags', ['react']);
+
+    expect(result.current.getValues('user.name')).toBe('John');
+    expect(result.current.getValues('tags')).toEqual(['react']);
+  });
+
+  it('should allow setValue and reset without defaultValues', () => {
+    const schema = z.object({
+      name: z.string(),
+      email: z.string().email(),
+    });
+
+    const { result } = renderHook(() =>
+      useZodForm({
+        schema,
+        // No defaultValues
+      }),
+    );
+
+    // Should be able to set values
+    result.current.setValue('name', 'Alice');
+    result.current.setValue('email', 'alice@example.com');
+
+    expect(result.current.getValues('name')).toBe('Alice');
+    expect(result.current.getValues('email')).toBe('alice@example.com');
+
+    // Should be able to reset with new values
+    result.current.reset({ name: 'Bob', email: 'bob@example.com' });
+
+    expect(result.current.getValues('name')).toBe('Bob');
+    expect(result.current.getValues('email')).toBe('bob@example.com');
+  });
 });
