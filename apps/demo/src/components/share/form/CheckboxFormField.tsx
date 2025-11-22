@@ -1,86 +1,109 @@
 import type { ComponentProps } from 'react';
-import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import type { Control, FieldValues } from 'react-hook-form';
+import { useValidationDescription } from '@/hooks/useValidationDescription';
+import type { FormNamespace } from '@/types/i18n';
 import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
-import type { FormNamespace, translationKeys } from '@/types/i18n';
-import { TFormLabel } from './TFormLabel';
+  type DiscriminatorValue,
+  TFormField,
+  type ValidFieldName,
+} from './TFormField';
 
 export function CheckboxFormField<
   TFieldValues extends FieldValues,
   TNamespace extends FormNamespace,
-  TName extends Extract<
-    FieldPath<TFieldValues>,
-    translationKeys<`${TNamespace}.form`>
+  TName extends ValidFieldName<
+    TFieldValues,
+    TNamespace,
+    TDiscriminatorField,
+    TDiscriminatorValue
+  >,
+  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TFieldValues,
+    TDiscriminatorField
   >,
 >({
   control,
   name,
   namespace,
   description,
+  discriminatorField,
+  discriminatorValue,
   ...inputProps
 }: {
   control: Control<TFieldValues>;
   name: TName;
   namespace: TNamespace;
   description?: string;
+  discriminatorField?: TDiscriminatorField;
+  discriminatorValue?: TDiscriminatorValue;
 } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>) {
+  // Auto-generate validation description if not provided
+  const autoDescription = useValidationDescription(name);
+  const finalDescription =
+    description !== undefined ? description : autoDescription;
+
   return (
-    <FormField
+    <TFormField
       control={control}
       name={name}
+      namespace={namespace}
+      description={finalDescription}
+      discriminatorField={discriminatorField}
+      discriminatorValue={discriminatorValue}
       render={({ field }) => (
-        <FormItem>
-          <div className="flex items-center gap-2">
-            <FormControl>
-              <input
-                {...field}
-                {...inputProps}
-                type="checkbox"
-                checked={field.value ?? false}
-                value={undefined}
-              />
-            </FormControl>
-            <TFormLabel namespace={namespace} name={name} className="mt-0!" />
-          </div>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
+        <input
+          {...field}
+          {...inputProps}
+          type="checkbox"
+          checked={field.value ?? false}
+          value={undefined}
+        />
       )}
     />
   );
 }
 
-export function createCheckboxFormField<TNamespace extends FormNamespace>(
-  namespace: TNamespace,
-) {
+export function createCheckboxFormField<
+  TNamespace extends FormNamespace,
+>(factoryProps: { namespace: TNamespace }) {
   return function BoundCheckboxFormField<
     TFieldValues extends FieldValues,
-    TName extends Extract<
-      FieldPath<TFieldValues>,
-      translationKeys<`${TNamespace}.form`>
+    TName extends ValidFieldName<
+      TFieldValues,
+      TNamespace,
+      TDiscriminatorField,
+      TDiscriminatorValue
     >,
-  >({
-    control,
-    name,
-    description,
-    ...inputProps
-  }: {
-    control: Control<TFieldValues>;
-    name: TName;
-    description?: string;
-  } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>) {
+    TDiscriminatorField extends keyof TFieldValues | undefined,
+    TDiscriminatorValue extends DiscriminatorValue<
+      TFieldValues,
+      TDiscriminatorField
+    >,
+  >(
+    props: Omit<
+      React.ComponentProps<
+        typeof CheckboxFormField<
+          TFieldValues,
+          TNamespace,
+          TName,
+          TDiscriminatorField,
+          TDiscriminatorValue
+        >
+      >,
+      'namespace'
+    >,
+  ) {
     return (
-      <CheckboxFormField
-        control={control}
-        name={name}
-        namespace={namespace}
-        description={description}
-        {...inputProps}
+      <CheckboxFormField<
+        TFieldValues,
+        TNamespace,
+        TName,
+        TDiscriminatorField,
+        TDiscriminatorValue
+      >
+        {...factoryProps}
+        {...props}
       />
     );
   };

@@ -16,12 +16,66 @@ import {
 import type { FormNamespace, translationKeys } from '@/types/i18n';
 import { TFormLabel } from './TFormLabel';
 
+export type DiscriminatorValue<
+  TFieldValues extends FieldValues,
+  TDiscriminatorField extends keyof TFieldValues | undefined,
+> = TDiscriminatorField extends string
+  ? TFieldValues[TDiscriminatorField]
+  : never;
+
+// Helper type for valid field names with discriminator support
+export type ValidFieldName<
+  TFieldValues extends FieldValues,
+  TNamespace extends FormNamespace,
+  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TFieldValues,
+    TDiscriminatorField
+  >,
+> = Extract<
+  ExtractDiscriminatedFields<
+    TFieldValues,
+    TDiscriminatorField,
+    TDiscriminatorValue
+  >,
+  translationKeys<`${TNamespace}.form`>
+>;
+
+export type ExtractDiscriminatedFields<
+  TFieldValues extends FieldValues,
+  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TFieldValues,
+    TDiscriminatorField
+  >,
+  TDiscriminatedFields extends TDiscriminatorField extends string
+    ? keyof Extract<
+        Required<TFieldValues>,
+        Record<TDiscriminatorField, TDiscriminatorValue>
+      >
+    : never = TDiscriminatorField extends string
+    ? keyof Extract<
+        Required<TFieldValues>,
+        Record<TDiscriminatorField, TDiscriminatorValue>
+      >
+    : never,
+> = TDiscriminatedFields extends FieldPath<TFieldValues>
+  ? TDiscriminatedFields
+  : never;
+
 export function TFormField<
   TFieldValues extends FieldValues,
   TNamespace extends FormNamespace,
-  TName extends Extract<
-    FieldPath<TFieldValues>,
-    translationKeys<`${TNamespace}.form`>
+  TName extends ValidFieldName<
+    TFieldValues,
+    TNamespace,
+    TDiscriminatorField,
+    TDiscriminatorValue
+  >,
+  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TFieldValues,
+    TDiscriminatorField
   >,
 >({
   control,
@@ -38,6 +92,8 @@ export function TFormField<
     label: string;
   }) => ReactElement;
   description?: string;
+  discriminatorField?: TDiscriminatorField; // used only for type inference
+  discriminatorValue?: TDiscriminatorValue; // used only for type inference
 }) {
   const t = useTranslations(namespace);
   // @ts-expect-error - Generic field names can't be narrowed to form translation keys at compile-time
@@ -59,36 +115,48 @@ export function TFormField<
   );
 }
 
-export function createTFormField<TNamespace extends FormNamespace>(
-  namespace: TNamespace,
-) {
+export function createTFormField<
+  TFieldValues extends FieldValues,
+  TNamespace extends FormNamespace,
+  TDiscriminatorField extends keyof TFieldValues & string,
+>(factoryProps: {
+  namespace: TNamespace;
+  discriminatorField?: TDiscriminatorField;
+}) {
   return function BoundTFormField<
-    TFieldValues extends FieldValues,
     TName extends Extract<
-      FieldPath<TFieldValues>,
+      ExtractDiscriminatedFields<
+        TFieldValues,
+        TDiscriminatorField,
+        TDiscriminatorValue
+      >,
       translationKeys<`${TNamespace}.form`>
     >,
-  >({
-    control,
-    name,
-    render,
-    description,
-  }: {
-    control: Control<TFieldValues>;
-    name: TName;
-    render: (field: {
-      field: ControllerRenderProps<TFieldValues, TName>;
-      label: string;
-    }) => ReactElement;
-    description?: string;
-  }) {
+    TDiscriminatorValue extends TFieldValues[TDiscriminatorField] & string,
+  >(
+    props: Omit<
+      React.ComponentProps<
+        typeof TFormField<
+          TFieldValues,
+          TNamespace,
+          TName,
+          TDiscriminatorField,
+          TDiscriminatorValue
+        >
+      >,
+      'namespace'
+    >,
+  ) {
     return (
-      <TFormField
-        control={control}
-        name={name}
-        namespace={namespace}
-        render={render}
-        description={description}
+      <TFormField<
+        TFieldValues,
+        TNamespace,
+        TName,
+        TDiscriminatorField,
+        TDiscriminatorValue
+      >
+        {...factoryProps}
+        {...props}
       />
     );
   };

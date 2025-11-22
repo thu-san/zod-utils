@@ -58,9 +58,9 @@ describe('extractDefault', () => {
     expect(extractDefault(schema)).toBe(true);
   });
 
-  it('should extract default from union with default in first option', () => {
+  it('should return undefined for union with multiple non-nullish types', () => {
     const schema = z.union([z.string().default('hello'), z.number()]);
-    expect(extractDefault(schema)).toBe('hello');
+    expect(extractDefault(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with default in second option', () => {
@@ -69,14 +69,14 @@ describe('extractDefault', () => {
     expect(extractDefault(schema)).toBeUndefined();
   });
 
-  it('should extract default from union wrapped in optional', () => {
+  it('should return undefined for union with multiple types wrapped in optional', () => {
     const schema = z.union([z.string().default('test'), z.number()]).optional();
-    expect(extractDefault(schema)).toBe('test');
+    expect(extractDefault(schema)).toBeUndefined();
   });
 
-  it('should extract default from union wrapped in nullable', () => {
+  it('should return undefined for union with multiple types wrapped in nullable', () => {
     const schema = z.union([z.string().default('test'), z.number()]).nullable();
-    expect(extractDefault(schema)).toBe('test');
+    expect(extractDefault(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with no defaults', () => {
@@ -84,20 +84,20 @@ describe('extractDefault', () => {
     expect(extractDefault(schema)).toBeUndefined();
   });
 
-  it('should extract default from nested union', () => {
+  it('should return undefined for nested union with multiple types', () => {
     const schema = z.union([
       z.union([z.string().default('nested'), z.number()]),
       z.boolean(),
     ]);
-    expect(extractDefault(schema)).toBe('nested');
+    expect(extractDefault(schema)).toBeUndefined();
   });
 
-  it('should extract default from union with object type', () => {
+  it('should return undefined for union with multiple types including object', () => {
     const schema = z.union([
       z.object({ id: z.string() }).default({ id: 'default' }),
       z.string(),
     ]);
-    expect(extractDefault(schema)).toEqual({ id: 'default' });
+    expect(extractDefault(schema)).toBeUndefined();
   });
 });
 
@@ -280,6 +280,215 @@ describe('getSchemaDefaults', () => {
       quantity: 1,
       enabled: true,
       // All fields with explicit defaults are included
+    });
+  });
+
+  describe('discriminated unions', () => {
+    const userSchema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create'),
+        name: z.string(),
+        age: z.number().optional().default(18),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number().default(1),
+        name: z.string().optional(),
+        bio: z.string().optional().default('bio goes here'),
+      }),
+    ]);
+
+    it('should extract defaults for create mode', () => {
+      const result = getSchemaDefaults(userSchema, {
+        discriminator: {
+          field: 'mode',
+          value: 'create',
+        },
+      });
+
+      expect(result).toEqual({
+        age: 18,
+      });
+    });
+
+    it('should extract defaults for edit mode', () => {
+      const result = getSchemaDefaults(userSchema, {
+        discriminator: {
+          field: 'mode',
+          value: 'edit',
+        },
+      });
+
+      expect(result).toEqual({
+        id: 1,
+        bio: 'bio goes here',
+      });
+    });
+
+    it('should return empty object when discriminator option has no defaults', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('a'),
+          value: z.string(),
+        }),
+        z.object({
+          type: z.literal('b'),
+          count: z.number(),
+        }),
+      ]);
+
+      const result = getSchemaDefaults(schema, {
+        discriminator: {
+          field: 'type',
+          value: 'a',
+        },
+      });
+
+      expect(result).toEqual({});
+    });
+
+    it('should return empty object without discriminator option', () => {
+      const result = getSchemaDefaults(userSchema);
+
+      expect(result).toEqual({});
+    });
+
+    it('should return empty object for invalid discriminator value', () => {
+      const result = getSchemaDefaults(userSchema, {
+        discriminator: {
+          field: 'mode',
+          // @ts-expect-error - testing invalid value
+          value: 'invalid',
+        },
+      });
+
+      expect(result).toEqual({});
+    });
+
+    it('should work with complex discriminated union', () => {
+      const paymentSchema = z.discriminatedUnion('method', [
+        z.object({
+          method: z.literal('card'),
+          cardNumber: z.string(),
+          cvv: z.string(),
+          saveCard: z.boolean().default(false),
+        }),
+        z.object({
+          method: z.literal('paypal'),
+          email: z.string().default('user@example.com'),
+        }),
+        z.object({
+          method: z.literal('bank'),
+          accountNumber: z.string(),
+          routingNumber: z.string(),
+        }),
+      ]);
+
+      const cardDefaults = getSchemaDefaults(paymentSchema, {
+        discriminator: {
+          field: 'method',
+          value: 'card',
+        },
+      });
+
+      const paypalDefaults = getSchemaDefaults(paymentSchema, {
+        discriminator: {
+          field: 'method',
+          value: 'paypal',
+        },
+      });
+
+      const bankDefaults = getSchemaDefaults(paymentSchema, {
+        discriminator: {
+          field: 'method',
+          value: 'bank',
+        },
+      });
+
+      expect(cardDefaults).toEqual({ saveCard: false });
+      expect(paypalDefaults).toEqual({ email: 'user@example.com' });
+      expect(bankDefaults).toEqual({});
+    });
+
+    it('should work with nested defaults in discriminated union', () => {
+      const formSchema = z.discriminatedUnion('status', [
+        z.object({
+          status: z.literal('active'),
+          settings: z
+            .object({
+              theme: z.string().default('light'),
+              notifications: z.boolean().default(true),
+            })
+            .default({ theme: 'light', notifications: true }),
+        }),
+        z.object({
+          status: z.literal('inactive'),
+          reason: z.string().optional(),
+        }),
+      ]);
+
+      const activeDefaults = getSchemaDefaults(formSchema, {
+        discriminator: {
+          field: 'status',
+          value: 'active',
+        },
+      });
+
+      expect(activeDefaults).toEqual({
+        settings: { theme: 'light', notifications: true },
+      });
+    });
+
+    it('should work with boolean discriminator values', () => {
+      const responseSchema = z.discriminatedUnion('success', [
+        z.object({
+          success: z.literal(true),
+          data: z.string().default('default data'),
+        }),
+        z.object({
+          success: z.literal(false),
+          error: z.string().default('Unknown error'),
+        }),
+      ]);
+
+      const successDefaults = getSchemaDefaults(responseSchema, {
+        discriminator: {
+          field: 'success',
+          value: true,
+        },
+      });
+
+      const errorDefaults = getSchemaDefaults(responseSchema, {
+        discriminator: {
+          field: 'success',
+          value: false,
+        },
+      });
+
+      expect(successDefaults).toEqual({ data: 'default data' });
+      expect(errorDefaults).toEqual({ error: 'Unknown error' });
+    });
+
+    it('should work with numeric discriminator values', () => {
+      const statusSchema = z.discriminatedUnion('code', [
+        z.object({
+          code: z.literal(200),
+          message: z.string().default('Success'),
+        }),
+        z.object({
+          code: z.literal(404),
+          error: z.string().default('Not found'),
+        }),
+      ]);
+
+      const successDefaults = getSchemaDefaults(statusSchema, {
+        discriminator: {
+          field: 'code',
+          value: 200,
+        },
+      });
+
+      expect(successDefaults).toEqual({ message: 'Success' });
     });
   });
 });

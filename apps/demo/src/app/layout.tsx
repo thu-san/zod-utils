@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import Link from 'next/link';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const geistSans = Geist({
@@ -32,8 +34,32 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
+          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+            <div className="container flex h-14 max-w-screen-2xl items-center px-4">
+              <div className="mr-4 flex">
+                <Link href="/" className="mr-6 flex items-center space-x-2">
+                  <span className="font-bold">Zod Utils Demo</span>
+                </Link>
+                <nav className="flex items-center gap-6 text-sm">
+                  <Link
+                    href="/"
+                    className="transition-colors hover:text-foreground/80 text-foreground"
+                  >
+                    All Fields
+                  </Link>
+                  <Link
+                    href="/create-edit"
+                    className="transition-colors hover:text-foreground/80 text-foreground"
+                  >
+                    Discriminated Union
+                  </Link>
+                </nav>
+              </div>
+            </div>
+          </header>
           {children}
         </NextIntlClientProvider>
+        <Toaster />
       </body>
     </html>
   );

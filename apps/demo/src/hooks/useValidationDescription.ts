@@ -44,15 +44,46 @@ import { FormSchemaContext } from '../lib/form-schema-context';
  * ```
  */
 export function useValidationDescription(fieldName: string): string {
-  const schema = useContext(FormSchemaContext);
+  const context = useContext(FormSchemaContext);
   const t = useTranslations('user.validation');
 
-  if (!schema) {
+  if (!context) {
     return '';
   }
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const field = schema.shape[fieldName] as z.ZodTypeAny | undefined;
+  const { schema, discriminatorValue } = context;
+
+  let field: z.ZodTypeAny | undefined;
+
+  // Handle discriminated unions
+  if ('discriminator' in schema.def) {
+    // For discriminated unions, we need to find the active variant
+    if (!discriminatorValue) {
+      return '';
+    }
+
+    const { discriminator, value } = discriminatorValue;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const options = schema.def.options as z.ZodObject<z.ZodRawShape>[];
+    const matchingVariant = options.find((option) => {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      const discriminatorField = option.shape[discriminator] as z.ZodTypeAny;
+      if (!discriminatorField) return false;
+      const parseResult = discriminatorField.safeParse(value);
+      return parseResult.success;
+    });
+
+    if (matchingVariant) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      field = matchingVariant.shape[fieldName] as z.ZodTypeAny | undefined;
+    }
+  } else {
+    // Handle regular ZodObject
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const objectSchema = schema as z.ZodObject<z.ZodRawShape>;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    field = objectSchema.shape[fieldName] as z.ZodTypeAny | undefined;
+  }
 
   if (!field) {
     return '';
