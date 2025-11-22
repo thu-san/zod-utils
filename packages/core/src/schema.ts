@@ -55,100 +55,60 @@ export function canUnwrap(
 }
 
 /**
- * Unwraps a ZodUnion type and returns the first field and all union options.
+ * Attempts to strip nullish types from a union and return the single remaining type.
  *
- * This function extracts the individual type options from a union type.
- * By default, it filters out `ZodNull` and `ZodUndefined` types, returning only
- * the meaningful type options. You can disable this filtering to get all options.
+ * This function filters out `ZodNull` and `ZodUndefined` from union types. If exactly
+ * one type remains after filtering, it returns that unwrapped type. Otherwise, it returns
+ * `false` to indicate the union couldn't be simplified to a single type.
  *
- * @template T - The Zod type to unwrap
- * @param field - The Zod field (union or single type)
- * @param options - Configuration options
- * @param options.filterNullish - Whether to filter out null and undefined types (default: true)
- * @returns Object with `field` (first option) and `union` (all options array)
+ * @param field - The Zod field to process
+ * @returns The unwrapped type if only one remains, otherwise `false`
  *
  * @example
- * Basic union unwrapping
+ * Union with only nullish types filtered - returns single type
+ * ```typescript
+ * const field = z.union([z.string(), z.null(), z.undefined()]);
+ * const result = tryStripNullishOnly(field);
+ * // Result: z.string() (unwrapped)
+ * ```
+ *
+ * @example
+ * Union with multiple non-nullish types - returns false
  * ```typescript
  * const field = z.union([z.string(), z.number()]);
- * const result = unwrapUnion(field);
- * // Result: { field: z.string(), union: [z.string(), z.number()] }
+ * const result = tryStripNullishOnly(field);
+ * // Result: false (cannot simplify to single type)
  * ```
  *
  * @example
- * Union with null (filtered by default)
- * ```typescript
- * const field = z.union([z.string(), z.null()]);
- * const result = unwrapUnion(field);
- * // Result: { field: z.string(), union: [z.string()] }
- * ```
- *
- * @example
- * Union with null (keep all options)
- * ```typescript
- * const field = z.union([z.string(), z.null()]);
- * const result = unwrapUnion(field, { filterNullish: false });
- * // Result: { field: z.string(), union: [z.string(), z.null()] }
- * ```
- *
- * @example
- * Non-union type (returns single field)
+ * Non-union type - returns false
  * ```typescript
  * const field = z.string();
- * const result = unwrapUnion(field);
- * // Result: { field: z.string(), union: [z.string()] }
- * ```
- *
- * @example
- * Nullable as union
- * ```typescript
- * const field = z.string().nullable(); // This is z.union([z.string(), z.null()])
- * const result = unwrapUnion(field);
- * // Result: { field: z.string(), union: [z.string()] } (null filtered out)
- * ```
- *
- * @example
- * Using the first field for type checking
- * ```typescript
- * const field = z.union([z.string(), z.number()]);
- * const { field: firstField, union } = unwrapUnion(field);
- * if (firstField instanceof z.ZodString) {
- *   console.log('First type is string');
- * }
+ * const result = tryStripNullishOnly(field);
+ * // Result: false (not a union)
  * ```
  *
  * @see {@link getPrimitiveType} for unwrapping wrapper types
- * @since 0.1.0
+ * @since 0.5.0
  */
-export function unwrapUnion<T extends z.ZodTypeAny>(
-  field: T,
-  options: { filterNullish?: boolean } = {},
-): { field: z.ZodTypeAny; union: z.ZodTypeAny[] } {
-  const { filterNullish = true } = options;
-
+export function tryStripNullishOnly(field: z.ZodTypeAny): z.ZodType | false {
   if (field instanceof z.ZodUnion) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const unionOptions = [...field.def.options] as z.ZodTypeAny[];
+    const unionOptions = [...field.def.options];
 
-    const filteredOptions = filterNullish
-      ? unionOptions.filter(
-          (option) =>
-            !(option instanceof z.ZodNull) &&
-            !(option instanceof z.ZodUndefined),
-        )
-      : unionOptions;
+    const filteredOptions = unionOptions.filter(
+      (option): option is z.ZodType =>
+        !(option instanceof z.ZodNull) && !(option instanceof z.ZodUndefined),
+    );
 
-    return {
-      field: filteredOptions[0] || field,
-      union: filteredOptions,
-    };
+    // If exactly one option remains, return it unwrapped
+    const firstOption = filteredOptions[0];
+    if (firstOption && filteredOptions.length === 1) {
+      return firstOption;
+    }
   }
 
-  // If it's not a union, return the field itself
-  return {
-    field,
-    union: [field],
-  };
+  // Not a union, or couldn't simplify to single type
+  return false;
 }
 
 /**
@@ -156,6 +116,10 @@ export function unwrapUnion<T extends z.ZodTypeAny>(
  *
  * This function removes wrapper layers (optional, nullable, default) to reveal the base type.
  * **Important:** It stops at array types without unwrapping them, treating arrays as primitives.
+ *
+ * **Union handling:** For union types, strips nullish types (null/undefined) first. If only one
+ * type remains after stripping, unwraps to that type. If multiple non-nullish types remain,
+ * returns the union as-is (does not unwrap).
  *
  * @template T - The Zod type to unwrap
  * @param field - The Zod field to unwrap
@@ -185,7 +149,24 @@ export function unwrapUnion<T extends z.ZodTypeAny>(
  * // Result: z.number()
  * ```
  *
+ * @example
+ * Union with only nullish types stripped to single type
+ * ```typescript
+ * const field = z.union([z.string(), z.null()]);
+ * const primitive = getPrimitiveType(field);
+ * // Result: z.string() (null stripped, leaving only string)
+ * ```
+ *
+ * @example
+ * Union with multiple non-nullish types
+ * ```typescript
+ * const field = z.union([z.string(), z.number()]);
+ * const primitive = getPrimitiveType(field);
+ * // Result: z.union([z.string(), z.number()]) (returned as-is)
+ * ```
+ *
  * @see {@link canUnwrap} for checking if a field can be unwrapped
+ * @see {@link tryStripNullishOnly} for union nullish stripping logic
  * @since 0.1.0
  */
 export const getPrimitiveType = <T extends z.ZodType>(
@@ -201,7 +182,13 @@ export const getPrimitiveType = <T extends z.ZodType>(
   }
 
   if (field instanceof z.ZodUnion) {
-    return getPrimitiveType(unwrapUnion(field).field);
+    const unwrapped = tryStripNullishOnly(field);
+    if (unwrapped !== false) {
+      return getPrimitiveType(unwrapped);
+    }
+
+    // Multiple non-nullish types or all nullish - return union as-is
+    return field;
   }
 
   return field;
@@ -499,3 +486,113 @@ export function getFieldChecks<T extends z.ZodTypeAny>(
   return (primitiveType.def.checks?.map((check) => check._zod.def) ||
     []) as Array<ZodUnionCheck>;
 }
+
+/**
+ * Extracts a specific schema option from a discriminated union based on the discriminator field value.
+ *
+ * This function finds and returns the matching schema option from a `ZodDiscriminatedUnion` by
+ * comparing the discriminator field value. It's used internally by {@link getSchemaDefaults} to
+ * extract defaults from the correct schema variant in a discriminated union.
+ *
+ * **How it works:**
+ * 1. Iterates through all options in the discriminated union
+ * 2. For each option, checks if the discriminator field matches the provided value
+ * 3. Returns the first matching schema option, or `undefined` if no match found
+ *
+ * @template TSchema - The discriminated union schema type
+ * @template TObj - The inferred type of the schema
+ * @template TDiscriminatorField - The discriminator field key type
+ * @param params - Parameters object
+ * @param params.schema - The discriminated union schema to search
+ * @param params.discriminatorField - The discriminator field name (e.g., "mode", "type")
+ * @param params.discriminatorValue - The discriminator value to match (e.g., "create", "edit")
+ * @returns The matching schema option, or `undefined` if not found
+ *
+ * @example
+ * Basic discriminated union - create/edit mode
+ * ```typescript
+ * const userSchema = z.discriminatedUnion('mode', [
+ *   z.object({
+ *     mode: z.literal('create'),
+ *     name: z.string(),
+ *     age: z.number().optional(),
+ *   }),
+ *   z.object({
+ *     mode: z.literal('edit'),
+ *     id: z.number(),
+ *     name: z.string().optional(),
+ *   }),
+ * ]);
+ *
+ * // Extract the "create" schema
+ * const createSchema = extractDiscriminatedSchema({
+ *   schema: userSchema,
+ *   discriminatorField: 'mode',
+ *   discriminatorValue: 'create',
+ * });
+ * // Result: z.object({ mode: z.literal('create'), name: z.string(), age: z.number().optional() })
+ *
+ * // Extract the "edit" schema
+ * const editSchema = extractDiscriminatedSchema({
+ *   schema: userSchema,
+ *   discriminatorField: 'mode',
+ *   discriminatorValue: 'edit',
+ * });
+ * // Result: z.object({ mode: z.literal('edit'), id: z.number(), name: z.string().optional() })
+ * ```
+ *
+ * @example
+ * Type-based discrimination
+ * ```typescript
+ * const eventSchema = z.discriminatedUnion('type', [
+ *   z.object({ type: z.literal('click'), x: z.number(), y: z.number() }),
+ *   z.object({ type: z.literal('keypress'), key: z.string() }),
+ * ]);
+ *
+ * const clickSchema = extractDiscriminatedSchema({
+ *   schema: eventSchema,
+ *   discriminatorField: 'type',
+ *   discriminatorValue: 'click',
+ * });
+ * // Result: z.object({ type: z.literal('click'), x: z.number(), y: z.number() })
+ * ```
+ *
+ * @example
+ * Invalid discriminator value
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ * ]);
+ *
+ * const result = extractDiscriminatedSchema({
+ *   schema,
+ *   discriminatorField: 'mode',
+ *   discriminatorValue: 'invalid', // doesn't match any option
+ * });
+ * // Result: undefined
+ * ```
+ *
+ * @see {@link getSchemaDefaults} for usage with discriminated unions
+ * @since 0.6.0
+ */
+export const extractDiscriminatedSchema = <
+  TSchema extends z.ZodDiscriminatedUnion<Array<z.ZodObject>>,
+  TObj extends z.infer<TSchema>,
+  TDiscriminatorField extends keyof TObj = keyof TObj,
+>({
+  schema,
+  discriminatorField,
+  discriminatorValue,
+}: {
+  schema: TSchema;
+  discriminatorField: TDiscriminatorField;
+  discriminatorValue: TObj[TDiscriminatorField];
+}) => {
+  return schema.options.find((option) => {
+    const targetField = option.shape[String(discriminatorField)];
+    if (!targetField) return false;
+
+    const parseResult = targetField.safeParse(discriminatorValue);
+    return parseResult.success;
+  });
+};

@@ -1,5 +1,9 @@
 {
   "form": {
+    "id": "ID",
+    "name": "Name",
+    "bio": "Bio",
+    "age": "Age",
     "stringRequired": "String Required",
     "stringOptional": "String Optional",
     "stringRequiredWithDefault": "String Required with Default",

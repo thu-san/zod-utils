@@ -1,16 +1,27 @@
 import type { ComponentProps } from 'react';
-import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import type { Control, FieldValues } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
-import type { FormNamespace, translationKeys } from '@/types/i18n';
-import { TFormField } from './TFormField';
+import type { FormNamespace } from '@/types/i18n';
+import {
+  type DiscriminatorValue,
+  TFormField,
+  type ValidFieldName,
+} from './TFormField';
 
 export function InputFormField<
   TFieldValues extends FieldValues,
   TNamespace extends FormNamespace,
-  TName extends Extract<
-    FieldPath<TFieldValues>,
-    translationKeys<`${TNamespace}.form`>
+  TName extends ValidFieldName<
+    TFieldValues,
+    TNamespace,
+    TDiscriminatorField,
+    TDiscriminatorValue
+  >,
+  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TFieldValues,
+    TDiscriminatorField
   >,
 >({
   control,
@@ -19,6 +30,8 @@ export function InputFormField<
   autoPlaceholder,
   placeholder,
   description,
+  discriminatorField,
+  discriminatorValue,
   ...inputProps
 }: {
   control: Control<TFieldValues>;
@@ -27,6 +40,8 @@ export function InputFormField<
   autoPlaceholder?: boolean;
   placeholder?: string;
   description?: string;
+  discriminatorField?: TDiscriminatorField;
+  discriminatorValue?: TDiscriminatorValue;
 } & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'>) {
   // Auto-generate validation description if not provided
   const autoDescription = useValidationDescription(name);
@@ -39,6 +54,8 @@ export function InputFormField<
       name={name}
       namespace={namespace}
       description={finalDescription}
+      discriminatorField={discriminatorField}
+      discriminatorValue={discriminatorValue}
       render={({ field, label }) => (
         <Input
           {...inputProps}
@@ -59,38 +76,46 @@ export function InputFormField<
   );
 }
 
-export function createInputFormField<TNamespace extends FormNamespace>(
-  namespace: TNamespace,
-) {
+export function createInputFormField<
+  TNamespace extends FormNamespace,
+>(factoryProps: { namespace: TNamespace }) {
   return function BoundInputFormField<
     TFieldValues extends FieldValues,
-    TName extends Extract<
-      FieldPath<TFieldValues>,
-      translationKeys<`${TNamespace}.form`>
+    TName extends ValidFieldName<
+      TFieldValues,
+      TNamespace,
+      TDiscriminatorField,
+      TDiscriminatorValue
     >,
-  >({
-    control,
-    name,
-    autoPlaceholder,
-    placeholder,
-    description,
-    ...inputProps
-  }: {
-    control: Control<TFieldValues>;
-    name: TName;
-    autoPlaceholder?: boolean;
-    placeholder?: string;
-    description?: string;
-  } & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'>) {
+    TDiscriminatorField extends keyof TFieldValues | undefined,
+    TDiscriminatorValue extends DiscriminatorValue<
+      TFieldValues,
+      TDiscriminatorField
+    >,
+  >(
+    props: Omit<
+      React.ComponentProps<
+        typeof InputFormField<
+          TFieldValues,
+          TNamespace,
+          TName,
+          TDiscriminatorField,
+          TDiscriminatorValue
+        >
+      >,
+      'namespace'
+    >,
+  ) {
     return (
-      <InputFormField
-        control={control}
-        name={name}
-        namespace={namespace}
-        autoPlaceholder={autoPlaceholder}
-        placeholder={placeholder}
-        description={description}
-        {...inputProps}
+      <InputFormField<
+        TFieldValues,
+        TNamespace,
+        TName,
+        TDiscriminatorField,
+        TDiscriminatorValue
+      >
+        {...factoryProps}
+        {...props}
       />
     );
   };

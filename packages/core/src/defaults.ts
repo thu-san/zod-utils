@@ -1,5 +1,9 @@
 import * as z from 'zod';
-import { canUnwrap, unwrapUnion } from './schema';
+import {
+  canUnwrap,
+  extractDiscriminatedSchema,
+  tryStripNullishOnly,
+} from './schema';
 import type { Simplify } from './types';
 
 /**
@@ -8,8 +12,9 @@ import type { Simplify } from './types';
  * This function traverses through wrapper types (like `ZodOptional`, `ZodNullable`, `ZodUnion`) to find
  * the underlying `ZodDefault` and returns its default value. If no default is found, returns `undefined`.
  *
- * **Union handling:** For union types, extracts the default from the first option. If the first option
- * has no default, returns `undefined` (defaults in other union options are not checked).
+ * **Union handling:** For union types, strips nullish types (null/undefined) first. If only one type
+ * remains after stripping, extracts the default from that type. If multiple non-nullish types remain,
+ * returns `undefined` (does not extract from any option).
  *
  * @template T - The Zod type to extract default from
  * @param field - The Zod field to extract default from
@@ -32,19 +37,19 @@ import type { Simplify } from './types';
  * ```
  *
  * @example
- * Union with default in first option
+ * Union with only nullish types stripped to single type
  * ```typescript
- * const field = z.union([z.string().default('hello'), z.number()]);
+ * const field = z.union([z.string().default('hello'), z.null()]);
  * const defaultValue = extractDefault(field);
- * // Result: 'hello' (extracts from first union option)
+ * // Result: 'hello' (null stripped, leaving only string)
  * ```
  *
  * @example
- * Union with default in second option
+ * Union with multiple non-nullish types
  * ```typescript
- * const field = z.union([z.string(), z.number().default(42)]);
+ * const field = z.union([z.string().default('hello'), z.number()]);
  * const defaultValue = extractDefault(field);
- * // Result: undefined (only checks first option)
+ * // Result: undefined (multiple non-nullish types - no default extracted)
  * ```
  *
  * @example
@@ -56,6 +61,7 @@ import type { Simplify } from './types';
  * ```
  *
  * @see {@link getSchemaDefaults} for extracting defaults from entire schemas
+ * @see {@link tryStripNullishOnly} for union nullish stripping logic
  * @since 0.1.0
  */
 export function extractDefault<T extends z.ZodTypeAny>(
@@ -72,8 +78,15 @@ export function extractDefault<T extends z.ZodTypeAny>(
   }
 
   if (field instanceof z.ZodUnion) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return extractDefault(unwrapUnion(field).field) as z.infer<T>;
+    const unwrapped = tryStripNullishOnly(field);
+    if (unwrapped !== false) {
+      // Successfully unwrapped to single type
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return extractDefault(unwrapped) as z.infer<T>;
+    }
+
+    // Multiple non-nullish types or all nullish - no default
+    return undefined;
   }
 
   return undefined;
@@ -91,8 +104,8 @@ export function extractDefault<T extends z.ZodTypeAny>(
  * **Component handling:** For form inputs without explicit defaults (like `z.string()` or `z.number()`),
  * use the `?? ''` pattern in your components: `<Input value={field.value ?? ''} />`
  *
- * @template T - The Zod object schema type
- * @param schema - The Zod object schema to extract defaults from
+ * @template TSchema - The Zod object schema type
+ * @param targetSchema - The Zod object schema to extract defaults from
  * @returns A partial object containing only fields with explicit default values
  *
  * @example
@@ -151,21 +164,48 @@ export function extractDefault<T extends z.ZodTypeAny>(
  * @see {@link extractDefault} for extracting defaults from individual fields
  * @since 0.1.0
  */
-export function getSchemaDefaults<T extends z.ZodObject>(
-  schema: T,
-): Simplify<Partial<z.infer<T>>> {
+export function getSchemaDefaults<
+  TSchema extends z.ZodObject | z.ZodDiscriminatedUnion<Array<z.ZodObject>>,
+  TObj extends z.infer<TSchema>,
+  TDiscriminatorField extends keyof TObj = keyof TObj,
+>(
+  schema: TSchema,
+  options?: {
+    discriminator?: {
+      field: TDiscriminatorField;
+      value: TObj[TDiscriminatorField];
+    };
+  },
+): Simplify<Partial<z.infer<TSchema>>> {
+  let targetSchema: z.ZodObject | undefined;
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    if (options?.discriminator) {
+      const { field, value } = options.discriminator;
+
+      targetSchema = extractDiscriminatedSchema({
+        schema,
+        discriminatorField: field,
+        discriminatorValue: value,
+      });
+    }
+  } else {
+    targetSchema = schema;
+  }
+
   const defaults: Record<string, unknown> = {};
 
-  for (const key in schema.shape) {
-    const field = schema.shape[key];
-    if (!field) continue;
+  if (targetSchema) {
+    for (const key in targetSchema.shape) {
+      const field = targetSchema.shape[key];
+      if (!field) continue;
 
-    const defaultValue = extractDefault(field);
-    if (defaultValue !== undefined) {
-      defaults[key] = defaultValue;
+      const defaultValue = extractDefault(field);
+      if (defaultValue !== undefined) {
+        defaults[key] = defaultValue;
+      }
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return defaults as Partial<z.infer<T>>;
+  return defaults as Partial<z.infer<TSchema>>;
 }

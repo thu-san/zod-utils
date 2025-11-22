@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 import {
   canUnwrap,
+  extractDiscriminatedSchema,
   getFieldChecks,
   getPrimitiveType,
   removeDefault,
   requiresValidInput,
-  unwrapUnion,
+  tryStripNullishOnly,
 } from '../schema';
 
 describe('getPrimitiveType', () => {
@@ -76,37 +77,47 @@ describe('getPrimitiveType', () => {
     expect(result).toBeInstanceOf(z.ZodString);
   });
 
-  it('should unwrap direct union to get first primitive type', () => {
+  it('should return union as-is for multiple non-nullish types', () => {
     const schema = z.union([z.string(), z.number()]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodUnion);
+    expect(result).toBe(schema);
+  });
+
+  it('should unwrap union with nullish types to single type', () => {
+    const schema = z.union([z.string(), z.null()]);
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodString);
   });
 
-  it('should handle union with object types', () => {
+  it('should return union as-is for union with object types', () => {
     const schema = z.union([
       z.object({ type: z.literal('a') }),
       z.object({ type: z.literal('b') }),
     ]);
     const result = getPrimitiveType(schema);
-    expect(result).toBeInstanceOf(z.ZodObject);
+    expect(result).toBeInstanceOf(z.ZodUnion);
+    expect(result).toBe(schema);
   });
 
-  it('should handle union with array as first option', () => {
+  it('should return union as-is for union with array as first option', () => {
     const schema = z.union([z.array(z.string()), z.number()]);
     const result = getPrimitiveType(schema);
-    expect(result).toBeInstanceOf(z.ZodArray);
+    expect(result).toBeInstanceOf(z.ZodUnion);
+    expect(result).toBe(schema);
   });
 
-  it('should handle union with literals', () => {
+  it('should return union as-is for union with literals', () => {
     const schema = z.union([z.literal('foo'), z.literal('bar')]);
     const result = getPrimitiveType(schema);
-    expect(result).toBeInstanceOf(z.ZodLiteral);
+    expect(result).toBeInstanceOf(z.ZodUnion);
+    expect(result).toBe(schema);
   });
 
-  it('should handle nested union wrapped in optional', () => {
+  it('should return union as-is for nested union wrapped in optional', () => {
     const schema = z.union([z.string(), z.number()]).optional();
     const result = getPrimitiveType(schema);
-    expect(result).toBeInstanceOf(z.ZodString);
+    expect(result).toBeInstanceOf(z.ZodUnion);
   });
 });
 
@@ -167,6 +178,13 @@ describe('removeDefault', () => {
     const schema = z.array(z.string()).default([]);
     const result = removeDefault(schema);
     expect(result).toBeInstanceOf(z.ZodArray);
+  });
+
+  it('should handle promise types with defaults', () => {
+    const schema = z.promise(z.string().default('test'));
+    const result = removeDefault(schema);
+    // Promise type should still be a promise after removing inner default
+    expect(result).toBeInstanceOf(z.ZodPromise);
   });
 });
 
@@ -337,160 +355,122 @@ describe('requiresValidInput', () => {
     // z.void() only accepts undefined
     expect(requiresValidInput(schema)).toBe(false);
   });
+
+  it('should return false for malformed field', () => {
+    // Create a malformed object that's not a proper ZodType
+    const malformedField = {
+      def: {},
+      // Missing proper ZodType structure - not an instanceof z.ZodType
+    };
+
+    // @ts-expect-error - intentionally testing edge case with invalid input
+    const result = requiresValidInput(malformedField);
+    expect(result).toBe(false);
+  });
 });
 
-describe('unwrapUnion', () => {
-  it('should unwrap a basic union and return first field and all options', () => {
-    const schema = z.union([z.string(), z.number()]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(2);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-    expect(result.union[1]).toBeInstanceOf(z.ZodNumber);
+describe('tryStripNullishOnly', () => {
+  describe('returns unwrapped type when only one option remains', () => {
+    it('should unwrap union with only null stripped', () => {
+      const schema = z.union([z.string(), z.null()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).not.toBe(false);
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should unwrap union with only undefined stripped', () => {
+      const schema = z.union([z.string(), z.undefined()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).not.toBe(false);
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should unwrap union with both null and undefined stripped', () => {
+      const schema = z.union([z.string(), z.null(), z.undefined()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).not.toBe(false);
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should unwrap union with number and null', () => {
+      const schema = z.union([z.number(), z.null()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).not.toBe(false);
+      expect(result).toBeInstanceOf(z.ZodNumber);
+    });
+
+    it('should unwrap union with boolean and undefined', () => {
+      const schema = z.union([z.boolean(), z.undefined()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).not.toBe(false);
+      expect(result).toBeInstanceOf(z.ZodBoolean);
+    });
   });
 
-  it('should filter out null types by default', () => {
-    const schema = z.union([z.string(), z.null()]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-  });
+  describe('returns false when cannot simplify to single type', () => {
+    it('should return false for union with multiple non-nullish types', () => {
+      const schema = z.union([z.string(), z.number()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should filter out undefined types by default', () => {
-    const schema = z.union([z.string(), z.undefined()]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-  });
+    it('should return false for union with multiple types and nullish', () => {
+      const schema = z.union([z.string(), z.number(), z.null(), z.undefined()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should filter out both null and undefined by default', () => {
-    const schema = z.union([z.string(), z.number(), z.null(), z.undefined()]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(2);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-    expect(result.union[1]).toBeInstanceOf(z.ZodNumber);
-  });
+    it('should return false for union with objects', () => {
+      const schema = z.union([
+        z.object({ type: z.literal('a') }),
+        z.object({ type: z.literal('b') }),
+      ]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should keep null when filterNullish is false', () => {
-    const schema = z.union([z.string(), z.null()]);
-    const result = unwrapUnion(schema, { filterNullish: false });
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(2);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-    expect(result.union[1]).toBeInstanceOf(z.ZodNull);
-  });
+    it('should return false for union with literals', () => {
+      const schema = z.union([z.literal('foo'), z.literal('bar')]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should keep undefined when filterNullish is false', () => {
-    const schema = z.union([z.string(), z.undefined()]);
-    const result = unwrapUnion(schema, { filterNullish: false });
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(2);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-    expect(result.union[1]).toBeInstanceOf(z.ZodUndefined);
-  });
+    it('should return false for union with mixed complex types', () => {
+      const schema = z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.array(z.string()),
+      ]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should return field and single-element union for non-union types', () => {
-    const schema = z.string();
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-  });
+    it('should return false for non-union types', () => {
+      expect(tryStripNullishOnly(z.string())).toBe(false);
+      expect(tryStripNullishOnly(z.number())).toBe(false);
+      expect(tryStripNullishOnly(z.boolean())).toBe(false);
+      expect(tryStripNullishOnly(z.object({ foo: z.string() }))).toBe(false);
+      expect(tryStripNullishOnly(z.array(z.string()))).toBe(false);
+    });
 
-  it('should handle nullable (not a union, returns as-is)', () => {
-    const schema = z.string().nullable();
-    const result = unwrapUnion(schema);
-    // .nullable() creates ZodNullable, not ZodUnion, so it returns as-is
-    expect(result.field).toBeInstanceOf(z.ZodNullable);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodNullable);
-  });
+    it('should return false for optional types (not unions)', () => {
+      const schema = z.string().optional();
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should handle optional (non-union) types', () => {
-    const schema = z.string().optional();
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodOptional);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodOptional);
-  });
+    it('should return false for nullable types (not unions)', () => {
+      const schema = z.string().nullable();
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
 
-  it('should handle union with multiple types', () => {
-    const schema = z.union([
-      z.string(),
-      z.number(),
-      z.boolean(),
-      z.array(z.string()),
-    ]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodString);
-    expect(result.union).toHaveLength(4);
-    expect(result.union[0]).toBeInstanceOf(z.ZodString);
-    expect(result.union[1]).toBeInstanceOf(z.ZodNumber);
-    expect(result.union[2]).toBeInstanceOf(z.ZodBoolean);
-    expect(result.union[3]).toBeInstanceOf(z.ZodArray);
-  });
-
-  it('should handle union with objects', () => {
-    const schema = z.union([
-      z.object({ type: z.literal('a') }),
-      z.object({ type: z.literal('b') }),
-    ]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodObject);
-    expect(result.union).toHaveLength(2);
-    expect(result.union[0]).toBeInstanceOf(z.ZodObject);
-    expect(result.union[1]).toBeInstanceOf(z.ZodObject);
-  });
-
-  it('should handle union with literals', () => {
-    const schema = z.union([z.literal('foo'), z.literal('bar')]);
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodLiteral);
-    expect(result.union).toHaveLength(2);
-    expect(result.union[0]).toBeInstanceOf(z.ZodLiteral);
-    expect(result.union[1]).toBeInstanceOf(z.ZodLiteral);
-  });
-
-  it('should handle number types', () => {
-    const schema = z.number();
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodNumber);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodNumber);
-  });
-
-  it('should handle boolean types', () => {
-    const schema = z.boolean();
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodBoolean);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodBoolean);
-  });
-
-  it('should handle object types', () => {
-    const schema = z.object({ foo: z.string() });
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodObject);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodObject);
-  });
-
-  it('should handle array types', () => {
-    const schema = z.array(z.string());
-    const result = unwrapUnion(schema);
-    expect(result.field).toBeInstanceOf(z.ZodArray);
-    expect(result.union).toHaveLength(1);
-    expect(result.union[0]).toBeInstanceOf(z.ZodArray);
-  });
-
-  it('should destructure field and union correctly', () => {
-    const schema = z.union([z.string(), z.number()]);
-    const { field, union } = unwrapUnion(schema);
-    expect(field).toBeInstanceOf(z.ZodString);
-    expect(union).toHaveLength(2);
+    it('should return false for union with only nullish types', () => {
+      const schema = z.union([z.null(), z.undefined()]);
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
   });
 });
 
@@ -678,11 +658,9 @@ describe('getFieldChecks', () => {
       ]);
     });
 
-    it('should extract from first option of union', () => {
+    it('should return empty array for union with multiple non-nullish types', () => {
       const schema = z.union([z.string().min(3), z.number()]);
-      expect(getFieldChecks(schema)).toMatchObject([
-        { check: 'min_length', minimum: 3 },
-      ]);
+      expect(getFieldChecks(schema)).toEqual([]);
     });
 
     it('should ignore constraints in second union option', () => {
@@ -761,6 +739,274 @@ describe('getFieldChecks', () => {
         { check: 'min_length', minimum: 10 },
         { check: 'max_length', maximum: 500 },
       ]);
+    });
+  });
+});
+
+describe('extractDiscriminatedSchema', () => {
+  describe('basic mode-based discrimination', () => {
+    const userSchema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create'),
+        name: z.string(),
+        age: z.number().optional(),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number(),
+        name: z.string().optional(),
+        bio: z.string().optional(),
+      }),
+    ]);
+
+    it('should extract create mode schema', () => {
+      const result = extractDiscriminatedSchema({
+        schema: userSchema,
+        discriminatorField: 'mode',
+        discriminatorValue: 'create',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
+      expect(result?.shape.name).toBeInstanceOf(z.ZodString);
+      expect(result?.shape.age).toBeDefined();
+      expect(result?.shape.id).toBeUndefined();
+      expect(result?.shape.bio).toBeUndefined();
+    });
+
+    it('should extract edit mode schema', () => {
+      const result = extractDiscriminatedSchema({
+        schema: userSchema,
+        discriminatorField: 'mode',
+        discriminatorValue: 'edit',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
+      expect(result?.shape.id).toBeInstanceOf(z.ZodNumber);
+      expect(result?.shape.name).toBeDefined();
+      expect(result?.shape.bio).toBeDefined();
+      expect(result?.shape.age).toBeUndefined();
+    });
+
+    it('should return undefined for invalid discriminator value', () => {
+      const result = extractDiscriminatedSchema({
+        schema: userSchema,
+        discriminatorField: 'mode',
+        // @ts-expect-error - testing invalid value
+        discriminatorValue: 'invalid',
+      });
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('type-based discrimination', () => {
+    const eventSchema = z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('click'),
+        x: z.number(),
+        y: z.number(),
+      }),
+      z.object({
+        type: z.literal('keypress'),
+        key: z.string(),
+        modifiers: z.array(z.string()).optional(),
+      }),
+      z.object({
+        type: z.literal('scroll'),
+        deltaX: z.number(),
+        deltaY: z.number(),
+      }),
+    ]);
+
+    it('should extract click event schema', () => {
+      const result = extractDiscriminatedSchema({
+        schema: eventSchema,
+        discriminatorField: 'type',
+        discriminatorValue: 'click',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.type).toBeInstanceOf(z.ZodLiteral);
+      expect(result?.shape.x).toBeInstanceOf(z.ZodNumber);
+      expect(result?.shape.y).toBeInstanceOf(z.ZodNumber);
+    });
+
+    it('should extract keypress event schema', () => {
+      const result = extractDiscriminatedSchema({
+        schema: eventSchema,
+        discriminatorField: 'type',
+        discriminatorValue: 'keypress',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.key).toBeInstanceOf(z.ZodString);
+      expect(result?.shape.modifiers).toBeDefined();
+    });
+
+    it('should extract scroll event schema', () => {
+      const result = extractDiscriminatedSchema({
+        schema: eventSchema,
+        discriminatorField: 'type',
+        discriminatorValue: 'scroll',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.deltaX).toBeInstanceOf(z.ZodNumber);
+      expect(result?.shape.deltaY).toBeInstanceOf(z.ZodNumber);
+    });
+  });
+
+  describe('with defaults', () => {
+    const formSchema = z.discriminatedUnion('status', [
+      z.object({
+        status: z.literal('active'),
+        name: z.string().default('User'),
+        count: z.number().default(0),
+      }),
+      z.object({
+        status: z.literal('inactive'),
+        reason: z.string().optional(),
+      }),
+    ]);
+
+    it('should extract active status schema with defaults', () => {
+      const result = extractDiscriminatedSchema({
+        schema: formSchema,
+        discriminatorField: 'status',
+        discriminatorValue: 'active',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.name).toBeInstanceOf(z.ZodDefault);
+      expect(result?.shape.count).toBeInstanceOf(z.ZodDefault);
+    });
+
+    it('should extract inactive status schema', () => {
+      const result = extractDiscriminatedSchema({
+        schema: formSchema,
+        discriminatorField: 'status',
+        discriminatorValue: 'inactive',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.reason).toBeDefined();
+      expect(result?.shape.name).toBeUndefined();
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should work with single option union', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('only'),
+          value: z.string(),
+        }),
+      ]);
+
+      const result = extractDiscriminatedSchema({
+        schema,
+        discriminatorField: 'type',
+        discriminatorValue: 'only',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.value).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should work with numeric discriminator values', () => {
+      const schema = z.discriminatedUnion('code', [
+        z.object({ code: z.literal(200), message: z.string() }),
+        z.object({ code: z.literal(404), error: z.string() }),
+      ]);
+
+      const result = extractDiscriminatedSchema({
+        schema,
+        discriminatorField: 'code',
+        discriminatorValue: 200,
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.message).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should return undefined for missing discriminator field', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({ type: z.literal('a'), value: z.string() }),
+      ]);
+
+      const result = extractDiscriminatedSchema({
+        schema,
+        // @ts-expect-error - testing wrong field
+        discriminatorField: 'wrongField',
+        discriminatorValue: 'a',
+      });
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('real-world scenarios', () => {
+    it('should work with payment method discrimination', () => {
+      const paymentSchema = z.discriminatedUnion('method', [
+        z.object({
+          method: z.literal('card'),
+          cardNumber: z.string(),
+          cvv: z.string(),
+          expiryDate: z.string(),
+        }),
+        z.object({
+          method: z.literal('paypal'),
+          email: z.string(),
+        }),
+        z.object({
+          method: z.literal('bank'),
+          accountNumber: z.string(),
+          routingNumber: z.string(),
+        }),
+      ]);
+
+      const cardSchema = extractDiscriminatedSchema({
+        schema: paymentSchema,
+        discriminatorField: 'method',
+        discriminatorValue: 'card',
+      });
+
+      expect(cardSchema).toBeDefined();
+      expect(cardSchema?.shape.cardNumber).toBeDefined();
+      expect(cardSchema?.shape.cvv).toBeDefined();
+    });
+
+    it('should work with API response discrimination', () => {
+      const responseSchema = z.discriminatedUnion('success', [
+        z.object({
+          success: z.literal(true),
+          data: z.object({ id: z.number(), name: z.string() }),
+        }),
+        z.object({
+          success: z.literal(false),
+          error: z.string(),
+          code: z.number(),
+        }),
+      ]);
+
+      const successSchema = extractDiscriminatedSchema({
+        schema: responseSchema,
+        discriminatorField: 'success',
+        discriminatorValue: true,
+      });
+
+      const errorSchema = extractDiscriminatedSchema({
+        schema: responseSchema,
+        discriminatorField: 'success',
+        discriminatorValue: false,
+      });
+
+      expect(successSchema).toBeDefined();
+      expect(successSchema?.shape.data).toBeDefined();
+      expect(errorSchema).toBeDefined();
+      expect(errorSchema?.shape.error).toBeDefined();
     });
   });
 });

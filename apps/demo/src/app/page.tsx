@@ -168,9 +168,9 @@ const formSchema = z.object({
     .default({ alerts: false, interval: 'weekly' }),
 });
 
-const UserInputFormField = createInputFormField('user');
-const UserNumberFormField = createNumberFormField('user');
-const UserCheckboxFormField = createCheckboxFormField('user');
+const UserInputFormField = createInputFormField({ namespace: 'user' });
+const UserNumberFormField = createNumberFormField({ namespace: 'user' });
+const UserCheckboxFormField = createCheckboxFormField({ namespace: 'user' });
 
 export default function UserProfileForm() {
   const formId = useId();
@@ -202,7 +202,7 @@ export default function UserProfileForm() {
   return (
     <FormSchemaProvider schema={formSchema}>
       <Form {...form}>
-        <div className="flex items-center justify-center min-h-screen p-4 pb-24">
+        <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] p-4 pb-24">
           <Card className="w-full sm:max-w-md">
             <CardHeader>
               <CardTitle>Field Type Demo</CardTitle>

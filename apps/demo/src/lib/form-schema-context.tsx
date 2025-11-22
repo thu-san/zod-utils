@@ -1,17 +1,34 @@
 'use client';
 
-import { requiresValidInput } from '@zod-utils/core';
+import {
+  extractDiscriminatedSchema,
+  requiresValidInput,
+} from '@zod-utils/core';
 import { createContext, useContext } from 'react';
-import type { z } from 'zod';
+import { z } from 'zod';
+
+type ZodSchema = z.ZodObject<{
+  [key: string]: z.ZodType;
+}>;
+
+type FormSchema = ZodSchema | z.ZodDiscriminatedUnion<ZodSchema[], string>;
+
+type DiscriminatorValue = {
+  discriminator: string;
+  value: string | number | boolean;
+} | null;
 
 // Context to provide Zod schema to child components
-export const FormSchemaContext =
-  createContext<z.ZodObject<z.ZodRawShape> | null>(null);
+export const FormSchemaContext = createContext<{
+  schema: FormSchema;
+  discriminatorValue?: DiscriminatorValue;
+} | null>(null);
 
 /**
  * Provider component that makes Zod schema available to all child components
  *
  * @example
+ * Basic usage with ZodObject
  * ```tsx
  * const schema = z.object({
  *   name: z.string(),
@@ -22,16 +39,34 @@ export const FormSchemaContext =
  *   <YourFormComponents />
  * </FormSchemaProvider>
  * ```
+ *
+ * @example
+ * Usage with discriminated union
+ * ```tsx
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number(), name: z.string().optional() })
+ * ]);
+ *
+ * <FormSchemaProvider
+ *   schema={schema}
+ *   discriminatorValue={{ discriminator: 'mode', value: 'create' }}
+ * >
+ *   <YourFormComponents />
+ * </FormSchemaProvider>
+ * ```
  */
 export function FormSchemaProvider({
   schema,
+  discriminatorValue,
   children,
 }: {
-  schema: z.ZodObject<z.ZodRawShape>;
+  schema: FormSchema;
+  discriminatorValue?: DiscriminatorValue;
   children: React.ReactNode;
 }) {
   return (
-    <FormSchemaContext.Provider value={schema}>
+    <FormSchemaContext.Provider value={{ schema, discriminatorValue }}>
       {children}
     </FormSchemaContext.Provider>
   );
@@ -58,13 +93,13 @@ export function FormSchemaProvider({
  * ```
  */
 export function useIsFieldRequired(fieldName: string): boolean {
-  const schema = useContext(FormSchemaContext);
+  const context = useContext(FormSchemaContext);
 
-  if (!schema) {
+  if (!context) {
     return false;
   }
 
-  return isFieldRequired(schema, fieldName);
+  return isFieldRequired(context.schema, fieldName, context.discriminatorValue);
 }
 
 /**
@@ -83,16 +118,38 @@ export function useIsFieldRequired(fieldName: string): boolean {
  * - number().default(0) → true (will error on empty input)
  * - string().default('hi') → false (won't error if user clears it)
  *
- * @param schema - The Zod object schema
+ * Supports both ZodObject and ZodDiscriminatedUnion schemas. For discriminated unions,
+ * the discriminatorValue parameter must be provided to determine the active variant.
+ *
+ * @param schema - The Zod schema (object or discriminated union)
  * @param fieldName - The name of the field to check
+ * @param discriminatorValue - Optional discriminator value for discriminated unions
  * @returns true if the field requires valid input (will show validation error), false otherwise
  */
 export function isFieldRequired(
-  schema: z.ZodObject<z.ZodRawShape>,
+  schema: FormSchema,
   fieldName: string,
+  discriminatorValue?: DiscriminatorValue,
 ): boolean {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const field = schema.shape[fieldName] as z.ZodTypeAny | undefined;
+  let field: z.ZodType | undefined;
+
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    if (discriminatorValue) {
+      const { discriminator, value } = discriminatorValue;
+
+      const filteredSchema = extractDiscriminatedSchema({
+        schema,
+        discriminatorField: discriminator,
+        discriminatorValue: value,
+      });
+
+      if (filteredSchema) {
+        field = filteredSchema.shape[fieldName];
+      }
+    }
+  } else {
+    field = schema.shape[fieldName];
+  }
 
   if (!field) {
     return false;
