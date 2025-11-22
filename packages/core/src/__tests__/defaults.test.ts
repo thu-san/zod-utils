@@ -84,6 +84,11 @@ describe('extractDefault', () => {
     expect(extractDefault(schema)).toBeUndefined();
   });
 
+  it('should extract default from union with nullish types', () => {
+    const schema = z.union([z.string().default('hello'), z.null()]);
+    expect(extractDefault(schema)).toBe('hello');
+  });
+
   it('should return undefined for nested union with multiple types', () => {
     const schema = z.union([
       z.union([z.string().default('nested'), z.number()]),
@@ -489,6 +494,20 @@ describe('getSchemaDefaults', () => {
       });
 
       expect(successDefaults).toEqual({ message: 'Success' });
+    });
+
+    it('should handle schema with undefined field in shape', () => {
+      const schema = z.object({
+        name: z.string().default('test'),
+        age: z.number().default(18),
+      });
+
+      // Manually create a corrupted shape for edge case testing
+      // @ts-expect-error - intentionally testing edge case
+      schema.shape.missing = undefined;
+
+      const result = getSchemaDefaults(schema);
+      expect(result).toEqual({ name: 'test', age: 18 });
     });
   });
 });

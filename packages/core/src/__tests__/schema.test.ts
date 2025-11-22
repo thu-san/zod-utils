@@ -84,6 +84,12 @@ describe('getPrimitiveType', () => {
     expect(result).toBe(schema);
   });
 
+  it('should unwrap union with nullish types to single type', () => {
+    const schema = z.union([z.string(), z.null()]);
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
+
   it('should return union as-is for union with object types', () => {
     const schema = z.union([
       z.object({ type: z.literal('a') }),
@@ -172,6 +178,13 @@ describe('removeDefault', () => {
     const schema = z.array(z.string()).default([]);
     const result = removeDefault(schema);
     expect(result).toBeInstanceOf(z.ZodArray);
+  });
+
+  it('should handle promise types with defaults', () => {
+    const schema = z.promise(z.string().default('test'));
+    const result = removeDefault(schema);
+    // Promise type should still be a promise after removing inner default
+    expect(result).toBeInstanceOf(z.ZodPromise);
   });
 });
 
@@ -341,6 +354,18 @@ describe('requiresValidInput', () => {
     const schema = z.void();
     // z.void() only accepts undefined
     expect(requiresValidInput(schema)).toBe(false);
+  });
+
+  it('should return false for malformed field', () => {
+    // Create a malformed object that's not a proper ZodType
+    const malformedField = {
+      def: {},
+      // Missing proper ZodType structure - not an instanceof z.ZodType
+    };
+
+    // @ts-expect-error - intentionally testing edge case with invalid input
+    const result = requiresValidInput(malformedField);
+    expect(result).toBe(false);
   });
 });
 
