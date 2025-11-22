@@ -1,5 +1,11 @@
 # @zod-utils/core
 
+## 0.9.0
+
+### Minor Changes
+
+- 9d0f867: handle discriminated union
+
 ## 0.8.0
 
 ### Minor Changes

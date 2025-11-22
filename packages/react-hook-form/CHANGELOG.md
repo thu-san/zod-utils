@@ -1,5 +1,16 @@
 # @zod-utils/react-hook-form
 
+## 0.9.0
+
+### Minor Changes
+
+- 9d0f867: handle discriminated union
+
+### Patch Changes
+
+- Updated dependencies [9d0f867]
+  - @zod-utils/core@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
