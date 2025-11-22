@@ -1,6 +1,6 @@
 'use client';
 
-import { getFieldChecks } from '@zod-utils/core';
+import { extractDiscriminatedSchema, getFieldChecks } from '@zod-utils/core';
 import { useTranslations } from 'next-intl';
 import { useContext } from 'react';
 import type { z } from 'zod';
@@ -63,14 +63,11 @@ export function useValidationDescription(fieldName: string): string {
     }
 
     const { discriminator, value } = discriminatorValue;
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const options = schema.def.options as z.ZodObject<z.ZodRawShape>[];
-    const matchingVariant = options.find((option) => {
+    const matchingVariant = extractDiscriminatedSchema({
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      const discriminatorField = option.shape[discriminator] as z.ZodTypeAny;
-      if (!discriminatorField) return false;
-      const parseResult = discriminatorField.safeParse(value);
-      return parseResult.success;
+      schema: schema as z.ZodDiscriminatedUnion<z.ZodObject[]>,
+      discriminatorField: discriminator,
+      discriminatorValue: value,
     });
 
     if (matchingVariant) {

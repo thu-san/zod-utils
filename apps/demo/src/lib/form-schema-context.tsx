@@ -1,9 +1,11 @@
 'use client';
 
-import { requiresValidInput } from '@zod-utils/core';
+import {
+  extractDiscriminatedSchema,
+  requiresValidInput,
+} from '@zod-utils/core';
 import { createContext, useContext } from 'react';
 import { z } from 'zod';
-import { extractDiscriminatedSchema } from '../../../../packages/core/src/schema';
 
 type ZodSchema = z.ZodObject<{
   [key: string]: z.ZodType;
@@ -13,7 +15,7 @@ type FormSchema = ZodSchema | z.ZodDiscriminatedUnion<ZodSchema[], string>;
 
 type DiscriminatorValue = {
   discriminator: string;
-  value: string | number;
+  value: string | number | boolean;
 } | null;
 
 // Context to provide Zod schema to child components

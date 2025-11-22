@@ -54,27 +54,15 @@ export default function CreateEditPage() {
     const newMode = mode === 'create' ? 'edit' : 'create';
     setMode(newMode);
 
-    if (newMode === 'create') {
-      form.reset({
-        mode: 'create',
-        ...getSchemaDefaults(userSchema, {
-          discriminator: {
-            field: 'mode',
-            value: newMode,
-          },
-        }),
-      });
-    } else {
-      form.reset({
-        mode: 'edit',
-        ...getSchemaDefaults(userSchema, {
-          discriminator: {
-            field: 'mode',
-            value: newMode,
-          },
-        }),
-      });
-    }
+    form.reset({
+      mode: newMode,
+      ...getSchemaDefaults(userSchema, {
+        discriminator: {
+          field: 'mode',
+          value: newMode,
+        },
+      }),
+    });
   };
 
   function onSubmit(data: UserFormData) {
