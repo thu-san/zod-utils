@@ -18,7 +18,7 @@ export function NumberFormField<
     TDiscriminatorField,
     TDiscriminatorValue
   >,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
   TDiscriminatorValue extends DiscriminatorValue<
     TFieldValues,
     TDiscriminatorField
@@ -95,7 +95,7 @@ export function createNumberFormField<
       TDiscriminatorField,
       TDiscriminatorValue
     >,
-    TDiscriminatorField extends keyof TFieldValues | undefined,
+    TDiscriminatorField extends keyof TFieldValues,
     TDiscriminatorValue extends DiscriminatorValue<
       TFieldValues,
       TDiscriminatorField

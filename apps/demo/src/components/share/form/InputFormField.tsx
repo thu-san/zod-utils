@@ -18,7 +18,7 @@ export function InputFormField<
     TDiscriminatorField,
     TDiscriminatorValue
   >,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
   TDiscriminatorValue extends DiscriminatorValue<
     TFieldValues,
     TDiscriminatorField
@@ -87,7 +87,7 @@ export function createInputFormField<
       TDiscriminatorField,
       TDiscriminatorValue
     >,
-    TDiscriminatorField extends keyof TFieldValues | undefined,
+    TDiscriminatorField extends keyof TFieldValues,
     TDiscriminatorValue extends DiscriminatorValue<
       TFieldValues,
       TDiscriminatorField

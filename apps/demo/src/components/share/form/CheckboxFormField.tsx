@@ -17,7 +17,7 @@ export function CheckboxFormField<
     TDiscriminatorField,
     TDiscriminatorValue
   >,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
   TDiscriminatorValue extends DiscriminatorValue<
     TFieldValues,
     TDiscriminatorField
@@ -75,7 +75,7 @@ export function createCheckboxFormField<
       TDiscriminatorField,
       TDiscriminatorValue
     >,
-    TDiscriminatorField extends keyof TFieldValues | undefined,
+    TDiscriminatorField extends keyof TFieldValues,
     TDiscriminatorValue extends DiscriminatorValue<
       TFieldValues,
       TDiscriminatorField

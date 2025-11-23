@@ -18,7 +18,7 @@ import { TFormLabel } from './TFormLabel';
 
 export type DiscriminatorValue<
   TFieldValues extends FieldValues,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
 > = TDiscriminatorField extends string
   ? TFieldValues[TDiscriminatorField]
   : never;
@@ -27,7 +27,7 @@ export type DiscriminatorValue<
 export type ValidFieldName<
   TFieldValues extends FieldValues,
   TNamespace extends FormNamespace,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
   TDiscriminatorValue extends DiscriminatorValue<
     TFieldValues,
     TDiscriminatorField
@@ -43,22 +43,18 @@ export type ValidFieldName<
 
 export type ExtractDiscriminatedFields<
   TFieldValues extends FieldValues,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
   TDiscriminatorValue extends DiscriminatorValue<
     TFieldValues,
     TDiscriminatorField
   >,
-  TDiscriminatedFields extends TDiscriminatorField extends string
-    ? keyof Extract<
-        Required<TFieldValues>,
-        Record<TDiscriminatorField, TDiscriminatorValue>
-      >
-    : never = TDiscriminatorField extends string
-    ? keyof Extract<
-        Required<TFieldValues>,
-        Record<TDiscriminatorField, TDiscriminatorValue>
-      >
-    : never,
+  TDiscriminatedFields extends keyof Extract<
+    Required<TFieldValues>,
+    Record<TDiscriminatorField, TDiscriminatorValue>
+  > = keyof Extract<
+    Required<TFieldValues>,
+    Record<TDiscriminatorField, TDiscriminatorValue>
+  >,
 > = TDiscriminatedFields extends FieldPath<TFieldValues>
   ? TDiscriminatedFields
   : never;
@@ -72,7 +68,7 @@ export function TFormField<
     TDiscriminatorField,
     TDiscriminatorValue
   >,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TDiscriminatorField extends keyof TFieldValues,
   TDiscriminatorValue extends DiscriminatorValue<
     TFieldValues,
     TDiscriminatorField
