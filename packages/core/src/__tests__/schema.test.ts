@@ -762,23 +762,25 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract create mode schema', () => {
       const result = extractDiscriminatedSchema({
         schema: userSchema,
-        discriminatorField: 'mode',
-        discriminatorValue: 'create',
+        key: 'mode',
+        value: 'create',
       });
 
       expect(result).toBeDefined();
       expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
       expect(result?.shape.name).toBeInstanceOf(z.ZodString);
       expect(result?.shape.age).toBeDefined();
+      // @ts-expect-error - testing that property doesn't exist
       expect(result?.shape.id).toBeUndefined();
+      // @ts-expect-error - testing that property doesn't exist
       expect(result?.shape.bio).toBeUndefined();
     });
 
     it('should extract edit mode schema', () => {
       const result = extractDiscriminatedSchema({
         schema: userSchema,
-        discriminatorField: 'mode',
-        discriminatorValue: 'edit',
+        key: 'mode',
+        value: 'edit',
       });
 
       expect(result).toBeDefined();
@@ -786,15 +788,16 @@ describe('extractDiscriminatedSchema', () => {
       expect(result?.shape.id).toBeInstanceOf(z.ZodNumber);
       expect(result?.shape.name).toBeDefined();
       expect(result?.shape.bio).toBeDefined();
+      // @ts-expect-error - testing that property doesn't exist
       expect(result?.shape.age).toBeUndefined();
     });
 
     it('should return undefined for invalid discriminator value', () => {
       const result = extractDiscriminatedSchema({
         schema: userSchema,
-        discriminatorField: 'mode',
+        key: 'mode',
         // @ts-expect-error - testing invalid value
-        discriminatorValue: 'invalid',
+        value: 'invalid',
       });
 
       expect(result).toBeUndefined();
@@ -823,8 +826,8 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract click event schema', () => {
       const result = extractDiscriminatedSchema({
         schema: eventSchema,
-        discriminatorField: 'type',
-        discriminatorValue: 'click',
+        key: 'type',
+        value: 'click',
       });
 
       expect(result).toBeDefined();
@@ -836,8 +839,8 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract keypress event schema', () => {
       const result = extractDiscriminatedSchema({
         schema: eventSchema,
-        discriminatorField: 'type',
-        discriminatorValue: 'keypress',
+        key: 'type',
+        value: 'keypress',
       });
 
       expect(result).toBeDefined();
@@ -848,8 +851,8 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract scroll event schema', () => {
       const result = extractDiscriminatedSchema({
         schema: eventSchema,
-        discriminatorField: 'type',
-        discriminatorValue: 'scroll',
+        key: 'type',
+        value: 'scroll',
       });
 
       expect(result).toBeDefined();
@@ -874,8 +877,8 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract active status schema with defaults', () => {
       const result = extractDiscriminatedSchema({
         schema: formSchema,
-        discriminatorField: 'status',
-        discriminatorValue: 'active',
+        key: 'status',
+        value: 'active',
       });
 
       expect(result).toBeDefined();
@@ -886,12 +889,13 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract inactive status schema', () => {
       const result = extractDiscriminatedSchema({
         schema: formSchema,
-        discriminatorField: 'status',
-        discriminatorValue: 'inactive',
+        key: 'status',
+        value: 'inactive',
       });
 
       expect(result).toBeDefined();
       expect(result?.shape.reason).toBeDefined();
+      // @ts-expect-error - testing that property doesn't exist
       expect(result?.shape.name).toBeUndefined();
     });
   });
@@ -907,8 +911,8 @@ describe('extractDiscriminatedSchema', () => {
 
       const result = extractDiscriminatedSchema({
         schema,
-        discriminatorField: 'type',
-        discriminatorValue: 'only',
+        key: 'type',
+        value: 'only',
       });
 
       expect(result).toBeDefined();
@@ -923,8 +927,8 @@ describe('extractDiscriminatedSchema', () => {
 
       const result = extractDiscriminatedSchema({
         schema,
-        discriminatorField: 'code',
-        discriminatorValue: 200,
+        key: 'code',
+        value: 200,
       });
 
       expect(result).toBeDefined();
@@ -939,11 +943,111 @@ describe('extractDiscriminatedSchema', () => {
       const result = extractDiscriminatedSchema({
         schema,
         // @ts-expect-error - testing wrong field
-        discriminatorField: 'wrongField',
-        discriminatorValue: 'a',
+        key: 'wrongField',
+        value: 'a',
       });
 
       expect(result).toBeUndefined();
+    });
+
+    it('should handle non-ZodObject options in union', () => {
+      // Create a discriminated union
+      const schema = z.discriminatedUnion('type', [
+        z.object({ type: z.literal('a'), value: z.string() }),
+      ]);
+
+      // Manually inject a non-ZodObject at the beginning of the options array
+      // This tests the runtime check: if (option instanceof z.ZodObject)
+      const nonObjectOption = z.string();
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      (schema.options as Array<unknown>).unshift(nonObjectOption);
+
+      // Should skip the non-ZodObject and find the correct object option
+      const result = extractDiscriminatedSchema({
+        schema,
+        key: 'type',
+        value: 'a',
+      });
+
+      expect(result).toBeDefined();
+      expect(result?.shape.value).toBeInstanceOf(z.ZodString);
+    });
+  });
+
+  describe('type narrowing', () => {
+    it('should return exact schema type, not union', () => {
+      const schema = z.discriminatedUnion('mode', [
+        z.object({
+          mode: z.literal('create'),
+          name: z.string(),
+          age: z.number(),
+        }),
+        z.object({
+          mode: z.literal('edit'),
+          id: z.number(),
+          bio: z.string(),
+        }),
+      ]);
+
+      const createSchema = extractDiscriminatedSchema({
+        schema,
+        key: 'mode',
+        value: 'create',
+      });
+
+      const editSchema = extractDiscriminatedSchema({
+        schema,
+        key: 'mode',
+        value: 'edit',
+      });
+
+      // Runtime checks
+      expect(createSchema).toBeDefined();
+      expect(editSchema).toBeDefined();
+
+      // Type-level checks - these should compile without errors
+      if (createSchema) {
+        createSchema.shape.mode; // ✅ 'mode' exists
+        createSchema.shape.name; // ✅ 'name' exists
+        createSchema.shape.age; // ✅ 'age' exists
+        // @ts-expect-error - 'id' doesn't exist on 'create' schema
+        createSchema.shape.id;
+        // @ts-expect-error - 'bio' doesn't exist on 'create' schema
+        createSchema.shape.bio;
+      }
+
+      if (editSchema) {
+        editSchema.shape.mode; // ✅ 'mode' exists
+        editSchema.shape.id; // ✅ 'id' exists
+        editSchema.shape.bio; // ✅ 'bio' exists
+        // @ts-expect-error - 'name' doesn't exist on 'edit' schema
+        editSchema.shape.name;
+        // @ts-expect-error - 'age' doesn't exist on 'edit' schema
+        editSchema.shape.age;
+      }
+    });
+
+    it('should work with inferred types', () => {
+      const schema = z.discriminatedUnion('status', [
+        z.object({ status: z.literal('active'), count: z.number() }),
+        z.object({ status: z.literal('inactive'), reason: z.string() }),
+      ]);
+
+      const activeSchema = extractDiscriminatedSchema({
+        schema,
+        key: 'status',
+        value: 'active',
+      });
+
+      // Type inference check
+      if (activeSchema) {
+        type InferredType = z.infer<typeof activeSchema>;
+        const value: InferredType = {
+          status: 'active',
+          count: 42,
+        };
+        expect(value.status).toBe('active');
+      }
     });
   });
 
@@ -969,8 +1073,8 @@ describe('extractDiscriminatedSchema', () => {
 
       const cardSchema = extractDiscriminatedSchema({
         schema: paymentSchema,
-        discriminatorField: 'method',
-        discriminatorValue: 'card',
+        key: 'method',
+        value: 'card',
       });
 
       expect(cardSchema).toBeDefined();
@@ -993,14 +1097,14 @@ describe('extractDiscriminatedSchema', () => {
 
       const successSchema = extractDiscriminatedSchema({
         schema: responseSchema,
-        discriminatorField: 'success',
-        discriminatorValue: true,
+        key: 'success',
+        value: true,
       });
 
       const errorSchema = extractDiscriminatedSchema({
         schema: responseSchema,
-        discriminatorField: 'success',
-        discriminatorValue: false,
+        key: 'success',
+        value: false,
       });
 
       expect(successSchema).toBeDefined();

@@ -43,7 +43,7 @@ export default function CreateEditPage() {
     schema: userSchema,
     defaultValues: getSchemaDefaults(userSchema, {
       discriminator: {
-        field: 'mode',
+        key: 'mode',
         value: mode,
       },
     }),
@@ -58,7 +58,7 @@ export default function CreateEditPage() {
       mode: newMode,
       ...getSchemaDefaults(userSchema, {
         discriminator: {
-          field: 'mode',
+          key: 'mode',
           value: newMode,
         },
       }),
@@ -82,7 +82,7 @@ export default function CreateEditPage() {
   return (
     <FormSchemaProvider
       schema={userSchema}
-      discriminatorValue={{ discriminator: 'mode', value: mode }}
+      discriminator={{ key: 'mode', value: mode }}
     >
       <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] p-4">
         <Card className="w-full sm:max-w-md">
@@ -132,8 +132,7 @@ export default function CreateEditPage() {
                     namespace="user"
                     placeholder="Enter ID"
                     description="Required in edit mode"
-                    discriminatorField="mode"
-                    discriminatorValue={mode}
+                    discriminator={{ key: 'mode', value: mode }}
                   />
                 )}
 
@@ -161,8 +160,7 @@ export default function CreateEditPage() {
                     namespace="user"
                     placeholder="Enter age (optional)"
                     description="Optional in create mode"
-                    discriminatorField="mode"
-                    discriminatorValue={mode}
+                    discriminator={{ key: 'mode', value: mode }}
                   />
                 )}
 
@@ -173,8 +171,7 @@ export default function CreateEditPage() {
                     name="bio"
                     placeholder="Enter bio (optional)"
                     description="Optional in edit mode"
-                    discriminatorField="mode"
-                    discriminatorValue={mode}
+                    discriminator={{ key: 'mode', value: mode }}
                   />
                 )}
 

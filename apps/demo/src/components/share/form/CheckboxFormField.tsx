@@ -27,16 +27,17 @@ export function CheckboxFormField<
   name,
   namespace,
   description,
-  discriminatorField,
-  discriminatorValue,
+  discriminator,
   ...inputProps
 }: {
   control: Control<TFieldValues>;
   name: TName;
   namespace: TNamespace;
   description?: string;
-  discriminatorField?: TDiscriminatorField;
-  discriminatorValue?: TDiscriminatorValue;
+  discriminator?: {
+    key: TDiscriminatorField;
+    value: TDiscriminatorValue;
+  };
 } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>) {
   // Auto-generate validation description if not provided
   const autoDescription = useValidationDescription(name);
@@ -49,8 +50,7 @@ export function CheckboxFormField<
       name={name}
       namespace={namespace}
       description={finalDescription}
-      discriminatorField={discriminatorField}
-      discriminatorValue={discriminatorValue}
+      discriminator={discriminator}
       render={({ field }) => (
         <input
           {...field}

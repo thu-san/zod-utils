@@ -1,10 +1,14 @@
 'use client';
 
-import { extractDiscriminatedSchema, getFieldChecks } from '@zod-utils/core';
+import { extractFieldFromSchema, getFieldChecks } from '@zod-utils/core';
 import { useTranslations } from 'next-intl';
 import { useContext } from 'react';
-import type { z } from 'zod';
-import { FormSchemaContext } from '../lib/form-schema-context';
+import type { util, z } from 'zod';
+import {
+  type FormContextType,
+  type FormSchema,
+  FormSchemaContext,
+} from '../lib/form-schema-context';
 
 /**
  * Hook to generate validation description from Zod schema checks
@@ -43,44 +47,37 @@ import { FormSchemaContext } from '../lib/form-schema-context';
  * />
  * ```
  */
-export function useValidationDescription(fieldName: string): string {
-  const context = useContext(FormSchemaContext);
+export function useValidationDescription<
+  TSchema extends FormSchema,
+  TName extends keyof Extract<
+    Required<z.infer<TSchema>>,
+    Record<TDiscriminatorKey, TDiscriminatorValue>
+  >,
+  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
+  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+    util.Literal,
+>(fieldName: string): string {
+  const context = useContext(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    FormSchemaContext as FormContextType<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue
+    >,
+  );
+
   const t = useTranslations('user.validation');
 
   if (!context) {
     return '';
   }
 
-  const { schema, discriminatorValue } = context;
-
-  let field: z.ZodTypeAny | undefined;
-
-  // Handle discriminated unions
-  if ('discriminator' in schema.def) {
-    // For discriminated unions, we need to find the active variant
-    if (!discriminatorValue) {
-      return '';
-    }
-
-    const { discriminator, value } = discriminatorValue;
-    const matchingVariant = extractDiscriminatedSchema({
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      schema: schema as z.ZodDiscriminatedUnion<z.ZodObject[]>,
-      discriminatorField: discriminator,
-      discriminatorValue: value,
-    });
-
-    if (matchingVariant) {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      field = matchingVariant.shape[fieldName] as z.ZodTypeAny | undefined;
-    }
-  } else {
-    // Handle regular ZodObject
+  const field = extractFieldFromSchema({
+    schema: context.schema,
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const objectSchema = schema as z.ZodObject<z.ZodRawShape>;
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    field = objectSchema.shape[fieldName] as z.ZodTypeAny | undefined;
-  }
+    fieldName: fieldName as TName,
+    discriminator: context.discriminator,
+  });
 
   if (!field) {
     return '';

@@ -88,8 +88,10 @@ export function TFormField<
     label: string;
   }) => ReactElement;
   description?: string;
-  discriminatorField?: TDiscriminatorField; // used only for type inference
-  discriminatorValue?: TDiscriminatorValue; // used only for type inference
+  discriminator?: {
+    key: TDiscriminatorField;
+    value: TDiscriminatorValue;
+  }; // used only for type inference
 }) {
   const t = useTranslations(namespace);
   // @ts-expect-error - Generic field names can't be narrowed to form translation keys at compile-time
@@ -115,9 +117,14 @@ export function createTFormField<
   TFieldValues extends FieldValues,
   TNamespace extends FormNamespace,
   TDiscriminatorField extends keyof TFieldValues & string,
+  TDiscriminatorValue extends
+    TFieldValues[TDiscriminatorField] = TFieldValues[TDiscriminatorField],
 >(factoryProps: {
   namespace: TNamespace;
-  discriminatorField?: TDiscriminatorField;
+  discriminator?: {
+    key: TDiscriminatorField;
+    value: TDiscriminatorValue;
+  };
 }) {
   return function BoundTFormField<
     TName extends Extract<
@@ -128,7 +135,6 @@ export function createTFormField<
       >,
       translationKeys<`${TNamespace}.form`>
     >,
-    TDiscriminatorValue extends TFieldValues[TDiscriminatorField] & string,
   >(
     props: Omit<
       React.ComponentProps<

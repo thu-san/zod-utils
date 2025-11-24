@@ -2,6 +2,7 @@
 
 // Zod defaults extraction
 export { extractDefault, getSchemaDefaults } from './defaults';
+export { extractFieldFromSchema } from './field';
 export {
   canUnwrap,
   extractDiscriminatedSchema,

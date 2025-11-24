@@ -30,8 +30,7 @@ export function NumberFormField<
   autoPlaceholder,
   placeholder,
   description,
-  discriminatorField,
-  discriminatorValue,
+  discriminator,
   ...inputProps
 }: {
   control: Control<TFieldValues>;
@@ -40,8 +39,10 @@ export function NumberFormField<
   autoPlaceholder?: boolean;
   placeholder?: string;
   description?: string;
-  discriminatorField?: TDiscriminatorField;
-  discriminatorValue?: TDiscriminatorValue;
+  discriminator?: {
+    key: TDiscriminatorField;
+    value: TDiscriminatorValue;
+  };
 } & Omit<
   ComponentProps<typeof Input>,
   'name' | 'placeholder' | 'type' | 'onChange'
@@ -57,8 +58,7 @@ export function NumberFormField<
       name={name}
       namespace={namespace}
       description={finalDescription}
-      discriminatorField={discriminatorField}
-      discriminatorValue={discriminatorValue}
+      discriminator={discriminator}
       render={({ field, label }) => (
         <Input
           {...inputProps}

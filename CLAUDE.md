@@ -69,6 +69,8 @@ npm run test:coverage --workspace=packages/core
 
 Each package uses **Vitest** for testing. The react-hook-form package uses `@testing-library/react` with jsdom environment.
 
+**Test Coverage Requirement:** All packages must maintain **100% test coverage**. Any new code or changes must include comprehensive tests to maintain this standard.
+
 ### Linting
 ```bash
 # Run all linters (Biome + ESLint + TypeScript)
