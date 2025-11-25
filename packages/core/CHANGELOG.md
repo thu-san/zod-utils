@@ -1,5 +1,19 @@
 # @zod-utils/core
 
+## 1.1.0
+
+### Minor Changes
+
+- b1aa720: Add transform support to schema utilities
+
+  - `getSchemaDefaults`, `extractFieldFromSchema`, and
+    `extractDefaultValue` now correctly handle schemas
+    with `.transform()`
+  - Unwraps transforms via `getPrimitiveType()` to
+    extract fields and defaults from the input type
+  - Schemas like `z.object({...}).transform(...)` now
+    work seamlessly
+
 ## 1.0.0
 
 ### Major Changes
