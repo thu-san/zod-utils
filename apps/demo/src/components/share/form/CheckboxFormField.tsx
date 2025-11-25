@@ -1,36 +1,41 @@
 import type { ComponentProps } from 'react';
-import type { Control, FieldValues } from 'react-hook-form';
+import type { Path } from 'react-hook-form';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import type { FormNamespace } from '@/types/i18n';
 import {
+  type DiscriminatorField,
   type DiscriminatorValue,
+  type InferredFieldValues,
   TFormField,
   type ValidFieldName,
+  type ZodFormSchema,
 } from './TFormField';
 
 export function CheckboxFormField<
-  TFieldValues extends FieldValues,
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
-  TName extends ValidFieldName<
-    TFieldValues,
-    TNamespace,
-    TDiscriminatorField,
-    TDiscriminatorValue
+  TName extends Extract<
+    ValidFieldName<
+      TSchema,
+      TNamespace,
+      TDiscriminatorField,
+      TDiscriminatorValue,
+      TFieldValues
+    >,
+    Path<TFieldValues>
   >,
-  TDiscriminatorField extends keyof TFieldValues,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TFieldValues,
-    TDiscriminatorField
-  >,
+  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorField>,
+  TFieldValues extends InferredFieldValues<TSchema>,
 >({
-  control,
+  schema,
   name,
   namespace,
   description,
   discriminator,
   ...inputProps
 }: {
-  control: Control<TFieldValues>;
+  schema: TSchema;
   name: TName;
   namespace: TNamespace;
   description?: string;
@@ -45,8 +50,15 @@ export function CheckboxFormField<
     description !== undefined ? description : autoDescription;
 
   return (
-    <TFormField
-      control={control}
+    <TFormField<
+      TSchema,
+      TNamespace,
+      TName,
+      TDiscriminatorField,
+      TDiscriminatorValue,
+      TFieldValues
+    >
+      schema={schema}
       name={name}
       namespace={namespace}
       description={finalDescription}
@@ -65,42 +77,49 @@ export function CheckboxFormField<
 }
 
 export function createCheckboxFormField<
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
->(factoryProps: { namespace: TNamespace }) {
+>(factoryProps: { schema: TSchema; namespace: TNamespace }) {
   return function BoundCheckboxFormField<
-    TFieldValues extends FieldValues,
-    TName extends ValidFieldName<
-      TFieldValues,
-      TNamespace,
-      TDiscriminatorField,
-      TDiscriminatorValue
+    TName extends Extract<
+      ValidFieldName<
+        TSchema,
+        TNamespace,
+        TDiscriminatorField,
+        TDiscriminatorValue,
+        TFieldValues
+      >,
+      Path<TFieldValues>
     >,
-    TDiscriminatorField extends keyof TFieldValues,
+    TDiscriminatorField extends DiscriminatorField<TSchema>,
     TDiscriminatorValue extends DiscriminatorValue<
-      TFieldValues,
+      TSchema,
       TDiscriminatorField
     >,
+    TFieldValues extends InferredFieldValues<TSchema>,
   >(
     props: Omit<
       React.ComponentProps<
         typeof CheckboxFormField<
-          TFieldValues,
+          TSchema,
           TNamespace,
           TName,
           TDiscriminatorField,
-          TDiscriminatorValue
+          TDiscriminatorValue,
+          TFieldValues
         >
       >,
-      'namespace'
+      'namespace' | 'schema'
     >,
   ) {
     return (
       <CheckboxFormField<
-        TFieldValues,
+        TSchema,
         TNamespace,
         TName,
         TDiscriminatorField,
-        TDiscriminatorValue
+        TDiscriminatorValue,
+        TFieldValues
       >
         {...factoryProps}
         {...props}

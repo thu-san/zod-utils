@@ -1,30 +1,35 @@
 import type { ComponentProps } from 'react';
-import type { Control, FieldValues } from 'react-hook-form';
+import type { Path } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import type { FormNamespace } from '@/types/i18n';
 import {
+  type DiscriminatorField,
   type DiscriminatorValue,
+  type InferredFieldValues,
   TFormField,
   type ValidFieldName,
+  type ZodFormSchema,
 } from './TFormField';
 
 export function InputFormField<
-  TFieldValues extends FieldValues,
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
-  TName extends ValidFieldName<
-    TFieldValues,
-    TNamespace,
-    TDiscriminatorField,
-    TDiscriminatorValue
+  TName extends Extract<
+    ValidFieldName<
+      TSchema,
+      TNamespace,
+      TDiscriminatorField,
+      TDiscriminatorValue,
+      TFieldValues
+    >,
+    Path<TFieldValues>
   >,
-  TDiscriminatorField extends keyof TFieldValues,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TFieldValues,
-    TDiscriminatorField
-  >,
+  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorField>,
+  TFieldValues extends InferredFieldValues<TSchema>,
 >({
-  control,
+  schema,
   name,
   namespace,
   autoPlaceholder,
@@ -33,7 +38,7 @@ export function InputFormField<
   discriminator,
   ...inputProps
 }: {
-  control: Control<TFieldValues>;
+  schema: TSchema;
   name: TName;
   namespace: TNamespace;
   autoPlaceholder?: boolean;
@@ -50,8 +55,15 @@ export function InputFormField<
     description !== undefined ? description : autoDescription;
 
   return (
-    <TFormField
-      control={control}
+    <TFormField<
+      TSchema,
+      TNamespace,
+      TName,
+      TDiscriminatorField,
+      TDiscriminatorValue,
+      TFieldValues
+    >
+      schema={schema}
       name={name}
       namespace={namespace}
       description={finalDescription}
@@ -77,42 +89,49 @@ export function InputFormField<
 }
 
 export function createInputFormField<
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
->(factoryProps: { namespace: TNamespace }) {
+>(factoryProps: { schema: TSchema; namespace: TNamespace }) {
   return function BoundInputFormField<
-    TFieldValues extends FieldValues,
-    TName extends ValidFieldName<
-      TFieldValues,
-      TNamespace,
-      TDiscriminatorField,
-      TDiscriminatorValue
+    TName extends Extract<
+      ValidFieldName<
+        TSchema,
+        TNamespace,
+        TDiscriminatorField,
+        TDiscriminatorValue,
+        TFieldValues
+      >,
+      Path<TFieldValues>
     >,
-    TDiscriminatorField extends keyof TFieldValues,
+    TDiscriminatorField extends DiscriminatorField<TSchema>,
     TDiscriminatorValue extends DiscriminatorValue<
-      TFieldValues,
+      TSchema,
       TDiscriminatorField
     >,
+    TFieldValues extends InferredFieldValues<TSchema>,
   >(
     props: Omit<
       React.ComponentProps<
         typeof InputFormField<
-          TFieldValues,
+          TSchema,
           TNamespace,
           TName,
           TDiscriminatorField,
-          TDiscriminatorValue
+          TDiscriminatorValue,
+          TFieldValues
         >
       >,
-      'namespace'
+      'namespace' | 'schema'
     >,
   ) {
     return (
       <InputFormField<
-        TFieldValues,
+        TSchema,
         TNamespace,
         TName,
         TDiscriminatorField,
-        TDiscriminatorValue
+        TDiscriminatorValue,
+        TFieldValues
       >
         {...factoryProps}
         {...props}

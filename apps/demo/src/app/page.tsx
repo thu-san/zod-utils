@@ -168,9 +168,18 @@ const formSchema = z.object({
     .default({ alerts: false, interval: 'weekly' }),
 });
 
-const UserInputFormField = createInputFormField({ namespace: 'user' });
-const UserNumberFormField = createNumberFormField({ namespace: 'user' });
-const UserCheckboxFormField = createCheckboxFormField({ namespace: 'user' });
+const UserInputFormField = createInputFormField({
+  schema: formSchema,
+  namespace: 'user',
+});
+const UserNumberFormField = createNumberFormField({
+  schema: formSchema,
+  namespace: 'user',
+});
+const UserCheckboxFormField = createCheckboxFormField({
+  schema: formSchema,
+  namespace: 'user',
+});
 
 export default function UserProfileForm() {
   const formId = useId();
@@ -220,34 +229,28 @@ export default function UserProfileForm() {
                     </h3>
                     <div className="space-y-4">
                       <UserInputFormField
-                        control={form.control}
                         name="stringRequired"
                         autoPlaceholder
                       />
                       <UserInputFormField
-                        control={form.control}
                         name="stringOptional"
                         autoPlaceholder
                       />
                       <UserInputFormField
-                        control={form.control}
                         name="stringRequiredWithDefault"
                         autoPlaceholder
                         description='Min 3, Default: "Default String"'
                       />
                       <UserInputFormField
-                        control={form.control}
                         name="stringOptionalWithDefault"
                         autoPlaceholder
                         description='Default: "Optional Default"'
                       />
                       <UserInputFormField
-                        control={form.control}
                         name="stringNullish"
                         autoPlaceholder
                       />
                       <UserInputFormField
-                        control={form.control}
                         name="stringNullishWithDefault"
                         autoPlaceholder
                         description='Nullable, Default: "Nullable Default" (can clear with null)'
@@ -264,34 +267,28 @@ export default function UserProfileForm() {
                     </h3>
                     <div className="space-y-4">
                       <UserNumberFormField
-                        control={form.control}
                         name="numberRequired"
                         autoPlaceholder
                       />
                       <UserNumberFormField
-                        control={form.control}
                         name="numberOptional"
                         autoPlaceholder
                       />
                       <UserNumberFormField
-                        control={form.control}
                         name="numberRequiredWithDefault"
                         autoPlaceholder
                         description="Default: 42"
                       />
                       <UserNumberFormField
-                        control={form.control}
                         name="numberOptionalWithDefault"
                         autoPlaceholder
                         description="Optional with default: 100 (will error if cleared with null)"
                       />
                       <UserNumberFormField
-                        control={form.control}
                         name="numberNullish"
                         autoPlaceholder
                       />
                       <UserNumberFormField
-                        control={form.control}
                         name="numberNullishWithDefault"
                         autoPlaceholder
                         description="Nullable with default: 200 (can clear with null)"
@@ -307,30 +304,18 @@ export default function UserProfileForm() {
                       Boolean Fields
                     </h3>
                     <div className="space-y-4">
+                      <UserCheckboxFormField name="booleanRequired" />
+                      <UserCheckboxFormField name="booleanOptional" />
                       <UserCheckboxFormField
-                        control={form.control}
-                        name="booleanRequired"
-                      />
-                      <UserCheckboxFormField
-                        control={form.control}
-                        name="booleanOptional"
-                      />
-                      <UserCheckboxFormField
-                        control={form.control}
                         name="booleanRequiredWithDefault"
                         description="Default: true"
                       />
                       <UserCheckboxFormField
-                        control={form.control}
                         name="booleanOptionalWithDefault"
                         description="Optional with default: false"
                       />
+                      <UserCheckboxFormField name="booleanNullish" />
                       <UserCheckboxFormField
-                        control={form.control}
-                        name="booleanNullish"
-                      />
-                      <UserCheckboxFormField
-                        control={form.control}
                         name="booleanNullishWithDefault"
                         description="Nullable with default: true"
                       />
@@ -346,11 +331,11 @@ export default function UserProfileForm() {
                     </h3>
                     <div className="space-y-4">
                       <FormField
-                        control={form.control}
                         name="arrayOfStringRequired"
                         render={({ field }) => (
                           <FormItem>
                             <TFormLabel
+                              schema={formSchema}
                               namespace="user"
                               name="arrayOfStringRequired"
                             />
@@ -381,7 +366,6 @@ export default function UserProfileForm() {
                         )}
                       />
                       <FormField
-                        control={form.control}
                         name="arrayOfStringOptional"
                         render={({ field }) => (
                           <FormItem>
@@ -418,11 +402,11 @@ export default function UserProfileForm() {
                         )}
                       />
                       <FormField
-                        control={form.control}
                         name="arrayOfStringRequiredWithDefault"
                         render={({ field }) => (
                           <FormItem>
                             <TFormLabel
+                              schema={formSchema}
                               namespace="user"
                               name="arrayOfStringRequiredWithDefault"
                             />
@@ -456,7 +440,6 @@ export default function UserProfileForm() {
                         )}
                       />
                       <FormField
-                        control={form.control}
                         name="arrayOfStringOptionalWithDefault"
                         render={({ field }) => (
                           <FormItem>
@@ -497,7 +480,6 @@ export default function UserProfileForm() {
                         )}
                       />
                       <FormField
-                        control={form.control}
                         name="arrayOfStringNullish"
                         render={({ field }) => (
                           <FormItem>
@@ -533,7 +515,6 @@ export default function UserProfileForm() {
                         )}
                       />
                       <FormField
-                        control={form.control}
                         name="arrayOfStringNullishWithDefault"
                         render={({ field }) => (
                           <FormItem>
