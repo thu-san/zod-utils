@@ -306,7 +306,7 @@ describe('getSchemaDefaults', () => {
     it('should extract defaults for create mode', () => {
       const result = getSchemaDefaults(userSchema, {
         discriminator: {
-          field: 'mode',
+          key: 'mode',
           value: 'create',
         },
       });
@@ -319,7 +319,7 @@ describe('getSchemaDefaults', () => {
     it('should extract defaults for edit mode', () => {
       const result = getSchemaDefaults(userSchema, {
         discriminator: {
-          field: 'mode',
+          key: 'mode',
           value: 'edit',
         },
       });
@@ -344,7 +344,7 @@ describe('getSchemaDefaults', () => {
 
       const result = getSchemaDefaults(schema, {
         discriminator: {
-          field: 'type',
+          key: 'type',
           value: 'a',
         },
       });
@@ -361,7 +361,7 @@ describe('getSchemaDefaults', () => {
     it('should return empty object for invalid discriminator value', () => {
       const result = getSchemaDefaults(userSchema, {
         discriminator: {
-          field: 'mode',
+          key: 'mode',
           // @ts-expect-error - testing invalid value
           value: 'invalid',
         },
@@ -391,21 +391,21 @@ describe('getSchemaDefaults', () => {
 
       const cardDefaults = getSchemaDefaults(paymentSchema, {
         discriminator: {
-          field: 'method',
+          key: 'method',
           value: 'card',
         },
       });
 
       const paypalDefaults = getSchemaDefaults(paymentSchema, {
         discriminator: {
-          field: 'method',
+          key: 'method',
           value: 'paypal',
         },
       });
 
       const bankDefaults = getSchemaDefaults(paymentSchema, {
         discriminator: {
-          field: 'method',
+          key: 'method',
           value: 'bank',
         },
       });
@@ -434,7 +434,7 @@ describe('getSchemaDefaults', () => {
 
       const activeDefaults = getSchemaDefaults(formSchema, {
         discriminator: {
-          field: 'status',
+          key: 'status',
           value: 'active',
         },
       });
@@ -458,14 +458,14 @@ describe('getSchemaDefaults', () => {
 
       const successDefaults = getSchemaDefaults(responseSchema, {
         discriminator: {
-          field: 'success',
+          key: 'success',
           value: true,
         },
       });
 
       const errorDefaults = getSchemaDefaults(responseSchema, {
         discriminator: {
-          field: 'success',
+          key: 'success',
           value: false,
         },
       });
@@ -488,7 +488,7 @@ describe('getSchemaDefaults', () => {
 
       const successDefaults = getSchemaDefaults(statusSchema, {
         discriminator: {
-          field: 'code',
+          key: 'code',
           value: 200,
         },
       });

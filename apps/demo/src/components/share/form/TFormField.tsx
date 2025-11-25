@@ -1,11 +1,12 @@
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import type {
-  Control,
-  ControllerRenderProps,
-  FieldPath,
-  FieldValues,
+import {
+  type ControllerRenderProps,
+  type FieldValues,
+  type Path,
+  useFormContext,
 } from 'react-hook-form';
+import type z from 'zod';
 import {
   FormControl,
   FormDescription,
@@ -13,78 +14,66 @@ import {
   FormItem,
   FormMessage,
 } from '@/components/ui/form';
-import type { FormNamespace, translationKeys } from '@/types/i18n';
+import type {
+  FormNamespace,
+  FormTranslationKey,
+  translationKeys,
+} from '@/types/i18n';
 import { TFormLabel } from './TFormLabel';
 
+export type ZodFormSchema = z.ZodObject | z.ZodDiscriminatedUnion;
+
+export type DiscriminatorField<TSchema extends ZodFormSchema> =
+  keyof z.infer<TSchema>;
+
+export type InferredFieldValues<TSchema extends ZodFormSchema> =
+  z.infer<TSchema> & FieldValues;
+
 export type DiscriminatorValue<
-  TFieldValues extends FieldValues,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
+  TSchema extends ZodFormSchema,
+  TDiscriminatorField extends DiscriminatorField<TSchema>,
 > = TDiscriminatorField extends string
-  ? TFieldValues[TDiscriminatorField]
+  ? z.infer<TSchema>[TDiscriminatorField]
   : never;
 
-// Helper type for valid field names with discriminator support
 export type ValidFieldName<
-  TFieldValues extends FieldValues,
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TFieldValues,
-    TDiscriminatorField
-  >,
-> = Extract<
-  ExtractDiscriminatedFields<
-    TFieldValues,
-    TDiscriminatorField,
-    TDiscriminatorValue
-  >,
-  translationKeys<`${TNamespace}.form`>
->;
-
-export type ExtractDiscriminatedFields<
-  TFieldValues extends FieldValues,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TFieldValues,
-    TDiscriminatorField
-  >,
-  TDiscriminatedFields extends TDiscriminatorField extends string
-    ? keyof Extract<
-        Required<TFieldValues>,
-        Record<TDiscriminatorField, TDiscriminatorValue>
-      >
-    : never = TDiscriminatorField extends string
-    ? keyof Extract<
-        Required<TFieldValues>,
-        Record<TDiscriminatorField, TDiscriminatorValue>
-      >
-    : never,
-> = TDiscriminatedFields extends FieldPath<TFieldValues>
-  ? TDiscriminatedFields
-  : never;
+  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorField>,
+  TFieldValues extends InferredFieldValues<TSchema>,
+> = keyof Extract<
+  Required<z.infer<TSchema>>,
+  Record<TDiscriminatorField, TDiscriminatorValue>
+> &
+  translationKeys<`${TNamespace}.form`> &
+  Path<TFieldValues>;
 
 export function TFormField<
-  TFieldValues extends FieldValues,
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
   TName extends ValidFieldName<
-    TFieldValues,
+    TSchema,
     TNamespace,
     TDiscriminatorField,
-    TDiscriminatorValue
+    TDiscriminatorValue,
+    TFieldValues
   >,
-  TDiscriminatorField extends keyof TFieldValues | undefined,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TFieldValues,
+  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  const TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
     TDiscriminatorField
   >,
+  TFieldValues extends InferredFieldValues<TSchema>,
 >({
-  control,
   name,
   namespace,
   render,
   description,
+  ...props
 }: {
-  control: Control<TFieldValues>;
+  // The `schema` prop is used for type inference and is also passed to child components (e.g., TFormLabel). It is not used for runtime logic in this component.
+  schema: TSchema;
   name: TName;
   namespace: TNamespace;
   render: (field: {
@@ -92,12 +81,17 @@ export function TFormField<
     label: string;
   }) => ReactElement;
   description?: string;
-  discriminatorField?: TDiscriminatorField; // used only for type inference
-  discriminatorValue?: TDiscriminatorValue; // used only for type inference
+  // The `discriminator` prop is used for type inference and is also passed to child components (e.g., TFormLabel). It is not used for runtime logic in this component.
+  discriminator?: {
+    key: TDiscriminatorField;
+    value: TDiscriminatorValue;
+  };
 }) {
-  const t = useTranslations(namespace);
-  // @ts-expect-error - Generic field names can't be narrowed to form translation keys at compile-time
-  const label = t(`form.${name}`);
+  const { control } = useFormContext<TFieldValues>();
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const t = useTranslations(namespace as FormNamespace);
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const label = t(`form.${name as translationKeys<FormTranslationKey>}`);
 
   return (
     <FormField
@@ -105,7 +99,18 @@ export function TFormField<
       name={name}
       render={({ field }) => (
         <FormItem>
-          <TFormLabel namespace={namespace} name={name} />
+          <TFormLabel<
+            TSchema,
+            TNamespace,
+            TName,
+            TDiscriminatorField,
+            TDiscriminatorValue,
+            TFieldValues
+          >
+            namespace={namespace}
+            name={name}
+            {...props}
+          />
           <FormControl>{render({ field, label })}</FormControl>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
@@ -116,48 +121,41 @@ export function TFormField<
 }
 
 export function createTFormField<
-  TFieldValues extends FieldValues,
+  TSchema extends ZodFormSchema,
   TNamespace extends FormNamespace,
-  TDiscriminatorField extends keyof TFieldValues & string,
->(factoryProps: {
-  namespace: TNamespace;
-  discriminatorField?: TDiscriminatorField;
-}) {
+>(factoryProps: { schema: TSchema; namespace: TNamespace }) {
   return function BoundTFormField<
     TName extends Extract<
-      ExtractDiscriminatedFields<
-        TFieldValues,
+      ValidFieldName<
+        TSchema,
+        TNamespace,
         TDiscriminatorField,
-        TDiscriminatorValue
+        TDiscriminatorValue,
+        TFieldValues
       >,
-      translationKeys<`${TNamespace}.form`>
+      Path<TFieldValues>
     >,
-    TDiscriminatorValue extends TFieldValues[TDiscriminatorField] & string,
+    TDiscriminatorField extends DiscriminatorField<TSchema>,
+    const TDiscriminatorValue extends DiscriminatorValue<
+      TSchema,
+      TDiscriminatorField
+    >,
+    TFieldValues extends InferredFieldValues<TSchema>,
   >(
     props: Omit<
       React.ComponentProps<
         typeof TFormField<
-          TFieldValues,
+          TSchema,
           TNamespace,
           TName,
           TDiscriminatorField,
-          TDiscriminatorValue
+          TDiscriminatorValue,
+          TFieldValues
         >
       >,
-      'namespace'
+      'namespace' | 'schema'
     >,
   ) {
-    return (
-      <TFormField<
-        TFieldValues,
-        TNamespace,
-        TName,
-        TDiscriminatorField,
-        TDiscriminatorValue
-      >
-        {...factoryProps}
-        {...props}
-      />
-    );
+    return <TFormField {...factoryProps} {...props} />;
   };
 }

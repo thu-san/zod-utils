@@ -36,6 +36,72 @@ The descriptions are automatically:
 - **Translated** using i18n keys in `lang/en/user.json`
 - **Displayed** below form fields via form components
 
+## Form Component Design
+
+The demo includes reusable form field components that prioritize type safety and developer experience. These components use a **`schema` prop** instead of `control` for better integration with TypeScript and discriminated unions.
+
+### Why Schema Prop?
+
+**Factory Functions**
+Bind the schema once in a factory function, then use the component without repetition:
+
+```typescript
+// Create factory with schema bound
+const UserInputFormField = createInputFormField({
+  schema: formSchema,
+  namespace: 'user'
+});
+
+// Clean usage - no need to pass schema/control repeatedly
+<UserInputFormField name="username" />
+<UserInputFormField name="email" />
+```
+
+**Discriminated Union Support**
+When using discriminated unions, the schema provides compile-time validation of which fields exist for which discriminator values:
+
+```typescript
+const schema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('create'),
+    name: z.string(),
+    age: z.number()
+  }),
+  z.object({
+    mode: z.literal('edit'),
+    id: z.number(),
+    bio: z.string()
+  }),
+]);
+
+// TypeScript validates 'id' only exists when mode='edit'
+<NumberFormField
+  schema={schema}
+  name="id"
+  namespace="user"
+  discriminator={{ key: 'mode', value: 'edit' }}
+/>
+```
+
+**Type Safety Benefits:**
+- ✅ Field names auto-complete and are validated against the schema
+- ✅ Discriminator keys and values are type-checked
+- ✅ Invalid field names cause TypeScript errors at compile-time
+- ✅ No need to pass `control` (accessed internally via `useFormContext()`)
+
+### Available Components
+
+- **`TFormField`** - Base form field component with render prop
+- **`InputFormField`** - Text input fields
+- **`NumberFormField`** - Number input fields
+- **`CheckboxFormField`** - Checkbox fields
+
+All components support:
+- Auto-generated validation descriptions
+- Internationalization (i18n)
+- Discriminated union schemas
+- Factory function pattern for cleaner usage
+
 ## Getting Started
 
 First, run the development server:

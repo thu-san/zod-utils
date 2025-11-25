@@ -1,27 +1,35 @@
 'use client';
 
-import {
-  extractDiscriminatedSchema,
-  requiresValidInput,
-} from '@zod-utils/core';
-import { createContext, useContext } from 'react';
-import { z } from 'zod';
+import { extractFieldFromSchema, requiresValidInput } from '@zod-utils/core';
+import { type Context, createContext, useContext } from 'react';
+import type { util, z } from 'zod';
 
 type ZodSchema = z.ZodObject<{
   [key: string]: z.ZodType;
 }>;
 
-type FormSchema = ZodSchema | z.ZodDiscriminatedUnion<ZodSchema[], string>;
+export type FormSchema = ZodSchema | z.ZodDiscriminatedUnion;
 
-type DiscriminatorValue = {
-  discriminator: string;
-  value: string | number | boolean;
-} | null;
+export type FormContextType<
+  TSchema extends FormSchema,
+  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
+  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+    util.Literal,
+> = Context<{
+  schema: TSchema;
+  discriminator?: {
+    key: TDiscriminatorKey;
+    value: TDiscriminatorValue;
+  };
+} | null>;
 
 // Context to provide Zod schema to child components
 export const FormSchemaContext = createContext<{
   schema: FormSchema;
-  discriminatorValue?: DiscriminatorValue;
+  discriminator?: {
+    key: unknown;
+    value: unknown;
+  };
 } | null>(null);
 
 /**
@@ -56,17 +64,25 @@ export const FormSchemaContext = createContext<{
  * </FormSchemaProvider>
  * ```
  */
-export function FormSchemaProvider({
+export function FormSchemaProvider<
+  TSchema extends FormSchema,
+  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
+  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+    util.Literal,
+>({
   schema,
-  discriminatorValue,
+  discriminator,
   children,
 }: {
-  schema: FormSchema;
-  discriminatorValue?: DiscriminatorValue;
+  schema: TSchema;
+  discriminator?: {
+    key: TDiscriminatorKey;
+    value: TDiscriminatorValue;
+  };
   children: React.ReactNode;
 }) {
   return (
-    <FormSchemaContext.Provider value={{ schema, discriminatorValue }}>
+    <FormSchemaContext.Provider value={{ schema, discriminator }}>
       {children}
     </FormSchemaContext.Provider>
   );
@@ -93,13 +109,30 @@ export function FormSchemaProvider({
  * ```
  */
 export function useIsFieldRequired(fieldName: string): boolean {
-  const context = useContext(FormSchemaContext);
+  // as schema is got from context instead of prop, we need to assert types here
+  type TSchema = FormSchema;
+  type TDiscriminatorKey = keyof z.infer<TSchema> & string;
+  type TDiscriminatorValue = z.infer<TSchema>[TDiscriminatorKey] & util.Literal;
+
+  const context = useContext(
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    FormSchemaContext as FormContextType<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue
+    >,
+  );
 
   if (!context) {
     return false;
   }
 
-  return isFieldRequired(context.schema, fieldName, context.discriminatorValue);
+  return isFieldRequired({
+    schema: context.schema,
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    fieldName: fieldName as keyof z.infer<TSchema> & string,
+    discriminator: context.discriminator,
+  });
 }
 
 /**
@@ -126,30 +159,32 @@ export function useIsFieldRequired(fieldName: string): boolean {
  * @param discriminatorValue - Optional discriminator value for discriminated unions
  * @returns true if the field requires valid input (will show validation error), false otherwise
  */
-export function isFieldRequired(
-  schema: FormSchema,
-  fieldName: string,
-  discriminatorValue?: DiscriminatorValue,
-): boolean {
-  let field: z.ZodType | undefined;
-
-  if (schema instanceof z.ZodDiscriminatedUnion) {
-    if (discriminatorValue) {
-      const { discriminator, value } = discriminatorValue;
-
-      const filteredSchema = extractDiscriminatedSchema({
-        schema,
-        discriminatorField: discriminator,
-        discriminatorValue: value,
-      });
-
-      if (filteredSchema) {
-        field = filteredSchema.shape[fieldName];
-      }
-    }
-  } else {
-    field = schema.shape[fieldName];
-  }
+export function isFieldRequired<
+  TSchema extends FormSchema,
+  TName extends keyof Extract<
+    Required<z.infer<TSchema>>,
+    Record<TDiscriminatorKey, TDiscriminatorValue>
+  >,
+  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
+  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+    util.Literal,
+>({
+  schema,
+  fieldName,
+  discriminator,
+}: {
+  schema: TSchema;
+  fieldName: TName;
+  discriminator?: {
+    key: TDiscriminatorKey;
+    value: TDiscriminatorValue;
+  };
+}): boolean {
+  const field = extractFieldFromSchema({
+    schema,
+    fieldName,
+    discriminator,
+  });
 
   if (!field) {
     return false;

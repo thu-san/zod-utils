@@ -272,6 +272,157 @@ import { getFieldChecks, type ZodUnionCheck } from "@zod-utils/core";
 
 ---
 
+### `extractDiscriminatedSchema(schema, key, value)`
+
+Extract a specific variant from a discriminated union schema based on the discriminator field and value.
+
+```typescript
+import { extractDiscriminatedSchema } from "@zod-utils/core";
+import { z } from "zod";
+
+const userSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('create'),
+    name: z.string(),
+    age: z.number().optional(),
+  }),
+  z.object({
+    mode: z.literal('edit'),
+    id: z.number(),
+    name: z.string().optional(),
+    bio: z.string().optional(),
+  }),
+]);
+
+// Extract the 'create' variant
+const createSchema = extractDiscriminatedSchema({
+  schema: userSchema,
+  key: 'mode',
+  value: 'create',
+});
+// Returns: z.ZodObject with { mode, name, age }
+
+// Extract the 'edit' variant
+const editSchema = extractDiscriminatedSchema({
+  schema: userSchema,
+  key: 'mode',
+  value: 'edit',
+});
+// Returns: z.ZodObject with { mode, id, name, bio }
+```
+
+**Use with discriminated unions:** This is essential when working with `z.discriminatedUnion()` schemas, as it extracts the correct variant schema based on the discriminator value.
+
+---
+
+### `extractFieldFromSchema(schema, fieldName, discriminator?)`
+
+Extract a single field from a Zod object or discriminated union schema.
+
+```typescript
+import { extractFieldFromSchema } from "@zod-utils/core";
+import { z } from "zod";
+
+// Simple object schema
+const userSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  email: z.string().email(),
+});
+
+const nameField = extractFieldFromSchema({
+  schema: userSchema,
+  fieldName: 'name',
+});
+// Returns: ZodString
+
+// Discriminated union schema
+const formSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('create'),
+    name: z.string(),
+    age: z.number().optional(),
+  }),
+  z.object({
+    mode: z.literal('edit'),
+    id: z.number(),
+    name: z.string().optional(),
+  }),
+]);
+
+// Extract field from specific variant
+const idField = extractFieldFromSchema({
+  schema: formSchema,
+  fieldName: 'id',
+  discriminator: {
+    key: 'mode',
+    value: 'edit',
+  },
+});
+// Returns: ZodNumber
+
+// Without discriminator on discriminated union, returns undefined
+const fieldWithoutDiscriminator = extractFieldFromSchema({
+  schema: formSchema,
+  fieldName: 'name',
+});
+// Returns: undefined (need discriminator to know which variant)
+```
+
+**Discriminated union support:** When extracting fields from discriminated unions, you must provide the `discriminator` option with `key` and `value` to specify which variant to use.
+
+---
+
+### `getSchemaDefaults(schema, discriminator?)`
+
+**Updated:** Now supports discriminated union schemas with the `discriminator` option.
+
+```typescript
+import { getSchemaDefaults } from "@zod-utils/core";
+import { z } from "zod";
+
+// Discriminated union with defaults
+const formSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('create'),
+    name: z.string(),
+    age: z.number().default(18),
+  }),
+  z.object({
+    mode: z.literal('edit'),
+    id: z.number().default(1),
+    name: z.string().optional(),
+    bio: z.string().default('bio goes here'),
+  }),
+]);
+
+// Get defaults for 'create' mode
+const createDefaults = getSchemaDefaults(formSchema, {
+  discriminator: {
+    key: 'mode',
+    value: 'create',
+  },
+});
+// Returns: { age: 18 }
+
+// Get defaults for 'edit' mode
+const editDefaults = getSchemaDefaults(formSchema, {
+  discriminator: {
+    key: 'mode',
+    value: 'edit',
+  },
+});
+// Returns: { id: 1, bio: 'bio goes here' }
+
+// Without discriminator, returns empty object
+const noDefaults = getSchemaDefaults(formSchema);
+// Returns: {}
+```
+
+**Discriminator types:** The discriminator `value` can be a string, number, or boolean literal that matches the discriminator field type.
+
+---
+
 ## Type Utilities
 
 ### `Simplify<T>`

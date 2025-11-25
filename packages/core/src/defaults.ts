@@ -1,3 +1,4 @@
+import type { util } from 'zod';
 import * as z from 'zod';
 import {
   canUnwrap,
@@ -165,27 +166,25 @@ export function extractDefault<T extends z.ZodTypeAny>(
  * @since 0.1.0
  */
 export function getSchemaDefaults<
-  TSchema extends z.ZodObject | z.ZodDiscriminatedUnion<Array<z.ZodObject>>,
-  TObj extends z.infer<TSchema>,
-  TDiscriminatorField extends keyof TObj = keyof TObj,
+  TSchema extends z.ZodObject | z.ZodDiscriminatedUnion,
+  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
+  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+    util.Literal,
 >(
   schema: TSchema,
   options?: {
     discriminator?: {
-      field: TDiscriminatorField;
-      value: TObj[TDiscriminatorField];
+      key: TDiscriminatorKey;
+      value: TDiscriminatorValue;
     };
   },
 ): Simplify<Partial<z.infer<TSchema>>> {
   let targetSchema: z.ZodObject | undefined;
   if (schema instanceof z.ZodDiscriminatedUnion) {
     if (options?.discriminator) {
-      const { field, value } = options.discriminator;
-
       targetSchema = extractDiscriminatedSchema({
         schema,
-        discriminatorField: field,
-        discriminatorValue: value,
+        ...options.discriminator,
       });
     }
   } else {

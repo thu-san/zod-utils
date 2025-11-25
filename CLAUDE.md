@@ -69,6 +69,8 @@ npm run test:coverage --workspace=packages/core
 
 Each package uses **Vitest** for testing. The react-hook-form package uses `@testing-library/react` with jsdom environment.
 
+**Test Coverage Requirement:** All packages must maintain **100% test coverage**. Any new code or changes must include comprehensive tests to maintain this standard.
+
 ### Linting
 ```bash
 # Run all linters (Biome + ESLint + TypeScript)
@@ -219,6 +221,58 @@ Use `.nonempty()` or `.min(1)` to make strings/arrays truly required.
 - `z.object({ nested: z.string().default('hello') }).default({})` ✅ extracted as `{}`
 
 Nested defaults are NOT extracted unless the parent object also has an explicit `.default()`.
+
+### Form Component Architecture (Demo App)
+
+The demo app's form components (`TFormField`, `InputFormField`, `NumberFormField`, `CheckboxFormField`) use a **`schema` prop** instead of passing `control` directly. This design choice provides significant benefits:
+
+#### Why Schema Prop Instead of Control?
+
+**1. Factory Functions Work Better**
+```typescript
+// Bind schema once in factory
+const UserInputFormField = createInputFormField({
+  schema: formSchema,
+  namespace: 'user'
+});
+
+// Use without repetition - cleaner API
+<UserInputFormField name="username" />
+<UserInputFormField name="email" />
+// vs. passing control to every instance
+```
+
+**2. Discriminated Union Support**
+The schema provides compile-time type information about which fields exist for which discriminator values:
+```typescript
+const schema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('create'), name: z.string() }),
+  z.object({ mode: z.literal('edit'), id: z.number() }),
+]);
+
+// TypeScript KNOWS 'id' only exists when mode='edit'
+<NumberFormField
+  schema={schema}
+  name="id"  // ✅ Type-checked against schema
+  discriminator={{ key: 'mode', value: 'edit' }}
+/>
+```
+
+**3. Better Type Safety**
+- Field names are validated against schema at compile-time
+- Autocomplete works for field names, discriminator keys/values
+- Invalid field names cause TypeScript errors before runtime
+
+**4. Control Still Available**
+Components use `useFormContext()` internally to access control - no need to pass it as a prop:
+```typescript
+export function TFormField(...) {
+  const { control } = useFormContext<TFieldValues>();
+  // Use control for form registration
+}
+```
+
+This pattern provides compile-time safety while keeping the API clean and DRY.
 
 ## Build System
 
