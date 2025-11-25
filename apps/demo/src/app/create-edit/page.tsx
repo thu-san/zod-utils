@@ -31,7 +31,7 @@ const userSchema = z
     }),
   ])
   .transform((data) => ({
-    test: data,
+    userData: data,
   }));
 
 type UserFormData = z.infer<typeof userSchema>;
