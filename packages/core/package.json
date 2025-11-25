@@ -1,6 +1,6 @@
 {
   "name": "@zod-utils/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Pure TypeScript utilities for Zod schema manipulation and default extraction",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
