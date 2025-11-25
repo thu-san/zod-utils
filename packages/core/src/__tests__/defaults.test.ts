@@ -139,6 +139,47 @@ describe('getSchemaDefaults', () => {
     expect(getSchemaDefaults(schema)).toEqual({});
   });
 
+  it('should extract defaults from object schema with transform', () => {
+    const schema = z
+      .object({
+        name: z.string().default('John'),
+        age: z.number().default(25),
+      })
+      .transform((data) => ({ ...data, computed: true }));
+
+    expect(getSchemaDefaults(schema)).toEqual({
+      name: 'John',
+      age: 25,
+    });
+  });
+
+  it('should extract defaults from discriminated union with transform', () => {
+    const schema = z
+      .discriminatedUnion('mode', [
+        z.object({
+          mode: z.literal('create'),
+          name: z.string().default('New User'),
+        }),
+        z.object({
+          mode: z.literal('edit'),
+          id: z.number().default(1),
+        }),
+      ])
+      .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+    expect(
+      getSchemaDefaults(schema, {
+        discriminator: { key: 'mode', value: 'create' },
+      }),
+    ).toEqual({ name: 'New User' });
+
+    expect(
+      getSchemaDefaults(schema, {
+        discriminator: { key: 'mode', value: 'edit' },
+      }),
+    ).toEqual({ id: 1 });
+  });
+
   it('should extract flat object defaults', () => {
     const schema = z.object({
       name: z.string().default('John'),
