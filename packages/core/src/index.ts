@@ -1,7 +1,7 @@
 // Zod schema utilities
 
 // Zod defaults extraction
-export { extractDefault, getSchemaDefaults } from './defaults';
+export { extractDefaultValue, getSchemaDefaults } from './defaults';
 export { extractFieldFromSchema } from './field';
 export {
   canUnwrap,

@@ -1,92 +1,92 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
-import { extractDefault, getSchemaDefaults } from '../defaults';
+import { extractDefaultValue, getSchemaDefaults } from '../defaults';
 
-describe('extractDefault', () => {
+describe('extractDefaultValue', () => {
   it('should extract default value from ZodDefault', () => {
     const schema = z.string().default('test');
-    expect(extractDefault(schema)).toBe('test');
+    expect(extractDefaultValue(schema)).toBe('test');
   });
 
   it('should extract default value from nested optional', () => {
     const schema = z.string().default('test').optional();
-    expect(extractDefault(schema)).toBe('test');
+    expect(extractDefaultValue(schema)).toBe('test');
   });
 
   it('should extract default value from nested nullable', () => {
     const schema = z.string().default('test').nullable();
-    expect(extractDefault(schema)).toBe('test');
+    expect(extractDefaultValue(schema)).toBe('test');
   });
 
   it('should extract default value from deeply nested wrappers', () => {
     const schema = z.string().default('test').optional().nullable();
-    expect(extractDefault(schema)).toBe('test');
+    expect(extractDefaultValue(schema)).toBe('test');
   });
 
   it('should call default function if it is a function', () => {
     const schema = z.string().default(() => 'dynamic');
-    expect(extractDefault(schema)).toBe('dynamic');
+    expect(extractDefaultValue(schema)).toBe('dynamic');
   });
 
   it('should return undefined if no default exists', () => {
     const schema = z.string();
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should return undefined for optional without default', () => {
     const schema = z.string().optional();
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should extract object defaults', () => {
     const schema = z.object({ foo: z.string() }).default({ foo: 'bar' });
-    expect(extractDefault(schema)).toEqual({ foo: 'bar' });
+    expect(extractDefaultValue(schema)).toEqual({ foo: 'bar' });
   });
 
   it('should extract array defaults', () => {
     const schema = z.array(z.string()).default(['a', 'b']);
-    expect(extractDefault(schema)).toEqual(['a', 'b']);
+    expect(extractDefaultValue(schema)).toEqual(['a', 'b']);
   });
 
   it('should extract number defaults', () => {
     const schema = z.number().default(42);
-    expect(extractDefault(schema)).toBe(42);
+    expect(extractDefaultValue(schema)).toBe(42);
   });
 
   it('should extract boolean defaults', () => {
     const schema = z.boolean().default(true);
-    expect(extractDefault(schema)).toBe(true);
+    expect(extractDefaultValue(schema)).toBe(true);
   });
 
   it('should return undefined for union with multiple non-nullish types', () => {
     const schema = z.union([z.string().default('hello'), z.number()]);
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with default in second option', () => {
     const schema = z.union([z.string(), z.number().default(42)]);
-    // extractDefault uses unwrapUnion which returns first field, so default in second option is ignored
-    expect(extractDefault(schema)).toBeUndefined();
+    // extractDefaultValue uses unwrapUnion which returns first field, so default in second option is ignored
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with multiple types wrapped in optional', () => {
     const schema = z.union([z.string().default('test'), z.number()]).optional();
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with multiple types wrapped in nullable', () => {
     const schema = z.union([z.string().default('test'), z.number()]).nullable();
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with no defaults', () => {
     const schema = z.union([z.string(), z.number()]);
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should extract default from union with nullish types', () => {
     const schema = z.union([z.string().default('hello'), z.null()]);
-    expect(extractDefault(schema)).toBe('hello');
+    expect(extractDefaultValue(schema)).toBe('hello');
   });
 
   it('should return undefined for nested union with multiple types', () => {
@@ -94,7 +94,7 @@ describe('extractDefault', () => {
       z.union([z.string().default('nested'), z.number()]),
       z.boolean(),
     ]);
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
   it('should return undefined for union with multiple types including object', () => {
@@ -102,7 +102,26 @@ describe('extractDefault', () => {
       z.object({ id: z.string() }).default({ id: 'default' }),
       z.string(),
     ]);
-    expect(extractDefault(schema)).toBeUndefined();
+    expect(extractDefaultValue(schema)).toBeUndefined();
+  });
+
+  it('should extract default from schema with transform (ZodPipe)', () => {
+    const schema = z.string().default('hello').transform((val) => val.toUpperCase());
+    expect(extractDefaultValue(schema)).toBe('hello');
+  });
+
+  it('should extract default from nested transform', () => {
+    const schema = z
+      .string()
+      .default('world')
+      .optional()
+      .transform((val) => val?.toUpperCase());
+    expect(extractDefaultValue(schema)).toBe('world');
+  });
+
+  it('should return undefined for transform without default', () => {
+    const schema = z.string().transform((val) => val.toUpperCase());
+    expect(extractDefaultValue(schema)).toBeUndefined();
   });
 });
 

@@ -35,6 +35,8 @@ npm install @zod-utils/core zod
 
 Extract all default values from a Zod object schema. Only extracts fields that explicitly have `.default()` on them.
 
+**Transform support:** Works with schemas that have `.transform()` - extracts defaults from the input type.
+
 ```typescript
 import { getSchemaDefaults } from "@zod-utils/core";
 import { z } from "zod";
@@ -137,8 +139,10 @@ requiresValidInput(middleName); // false - user can leave null
 
 ### `getPrimitiveType(field)`
 
-Get the primitive type of a Zod field by unwrapping optional/nullable wrappers.
+Get the primitive type of a Zod field by unwrapping optional/nullable/transform wrappers.
 Stops at arrays without unwrapping them.
+
+**Transform support:** Automatically unwraps `.transform()` to get the underlying input type.
 
 ```typescript
 import { getPrimitiveType } from "@zod-utils/core";
@@ -151,6 +155,11 @@ const primitive = getPrimitiveType(field);
 const arrayField = z.array(z.string()).optional();
 const arrayPrimitive = getPrimitiveType(arrayField);
 // Returns the ZodArray (stops at arrays)
+
+// Transform support
+const transformed = z.string().transform((val) => val.toUpperCase());
+const primitiveFromTransform = getPrimitiveType(transformed);
+// Returns the underlying ZodString (unwraps the transform)
 ```
 
 ---
@@ -172,34 +181,40 @@ withoutDefault.parse(undefined); // throws error
 
 ---
 
-### `extractDefault(field)`
+### `extractDefaultValue(field)`
 
-Extract the default value from a Zod field (recursively unwraps optional/nullable/union layers).
+Extract the default value from a Zod field (recursively unwraps optional/nullable/union/transform layers).
 
 **Union handling:** For union types, extracts the default from the first option. If the first option has no default, returns `undefined` (defaults in other union options are not checked).
 
+**Transform support:** Automatically unwraps `.transform()` to get the input type's default value.
+
 ```typescript
-import { extractDefault } from "@zod-utils/core";
+import { extractDefaultValue } from "@zod-utils/core";
 import { z } from "zod";
 
 // Basic usage
 const field = z.string().optional().default("hello");
-extractDefault(field); // 'hello'
+extractDefaultValue(field); // 'hello'
 
 const noDefault = z.string();
-extractDefault(noDefault); // undefined
+extractDefaultValue(noDefault); // undefined
 
 // Union with default in first option
 const unionField = z.union([z.string().default('hello'), z.number()]);
-extractDefault(unionField); // 'hello'
+extractDefaultValue(unionField); // 'hello'
 
 // Union with default in second option (only checks first)
 const unionField2 = z.union([z.string(), z.number().default(42)]);
-extractDefault(unionField2); // undefined
+extractDefaultValue(unionField2); // undefined
 
 // Union wrapped in optional
 const wrappedUnion = z.union([z.string().default('test'), z.number()]).optional();
-extractDefault(wrappedUnion); // 'test'
+extractDefaultValue(wrappedUnion); // 'test'
+
+// Transform support - extracts input default, not output
+const transformed = z.string().default('hello').transform((val) => val.toUpperCase());
+extractDefaultValue(transformed); // 'hello' (not 'HELLO')
 ```
 
 ---

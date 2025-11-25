@@ -2,13 +2,13 @@ import { type util, z } from 'zod';
 import { extractDiscriminatedSchema } from './schema';
 
 export function extractFieldFromSchema<
-  TSchema extends z.ZodObject | z.ZodDiscriminatedUnion,
+  TSchema extends z.ZodType,
   TName extends keyof Extract<
-    Required<z.infer<TSchema>>,
+    Required<z.input<TSchema>>,
     Record<TDiscriminatorKey, TDiscriminatorValue>
   >,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >({
   schema,
@@ -31,7 +31,7 @@ export function extractFieldFromSchema<
         ...discriminator,
       });
     }
-  } else {
+  } else if (schema instanceof z.ZodObject) {
     targetSchema = schema;
   }
 

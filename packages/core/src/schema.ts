@@ -1,7 +1,7 @@
 import type { util } from 'zod';
 import * as z from 'zod';
 import type {
-  $InferUnionOutput,
+  $InferUnionInput,
   $ZodCheckBigIntFormatDef,
   $ZodCheckEndsWithDef,
   $ZodCheckGreaterThanDef,
@@ -191,6 +191,10 @@ export const getPrimitiveType = <T extends z.ZodType>(
 
     // Multiple non-nullish types or all nullish - return union as-is
     return field;
+  }
+
+  if (field instanceof z.ZodPipe && field.def.in instanceof z.ZodType) {
+    return getPrimitiveType(field.def.in);
   }
 
   return field;
@@ -526,8 +530,8 @@ export function getFieldChecks<T extends z.ZodTypeAny>(
  */
 type ExtractZodUnionMember<
   TSchema extends z.ZodUnion | z.ZodDiscriminatedUnion,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 > = TSchema extends z.ZodUnion<infer Options>
   ? Options extends readonly [
@@ -540,7 +544,7 @@ type ExtractZodUnionMember<
           ? First
           : Rest extends []
             ? never
-            : TDiscriminatorValue extends $InferUnionOutput<
+            : TDiscriminatorValue extends $InferUnionInput<
                   Rest[number]
                 >[TDiscriminatorKey]
               ? ExtractZodUnionMember<
@@ -551,7 +555,7 @@ type ExtractZodUnionMember<
               : never
         : Rest extends []
           ? never
-          : TDiscriminatorValue extends $InferUnionOutput<
+          : TDiscriminatorValue extends $InferUnionInput<
                 Rest[number]
               >[TDiscriminatorKey]
             ? ExtractZodUnionMember<
@@ -684,8 +688,8 @@ type ExtractZodUnionMember<
  */
 export const extractDiscriminatedSchema = <
   TSchema extends z.ZodUnion | z.ZodDiscriminatedUnion,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >({
   schema,

@@ -119,6 +119,37 @@ describe('getPrimitiveType', () => {
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodUnion);
   });
+
+  it('should unwrap ZodPipe (transform) to get inner type', () => {
+    const schema = z.string().transform((val) => val.toUpperCase());
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should unwrap nested ZodPipe with default', () => {
+    const schema = z.string().default('test').transform((val) => val.toUpperCase());
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should unwrap ZodPipe from discriminated union', () => {
+    const schema = z
+      .discriminatedUnion('mode', [
+        z.object({ mode: z.literal('a'), value: z.string() }),
+        z.object({ mode: z.literal('b'), count: z.number() }),
+      ])
+      .transform((data) => ({ ...data, transformed: true }));
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodDiscriminatedUnion);
+  });
+
+  it('should unwrap ZodPipe from object', () => {
+    const schema = z
+      .object({ name: z.string() })
+      .transform((data) => ({ ...data, id: 1 }));
+    const result = getPrimitiveType(schema);
+    expect(result).toBeInstanceOf(z.ZodObject);
+  });
 });
 
 describe('removeDefault', () => {

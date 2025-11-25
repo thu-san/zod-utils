@@ -3,6 +3,7 @@ import * as z from 'zod';
 import {
   canUnwrap,
   extractDiscriminatedSchema,
+  getPrimitiveType,
   tryStripNullishOnly,
 } from './schema';
 import type { Simplify } from './types';
@@ -25,7 +26,7 @@ import type { Simplify } from './types';
  * Basic usage with default value
  * ```typescript
  * const field = z.string().default('hello');
- * const defaultValue = extractDefault(field);
+ * const defaultValue = extractDefaultValue(field);
  * // Result: 'hello'
  * ```
  *
@@ -33,7 +34,7 @@ import type { Simplify } from './types';
  * Unwrapping optional/nullable layers
  * ```typescript
  * const field = z.string().default('world').optional();
- * const defaultValue = extractDefault(field);
+ * const defaultValue = extractDefaultValue(field);
  * // Result: 'world' (unwraps optional to find default)
  * ```
  *
@@ -41,7 +42,7 @@ import type { Simplify } from './types';
  * Union with only nullish types stripped to single type
  * ```typescript
  * const field = z.union([z.string().default('hello'), z.null()]);
- * const defaultValue = extractDefault(field);
+ * const defaultValue = extractDefaultValue(field);
  * // Result: 'hello' (null stripped, leaving only string)
  * ```
  *
@@ -49,7 +50,7 @@ import type { Simplify } from './types';
  * Union with multiple non-nullish types
  * ```typescript
  * const field = z.union([z.string().default('hello'), z.number()]);
- * const defaultValue = extractDefault(field);
+ * const defaultValue = extractDefaultValue(field);
  * // Result: undefined (multiple non-nullish types - no default extracted)
  * ```
  *
@@ -57,7 +58,7 @@ import type { Simplify } from './types';
  * Field without default
  * ```typescript
  * const field = z.string().optional();
- * const defaultValue = extractDefault(field);
+ * const defaultValue = extractDefaultValue(field);
  * // Result: undefined
  * ```
  *
@@ -65,17 +66,17 @@ import type { Simplify } from './types';
  * @see {@link tryStripNullishOnly} for union nullish stripping logic
  * @since 0.1.0
  */
-export function extractDefault<T extends z.ZodTypeAny>(
+export function extractDefaultValue<T extends z.ZodType>(
   field: T,
-): z.infer<T> | undefined {
+): z.input<T> | undefined {
   if (field instanceof z.ZodDefault) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return field.def.defaultValue as z.infer<T>;
+    return field.def.defaultValue as z.input<T>;
   }
 
   if (canUnwrap(field)) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return extractDefault(field.unwrap()) as z.infer<T>;
+    return extractDefaultValue(field.unwrap()) as z.input<T>;
   }
 
   if (field instanceof z.ZodUnion) {
@@ -83,11 +84,16 @@ export function extractDefault<T extends z.ZodTypeAny>(
     if (unwrapped !== false) {
       // Successfully unwrapped to single type
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      return extractDefault(unwrapped) as z.infer<T>;
+      return extractDefaultValue(unwrapped) as z.input<T>;
     }
 
     // Multiple non-nullish types or all nullish - no default
     return undefined;
+  }
+
+  if (field instanceof z.ZodPipe && field.def.in instanceof z.ZodType) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return extractDefaultValue(field.def.in) as z.input<T>;
   }
 
   return undefined;
@@ -162,13 +168,13 @@ export function extractDefault<T extends z.ZodTypeAny>(
  * <Input type="number" value={field.value ?? ''} />
  * ```
  *
- * @see {@link extractDefault} for extracting defaults from individual fields
+ * @see {@link extractDefaultValue} for extracting defaults from individual fields
  * @since 0.1.0
  */
 export function getSchemaDefaults<
-  TSchema extends z.ZodObject | z.ZodDiscriminatedUnion,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >(
   schema: TSchema,
@@ -178,17 +184,20 @@ export function getSchemaDefaults<
       value: TDiscriminatorValue;
     };
   },
-): Simplify<Partial<z.infer<TSchema>>> {
+): Simplify<Partial<z.input<TSchema>>> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const primitiveSchema = getPrimitiveType(schema) as TSchema;
+
   let targetSchema: z.ZodObject | undefined;
-  if (schema instanceof z.ZodDiscriminatedUnion) {
+  if (primitiveSchema instanceof z.ZodDiscriminatedUnion) {
     if (options?.discriminator) {
       targetSchema = extractDiscriminatedSchema({
-        schema,
+        schema: primitiveSchema,
         ...options.discriminator,
       });
     }
-  } else {
-    targetSchema = schema;
+  } else if (primitiveSchema instanceof z.ZodObject) {
+    targetSchema = primitiveSchema;
   }
 
   const defaults: Record<string, unknown> = {};
@@ -198,7 +207,7 @@ export function getSchemaDefaults<
       const field = targetSchema.shape[key];
       if (!field) continue;
 
-      const defaultValue = extractDefault(field);
+      const defaultValue = extractDefaultValue(field);
       if (defaultValue !== undefined) {
         defaults[key] = defaultValue;
       }
@@ -206,5 +215,5 @@ export function getSchemaDefaults<
   }
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return defaults as Partial<z.infer<TSchema>>;
+  return defaults as Partial<z.input<TSchema>>;
 }
