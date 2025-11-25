@@ -16,19 +16,23 @@ import {
 import { Form } from '@/components/ui/form';
 import { FormSchemaProvider } from '@/lib/form-schema-context';
 
-const userSchema = z.discriminatedUnion('mode', [
-  z.object({
-    mode: z.literal('create'),
-    name: z.string().min(1, 'Name is required'),
-    age: z.number().optional().default(18),
-  }),
-  z.object({
-    mode: z.literal('edit'),
-    id: z.number().default(1),
-    name: z.string().optional(),
-    bio: z.string().optional().default('bio goes here'),
-  }),
-]);
+const userSchema = z
+  .discriminatedUnion('mode', [
+    z.object({
+      mode: z.literal('create').default('create'),
+      name: z.string().min(1, 'Name is required'),
+      age: z.number().optional().default(18),
+    }),
+    z.object({
+      mode: z.literal('edit').default('edit'),
+      id: z.number().default(1),
+      name: z.string().optional(),
+      bio: z.string().optional().default('bio goes here'),
+    }),
+  ])
+  .transform((data) => ({
+    test: data,
+  }));
 
 type UserFormData = z.infer<typeof userSchema>;
 

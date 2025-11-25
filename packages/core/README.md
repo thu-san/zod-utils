@@ -334,6 +334,8 @@ const editSchema = extractDiscriminatedSchema({
 
 Extract a single field from a Zod object or discriminated union schema.
 
+**Transform support:** Works with schemas that have `.transform()` - extracts fields from the input type.
+
 ```typescript
 import { extractFieldFromSchema } from "@zod-utils/core";
 import { z } from "zod";
@@ -382,6 +384,20 @@ const fieldWithoutDiscriminator = extractFieldFromSchema({
   fieldName: 'name',
 });
 // Returns: undefined (need discriminator to know which variant)
+
+// Works with transforms - extracts from input type
+const transformedSchema = z
+  .object({
+    name: z.string(),
+    age: z.number(),
+  })
+  .transform((data) => ({ ...data, computed: true }));
+
+const nameFromTransformed = extractFieldFromSchema({
+  schema: transformedSchema,
+  fieldName: 'name',
+});
+// Returns: ZodString (from the input type, not affected by transform)
 ```
 
 **Discriminated union support:** When extracting fields from discriminated unions, you must provide the `discriminator` option with `key` and `value` to specify which variant to use.

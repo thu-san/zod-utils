@@ -1,5 +1,5 @@
 import { type util, z } from 'zod';
-import { extractDiscriminatedSchema } from './schema';
+import { extractDiscriminatedSchema, getPrimitiveType } from './schema';
 
 export function extractFieldFromSchema<
   TSchema extends z.ZodType,
@@ -24,15 +24,18 @@ export function extractFieldFromSchema<
 }) {
   let targetSchema: z.ZodObject | undefined;
 
-  if (schema instanceof z.ZodDiscriminatedUnion) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const primitiveSchema = getPrimitiveType(schema) as TSchema;
+
+  if (primitiveSchema instanceof z.ZodDiscriminatedUnion) {
     if (discriminator) {
       targetSchema = extractDiscriminatedSchema({
-        schema,
+        schema: primitiveSchema,
         ...discriminator,
       });
     }
-  } else if (schema instanceof z.ZodObject) {
-    targetSchema = schema;
+  } else if (primitiveSchema instanceof z.ZodObject) {
+    targetSchema = primitiveSchema;
   }
 
   if (!targetSchema) return undefined;

@@ -4,16 +4,10 @@ import { extractFieldFromSchema, requiresValidInput } from '@zod-utils/core';
 import { type Context, createContext, useContext } from 'react';
 import type { util, z } from 'zod';
 
-type ZodSchema = z.ZodObject<{
-  [key: string]: z.ZodType;
-}>;
-
-export type FormSchema = ZodSchema | z.ZodDiscriminatedUnion;
-
 export type FormContextType<
-  TSchema extends FormSchema,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 > = Context<{
   schema: TSchema;
@@ -25,7 +19,7 @@ export type FormContextType<
 
 // Context to provide Zod schema to child components
 export const FormSchemaContext = createContext<{
-  schema: FormSchema;
+  schema: z.ZodType;
   discriminator?: {
     key: unknown;
     value: unknown;
@@ -65,9 +59,9 @@ export const FormSchemaContext = createContext<{
  * ```
  */
 export function FormSchemaProvider<
-  TSchema extends FormSchema,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >({
   schema,
@@ -110,9 +104,9 @@ export function FormSchemaProvider<
  */
 export function useIsFieldRequired(fieldName: string): boolean {
   // as schema is got from context instead of prop, we need to assert types here
-  type TSchema = FormSchema;
-  type TDiscriminatorKey = keyof z.infer<TSchema> & string;
-  type TDiscriminatorValue = z.infer<TSchema>[TDiscriminatorKey] & util.Literal;
+  type TSchema = z.ZodType;
+  type TDiscriminatorKey = keyof z.input<TSchema> & string;
+  type TDiscriminatorValue = z.input<TSchema>[TDiscriminatorKey] & util.Literal;
 
   const context = useContext(
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -130,7 +124,7 @@ export function useIsFieldRequired(fieldName: string): boolean {
   return isFieldRequired({
     schema: context.schema,
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    fieldName: fieldName as keyof z.infer<TSchema> & string,
+    fieldName: fieldName as keyof z.input<TSchema> & string,
     discriminator: context.discriminator,
   });
 }
@@ -160,13 +154,13 @@ export function useIsFieldRequired(fieldName: string): boolean {
  * @returns true if the field requires valid input (will show validation error), false otherwise
  */
 export function isFieldRequired<
-  TSchema extends FormSchema,
+  TSchema extends z.ZodType,
   TName extends keyof Extract<
-    Required<z.infer<TSchema>>,
+    Required<z.input<TSchema>>,
     Record<TDiscriminatorKey, TDiscriminatorValue>
   >,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >({
   schema,

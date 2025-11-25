@@ -127,7 +127,10 @@ describe('getPrimitiveType', () => {
   });
 
   it('should unwrap nested ZodPipe with default', () => {
-    const schema = z.string().default('test').transform((val) => val.toUpperCase());
+    const schema = z
+      .string()
+      .default('test')
+      .transform((val) => val.toUpperCase());
     const result = getPrimitiveType(schema);
     expect(result).toBeInstanceOf(z.ZodString);
   });

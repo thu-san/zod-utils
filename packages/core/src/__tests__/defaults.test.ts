@@ -106,7 +106,10 @@ describe('extractDefaultValue', () => {
   });
 
   it('should extract default from schema with transform (ZodPipe)', () => {
-    const schema = z.string().default('hello').transform((val) => val.toUpperCase());
+    const schema = z
+      .string()
+      .default('hello')
+      .transform((val) => val.toUpperCase());
     expect(extractDefaultValue(schema)).toBe('hello');
   });
 
@@ -126,6 +129,16 @@ describe('extractDefaultValue', () => {
 });
 
 describe('getSchemaDefaults', () => {
+  it('should return empty object for non-object schema (e.g., ZodString)', () => {
+    const schema = z.string();
+    expect(getSchemaDefaults(schema)).toEqual({});
+  });
+
+  it('should return empty object for ZodArray schema', () => {
+    const schema = z.array(z.string());
+    expect(getSchemaDefaults(schema)).toEqual({});
+  });
+
   it('should extract flat object defaults', () => {
     const schema = z.object({
       name: z.string().default('John'),
