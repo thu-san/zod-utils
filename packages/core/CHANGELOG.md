@@ -1,5 +1,20 @@
 # @zod-utils/core
 
+## 1.0.0
+
+### Major Changes
+
+- 0307d9a: **Breaking Changes:**
+
+  - `extractDiscriminatedSchema`: Changed parameter names from `discriminatorField`/`discriminatorValue` to `key`/`value`
+  - `getSchemaDefaults`: Changed discriminator option from `{ field, value }` to `{ key, value }`
+
+  **New Features:**
+
+  - Added `extractFieldFromSchema` function for extracting individual fields from schemas
+  - Enhanced type narrowing for discriminated unions with new `ExtractZodUnionMember` utility type
+  - Support for `z.ZodUnion` in addition to `z.ZodDiscriminatedUnion`
+
 ## 0.9.0
 
 ### Minor Changes
