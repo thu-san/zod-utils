@@ -31,8 +31,8 @@
  * const schema = z.object({ id: z.string() })
  *   .merge(z.object({ name: z.string() }));
  *
- * type InferredType = z.infer<typeof schema>; // May show complex type
- * type SimplifiedType = Simplify<z.infer<typeof schema>>;
+ * type InferredType = z.input<typeof schema>; // May show complex type
+ * type SimplifiedType = Simplify<z.input<typeof schema>>;
  * // Shows clear: { id: string; name: string }
  * ```
  *

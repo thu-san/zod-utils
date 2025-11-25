@@ -21,36 +21,34 @@ import type {
 } from '@/types/i18n';
 import { TFormLabel } from './TFormLabel';
 
-export type ZodFormSchema = z.ZodObject | z.ZodDiscriminatedUnion;
+export type DiscriminatorField<TSchema extends z.ZodType> =
+  keyof z.input<TSchema>;
 
-export type DiscriminatorField<TSchema extends ZodFormSchema> =
-  keyof z.infer<TSchema>;
-
-export type InferredFieldValues<TSchema extends ZodFormSchema> =
-  z.infer<TSchema> & FieldValues;
+export type InferredFieldValues<TSchema extends z.ZodType> = z.input<TSchema> &
+  FieldValues;
 
 export type DiscriminatorValue<
-  TSchema extends ZodFormSchema,
+  TSchema extends z.ZodType,
   TDiscriminatorField extends DiscriminatorField<TSchema>,
 > = TDiscriminatorField extends string
-  ? z.infer<TSchema>[TDiscriminatorField]
+  ? z.input<TSchema>[TDiscriminatorField]
   : never;
 
 export type ValidFieldName<
-  TSchema extends ZodFormSchema,
+  TSchema extends z.ZodType,
   TNamespace extends FormNamespace,
   TDiscriminatorField extends DiscriminatorField<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorField>,
   TFieldValues extends InferredFieldValues<TSchema>,
 > = keyof Extract<
-  Required<z.infer<TSchema>>,
+  Required<z.input<TSchema>>,
   Record<TDiscriminatorField, TDiscriminatorValue>
 > &
   translationKeys<`${TNamespace}.form`> &
   Path<TFieldValues>;
 
 export function TFormField<
-  TSchema extends ZodFormSchema,
+  TSchema extends z.ZodType,
   TNamespace extends FormNamespace,
   TName extends ValidFieldName<
     TSchema,
@@ -121,19 +119,16 @@ export function TFormField<
 }
 
 export function createTFormField<
-  TSchema extends ZodFormSchema,
+  TSchema extends z.ZodType,
   TNamespace extends FormNamespace,
 >(factoryProps: { schema: TSchema; namespace: TNamespace }) {
   return function BoundTFormField<
-    TName extends Extract<
-      ValidFieldName<
-        TSchema,
-        TNamespace,
-        TDiscriminatorField,
-        TDiscriminatorValue,
-        TFieldValues
-      >,
-      Path<TFieldValues>
+    TName extends ValidFieldName<
+      TSchema,
+      TNamespace,
+      TDiscriminatorField,
+      TDiscriminatorValue,
+      TFieldValues
     >,
     TDiscriminatorField extends DiscriminatorField<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<

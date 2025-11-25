@@ -234,7 +234,91 @@ describe('extractFieldFromSchema', () => {
     });
   });
 
+  describe('schemas with transforms', () => {
+    it('should extract field from object schema with transform', () => {
+      const schema = z
+        .object({
+          name: z.string(),
+          age: z.number(),
+        })
+        .transform((data) => ({ ...data, computed: true }));
+
+      const result = extractFieldFromSchema({
+        schema,
+        fieldName: 'name',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should extract field from discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('mode', [
+          z.object({
+            mode: z.literal('create'),
+            name: z.string(),
+          }),
+          z.object({
+            mode: z.literal('edit'),
+            id: z.number(),
+          }),
+        ])
+        .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+      const result = extractFieldFromSchema({
+        schema,
+        fieldName: 'name',
+        discriminator: {
+          key: 'mode',
+          value: 'create',
+        },
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should extract field from nested transform with optional', () => {
+      const schema = z
+        .object({
+          email: z.string().email(),
+          count: z.number().default(0),
+        })
+        .optional()
+        .transform((data) => data ?? { email: '', count: 0 });
+
+      const result = extractFieldFromSchema({
+        schema,
+        fieldName: 'email',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+  });
+
   describe('edge cases', () => {
+    it('should return undefined for non-object schema (e.g., ZodString)', () => {
+      const schema = z.string();
+      const result = extractFieldFromSchema({
+        schema,
+        fieldName: 'anyField',
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for ZodArray schema', () => {
+      const schema = z.array(z.string());
+      const result = extractFieldFromSchema({
+        schema,
+        fieldName: 'anyField',
+      });
+
+      expect(result).toBeUndefined();
+    });
+
     it('should handle extracting the discriminator field itself', () => {
       const schema = z.discriminatedUnion('type', [
         z.object({

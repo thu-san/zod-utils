@@ -1,10 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  type DefaultValues,
-  type FieldValues,
-  type UseFormProps,
-  useForm,
-} from 'react-hook-form';
+import { type FieldValues, type UseFormProps, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import type {
   PartialWithAllNullables,
@@ -176,35 +171,27 @@ import type {
  * @since 0.1.0
  */
 export const useZodForm = <
+  TInput extends FieldValues,
   TOutput extends FieldValues,
   TFormInput extends
-    PartialWithAllNullables<TOutput> = PartialWithNullableObjects<TOutput>,
-  TInput extends TFormInput = TFormInput,
-  TDefault extends TFormInput = TFormInput,
+    PartialWithAllNullables<TInput> = PartialWithNullableObjects<TInput>,
 >({
   schema,
   zodResolverOptions,
   ...formOptions
 }: {
   schema: z.ZodType<TOutput, TInput>;
-  defaultValues?: TDefault;
+  defaultValues?: TFormInput;
   zodResolverOptions?: Parameters<typeof zodResolver>[1];
 } & Omit<
   UseFormProps<TFormInput, unknown, TOutput>,
   'resolver' | 'defaultValues'
 >) => {
-  const resolver = zodResolver<TFormInput, unknown, TOutput>(
-    schema,
-    zodResolverOptions,
-  );
+  const resolver = zodResolver(schema, zodResolverOptions);
 
-  // can't help but to assert here - because DefaultValues<TDefault> makes object fields DeepPartial
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const defaultValues = formOptions.defaultValues as DefaultValues<TDefault>;
-
   return useForm({
     resolver,
     ...formOptions,
-    defaultValues,
-  });
+  } as unknown as UseFormProps<TFormInput, unknown, TOutput>);
 };

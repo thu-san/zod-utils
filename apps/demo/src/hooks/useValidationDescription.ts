@@ -6,7 +6,6 @@ import { useContext } from 'react';
 import type { util, z } from 'zod';
 import {
   type FormContextType,
-  type FormSchema,
   FormSchemaContext,
 } from '../lib/form-schema-context';
 
@@ -48,13 +47,13 @@ import {
  * ```
  */
 export function useValidationDescription<
-  TSchema extends FormSchema,
+  TSchema extends z.ZodType,
   TName extends keyof Extract<
-    Required<z.infer<TSchema>>,
+    Required<z.input<TSchema>>,
     Record<TDiscriminatorKey, TDiscriminatorValue>
   >,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >(fieldName: string): string {
   const context = useContext(

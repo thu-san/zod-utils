@@ -1,14 +1,14 @@
 import { type util, z } from 'zod';
-import { extractDiscriminatedSchema } from './schema';
+import { extractDiscriminatedSchema, getPrimitiveType } from './schema';
 
 export function extractFieldFromSchema<
-  TSchema extends z.ZodObject | z.ZodDiscriminatedUnion,
+  TSchema extends z.ZodType,
   TName extends keyof Extract<
-    Required<z.infer<TSchema>>,
+    Required<z.input<TSchema>>,
     Record<TDiscriminatorKey, TDiscriminatorValue>
   >,
-  TDiscriminatorKey extends keyof z.infer<TSchema> & string,
-  TDiscriminatorValue extends z.infer<TSchema>[TDiscriminatorKey] &
+  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 >({
   schema,
@@ -24,15 +24,18 @@ export function extractFieldFromSchema<
 }) {
   let targetSchema: z.ZodObject | undefined;
 
-  if (schema instanceof z.ZodDiscriminatedUnion) {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const primitiveSchema = getPrimitiveType(schema) as TSchema;
+
+  if (primitiveSchema instanceof z.ZodDiscriminatedUnion) {
     if (discriminator) {
       targetSchema = extractDiscriminatedSchema({
-        schema,
+        schema: primitiveSchema,
         ...discriminator,
       });
     }
-  } else {
-    targetSchema = schema;
+  } else if (primitiveSchema instanceof z.ZodObject) {
+    targetSchema = primitiveSchema;
   }
 
   if (!targetSchema) return undefined;

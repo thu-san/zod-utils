@@ -1,6 +1,6 @@
 import { useTranslations } from 'next-intl';
 import type { ComponentProps } from 'react';
-import type { Path } from 'react-hook-form';
+import type z from 'zod';
 import { FormLabel } from '@/components/ui/form';
 import { useIsFieldRequired } from '@/lib/form-schema-context';
 import type {
@@ -13,24 +13,23 @@ import type {
   DiscriminatorValue,
   InferredFieldValues,
   ValidFieldName,
-  ZodFormSchema,
 } from './TFormField';
 
 export function TFormLabel<
-  TSchema extends ZodFormSchema,
+  TSchema extends z.ZodType,
   TNamespace extends FormNamespace,
-  TName extends Extract<
-    ValidFieldName<
-      TSchema,
-      TNamespace,
-      TDiscriminatorField,
-      TDiscriminatorValue,
-      TFieldValues
-    >,
-    Path<TFieldValues>
+  TName extends ValidFieldName<
+    TSchema,
+    TNamespace,
+    TDiscriminatorField,
+    TDiscriminatorValue,
+    TFieldValues
   >,
   TDiscriminatorField extends DiscriminatorField<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorField>,
+  const TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorField
+  >,
   TFieldValues extends InferredFieldValues<TSchema>,
 >({
   name,
@@ -64,22 +63,19 @@ export function TFormLabel<
 }
 
 export function createTFormLabel<
-  TSchema extends ZodFormSchema,
+  TSchema extends z.ZodType,
   TNamespace extends FormNamespace,
 >(factoryProps: { schema: TSchema; namespace: TNamespace }) {
   return function BoundTFormLabel<
-    TName extends Extract<
-      ValidFieldName<
-        TSchema,
-        TNamespace,
-        TDiscriminatorField,
-        TDiscriminatorValue,
-        TFieldValues
-      >,
-      Path<TFieldValues>
+    TName extends ValidFieldName<
+      TSchema,
+      TNamespace,
+      TDiscriminatorField,
+      TDiscriminatorValue,
+      TFieldValues
     >,
     TDiscriminatorField extends DiscriminatorField<TSchema>,
-    TDiscriminatorValue extends DiscriminatorValue<
+    const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorField
     >,

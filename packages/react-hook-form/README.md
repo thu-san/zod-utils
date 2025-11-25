@@ -136,6 +136,7 @@ const form = useZodForm({
 - **Output validation**: Validated data matches your Zod schema exactly
 - **Type inference**: No manual type annotations needed - everything is inferred from the schema
 - **Zod integration**: Automatically sets up `zodResolver` for validation
+- **Transform support**: Works with schemas that use `.transform()` - uses input types for form fields
 
 #### Using Without Default Values
 
@@ -283,7 +284,7 @@ import {
   requiresValidInput,
   getPrimitiveType,
   removeDefault,
-  extractDefault,
+  extractDefaultValue,
   type Simplify,
 
   // Type utilities (react-hook-form specific)

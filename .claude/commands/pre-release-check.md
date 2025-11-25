@@ -67,7 +67,22 @@ If code changes affect performance:
 - Run `npm run bench` to check for regressions
 - Compare with baseline if significant changes were made
 
-## 9. Final Verification
+## 9. Changeset
+
+Prepare changeset for version bumping:
+
+- Determine version bump type based on changes:
+  - `patch`: Bug fixes, documentation updates, internal refactors
+  - `minor`: New features, new exports, backward-compatible additions
+  - `major`: Breaking changes (API changes, removed exports)
+- **IMPORTANT:** Both `@zod-utils/core` and `@zod-utils/react-hook-form` should have the same version - always bump both packages together
+- Provide changeset description for the user to add via `npx changeset`
+- Format: Brief summary of what changed and why it matters to users
+- Example descriptions:
+  - `Add transform support to getSchemaDefaults and extractFieldFromSchema`
+  - `Handle edge case when schema is neither ZodObject nor ZodDiscriminatedUnion`
+
+## 10. Final Verification
 
 Before completing:
 - Confirm all checks passed ✅
@@ -75,9 +90,10 @@ Before completing:
 - Confirm documentation updated ✅
 - Confirm no linting errors ✅
 - Confirm builds successful ✅
+- Confirm changeset description provided ✅
 - List any issues found that need attention
 
-## 10. Summary
+## 11. Summary
 
 Provide a concise summary:
 - What changed
