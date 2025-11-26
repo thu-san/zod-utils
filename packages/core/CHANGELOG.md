@@ -1,5 +1,11 @@
 # @zod-utils/core
 
+## 1.2.0
+
+### Minor Changes
+
+- 4cd876c: improve discriminator type utilities
+
 ## 1.1.0
 
 ### Minor Changes

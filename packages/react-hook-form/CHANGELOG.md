@@ -1,5 +1,16 @@
 # @zod-utils/react-hook-form
 
+## 0.12.0
+
+### Minor Changes
+
+- 4cd876c: improve discriminator type utilities
+
+### Patch Changes
+
+- Updated dependencies [4cd876c]
+  - @zod-utils/core@1.2.0
+
 ## 0.11.0
 
 ### Minor Changes
