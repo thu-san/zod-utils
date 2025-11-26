@@ -178,7 +178,7 @@ describe('useIsRequiredField', () => {
   });
 });
 
-describe('isFieldRequired', () => {
+describe('isRequiredField', () => {
   it('should return true for required string with min(1)', () => {
     const schema = z.object({
       name: z.string().min(1),
