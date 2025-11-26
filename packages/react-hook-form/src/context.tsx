@@ -60,10 +60,15 @@ export const FormSchemaContext = createContext<{
 /**
  * Hook to access the form schema from context.
  *
+ * The optional `_params` argument is used for TypeScript type inference only.
+ * Pass your schema to get proper type narrowing of the context value.
+ *
+ * @param _params - Optional params for type inference (not used at runtime)
  * @returns The schema context value or null if not within a provider
  *
  * @example
  * ```tsx
+ * // Without type params (returns generic context)
  * function MyFormField() {
  *   const context = useFormSchema();
  *   if (!context) return null;
@@ -71,20 +76,33 @@ export const FormSchemaContext = createContext<{
  *   const { schema, discriminator } = context;
  *   // Use schema for validation or field extraction
  * }
+ *
+ * // With type params (for type-safe schema access)
+ * function TypedFormField() {
+ *   const context = useFormSchema({ schema: mySchema });
+ *   // context.schema is now typed as typeof mySchema
+ * }
  * ```
  */
 export function useFormSchema<
-  TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
->(_params: {
-  schema: TSchema;
-  discriminator?: Discriminator<
+  TSchema extends z.ZodType = z.ZodType,
+  TDiscriminatorKey extends
+    DiscriminatorKey<TSchema> = DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): FormSchemaContextValue<TSchema, TDiscriminatorKey, TDiscriminatorValue> {
+    TDiscriminatorKey
+  > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
+>(
+  // Parameter used for type inference only, not at runtime
+  _params?: {
+    schema: TSchema;
+    discriminator?: Discriminator<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue
+    >;
+  },
+): FormSchemaContextValue<TSchema, TDiscriminatorKey, TDiscriminatorValue> {
   return useContext(
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     FormSchemaContext as Context<{
@@ -163,17 +181,17 @@ export function FormSchemaProvider<
  * Uses the schema from {@link FormSchemaContext} to determine if a field
  * will show validation errors when submitted with empty/invalid input.
  *
- * @param fieldName - The name of the field to check
+ * @param params - Schema, field name, and optional discriminator (schema used for type inference)
  * @returns true if the field requires valid input, false otherwise
  *
  * @example
  * ```tsx
- * function MyFieldLabel({ fieldName, children }) {
- *   const isRequired = useIsRequiredField(fieldName);
+ * function MyFieldLabel({ name, schema }: { name: string; schema: z.ZodType }) {
+ *   const isRequired = useIsRequiredField({ schema, fieldName: name });
  *
  *   return (
  *     <label>
- *       {children}
+ *       {name}
  *       {isRequired && <span className="text-red-500">*</span>}
  *     </label>
  *   );

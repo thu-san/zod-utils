@@ -7,7 +7,7 @@ export type { FormSchemaContextType, FormSchemaContextValue } from './context';
 export {
   FormSchemaContext,
   FormSchemaProvider,
-  isRequiredField as isFieldRequired,
+  isRequiredField,
   useFormSchema,
   useIsRequiredField,
 } from './context';

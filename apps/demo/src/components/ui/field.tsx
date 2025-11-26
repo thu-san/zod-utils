@@ -107,12 +107,10 @@ function FieldContent({ className, ...props }: React.ComponentProps<'div'>) {
 
 function FieldLabel({
   className,
-  fieldName,
   required,
   children,
   ...props
 }: React.ComponentProps<typeof Label> & {
-  fieldName?: string;
   required?: boolean;
 }) {
   return (
