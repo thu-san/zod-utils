@@ -1,6 +1,4 @@
-import type z from 'zod';
-import type { util } from 'zod';
-
+import type { util, z } from 'zod';
 /**
  * Simplifies complex TypeScript types for better IDE hover tooltips and error messages.
  *

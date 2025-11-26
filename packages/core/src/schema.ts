@@ -696,7 +696,7 @@ export const extractDiscriminatedSchema = <
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-  ReturnType extends TSchema extends z.ZodUnion
+  ReturnType extends TSchema extends z.ZodDiscriminatedUnion
     ? ExtractZodUnionMember<TSchema, TDiscriminatorKey, TDiscriminatorValue>
     : never,
 >({

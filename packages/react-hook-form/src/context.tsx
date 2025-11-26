@@ -257,8 +257,8 @@ export function useIsRequiredField<
  *   bio: z.string().optional(),
  * });
  *
- * isFieldRequired({ schema, fieldName: 'name' }); // true
- * isFieldRequired({ schema, fieldName: 'bio' });  // false
+ * isRequiredField({ schema, fieldName: 'name' }); // true
+ * isRequiredField({ schema, fieldName: 'bio' });  // false
  * ```
  *
  * @example
@@ -269,7 +269,7 @@ export function useIsRequiredField<
  *   z.object({ mode: z.literal('edit'), id: z.number() }),
  * ]);
  *
- * isFieldRequired({
+ * isRequiredField({
  *   schema,
  *   fieldName: 'name',
  *   discriminator: { key: 'mode', value: 'create' },
