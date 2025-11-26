@@ -1,19 +1,20 @@
+import {
+  type Discriminator,
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type InferredFieldValues,
+  useIsRequiredField,
+} from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
 import { FormLabel } from '@/components/ui/form';
-import { useIsFieldRequired } from '@/lib/form-schema-context';
 import type {
   FormNamespace,
   FormTranslationKey,
   translationKeys,
 } from '@/types/i18n';
-import type {
-  DiscriminatorField,
-  DiscriminatorValue,
-  InferredFieldValues,
-  ValidFieldName,
-} from './TFormField';
+import type { ValidFieldName } from './TFormField';
 
 export function TFormLabel<
   TSchema extends z.ZodType,
@@ -21,28 +22,31 @@ export function TFormLabel<
   TName extends ValidFieldName<
     TSchema,
     TNamespace,
-    TDiscriminatorField,
+    TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
   >,
-  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
-    TDiscriminatorField
+    TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
 >({
+  schema,
   name,
   namespace,
+  discriminator,
   ...props
 }: Omit<ComponentProps<typeof FormLabel>, 'children'> & {
   schema: TSchema;
   name: TName;
   namespace: TNamespace;
-  discriminator?: {
-    key: TDiscriminatorField;
-    value: TDiscriminatorValue;
-  };
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
 }) {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const t = useTranslations(namespace as FormNamespace);
@@ -52,7 +56,11 @@ export function TFormLabel<
     `form.${name as translationKeys<FormTranslationKey>}`,
   );
 
-  const isRequired = useIsFieldRequired(name);
+  const isRequired = useIsRequiredField({
+    schema,
+    fieldName: name,
+    discriminator,
+  });
 
   return (
     <FormLabel {...props}>
@@ -70,14 +78,14 @@ export function createTFormLabel<
     TName extends ValidFieldName<
       TSchema,
       TNamespace,
-      TDiscriminatorField,
+      TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >,
-    TDiscriminatorField extends DiscriminatorField<TSchema>,
+    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
-      TDiscriminatorField
+      TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
   >(
@@ -87,7 +95,7 @@ export function createTFormLabel<
           TSchema,
           TNamespace,
           TName,
-          TDiscriminatorField,
+          TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >
@@ -100,7 +108,7 @@ export function createTFormLabel<
         TSchema,
         TNamespace,
         TName,
-        TDiscriminatorField,
+        TDiscriminatorKey,
         TDiscriminatorValue,
         TFieldValues
       >

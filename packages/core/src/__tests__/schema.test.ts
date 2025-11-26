@@ -1147,4 +1147,61 @@ describe('extractDiscriminatedSchema', () => {
       expect(errorSchema?.shape.error).toBeDefined();
     });
   });
+
+  describe('non-discriminated union schemas', () => {
+    // These tests verify runtime behavior when incompatible schema types are passed
+    // We use type assertions to bypass TypeScript's strict type checking for testing purposes
+    /* eslint-disable @typescript-eslint/consistent-type-assertions */
+    it('should return undefined for plain object schema', () => {
+      const plainSchema = z.object({
+        name: z.string(),
+        age: z.number(),
+      });
+
+      // Testing runtime behavior with incompatible type
+      const result = extractDiscriminatedSchema({
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        schema: plainSchema as any,
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        key: 'mode' as any,
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        value: 'create' as any,
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for regular union schema', () => {
+      const regularUnion = z.union([z.string(), z.number()]);
+
+      // Testing runtime behavior with incompatible type
+      const result = extractDiscriminatedSchema({
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        schema: regularUnion as any,
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        key: 'type' as any,
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        value: 'string' as any,
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for array schema', () => {
+      const arraySchema = z.array(z.string());
+
+      // Testing runtime behavior with incompatible type
+      const result = extractDiscriminatedSchema({
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        schema: arraySchema as any,
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        key: 'mode' as any,
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
+        value: 'create' as any,
+      });
+
+      expect(result).toBeUndefined();
+    });
+    /* eslint-enable @typescript-eslint/consistent-type-assertions */
+  });
 });

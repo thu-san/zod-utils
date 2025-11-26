@@ -1,6 +1,10 @@
 'use client';
 
-import { getSchemaDefaults, useZodForm } from '@zod-utils/react-hook-form';
+import {
+  FormSchemaProvider,
+  getSchemaDefaults,
+  useZodForm,
+} from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
 import { type CSSProperties, useId } from 'react';
 import { toast } from 'sonner';
@@ -30,7 +34,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { FormSchemaProvider } from '@/lib/form-schema-context';
 
 const formSchema = z.object({
   // String fields

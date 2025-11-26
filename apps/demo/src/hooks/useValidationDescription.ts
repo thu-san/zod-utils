@@ -1,13 +1,15 @@
 'use client';
 
-import { extractFieldFromSchema, getFieldChecks } from '@zod-utils/core';
-import { useTranslations } from 'next-intl';
-import { useContext } from 'react';
-import type { util, z } from 'zod';
 import {
-  type FormContextType,
-  FormSchemaContext,
-} from '../lib/form-schema-context';
+  type Discriminator,
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  extractFieldFromSchema,
+  getFieldChecks,
+} from '@zod-utils/core';
+import { useFormSchema } from '@zod-utils/react-hook-form';
+import { useTranslations } from 'next-intl';
+import type { z } from 'zod';
 
 /**
  * Hook to generate validation description from Zod schema checks
@@ -52,18 +54,18 @@ export function useValidationDescription<
     Required<z.input<TSchema>>,
     Record<TDiscriminatorKey, TDiscriminatorValue>
   >,
-  TDiscriminatorKey extends keyof z.input<TSchema> & string,
-  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
-    util.Literal,
->(fieldName: string): string {
-  const context = useContext(
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    FormSchemaContext as FormContextType<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue
-    >,
-  );
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+>(params: {
+  schema: TSchema;
+  fieldName: TName;
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
+}): string {
+  const context = useFormSchema(params);
 
   const t = useTranslations('user.validation');
 
@@ -73,8 +75,7 @@ export function useValidationDescription<
 
   const field = extractFieldFromSchema({
     schema: context.schema,
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    fieldName: fieldName as TName,
+    fieldName: params.fieldName,
     discriminator: context.discriminator,
   });
 

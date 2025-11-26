@@ -1,14 +1,14 @@
+import type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+  InferredFieldValues,
+} from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import type { FormNamespace } from '@/types/i18n';
-import {
-  type DiscriminatorField,
-  type DiscriminatorValue,
-  type InferredFieldValues,
-  TFormField,
-  type ValidFieldName,
-} from './TFormField';
+import { TFormField, type ValidFieldName } from './TFormField';
 
 export function CheckboxFormField<
   TSchema extends z.ZodType,
@@ -16,14 +16,14 @@ export function CheckboxFormField<
   TName extends ValidFieldName<
     TSchema,
     TNamespace,
-    TDiscriminatorField,
+    TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
   >,
-  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
-    TDiscriminatorField
+    TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
 >({
@@ -38,13 +38,18 @@ export function CheckboxFormField<
   name: TName;
   namespace: TNamespace;
   description?: string;
-  discriminator?: {
-    key: TDiscriminatorField;
-    value: TDiscriminatorValue;
-  };
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
 } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>) {
   // Auto-generate validation description if not provided
-  const autoDescription = useValidationDescription(name);
+  const autoDescription = useValidationDescription({
+    schema,
+    fieldName: name,
+    discriminator,
+  });
   const finalDescription =
     description !== undefined ? description : autoDescription;
 
@@ -53,7 +58,7 @@ export function CheckboxFormField<
       TSchema,
       TNamespace,
       TName,
-      TDiscriminatorField,
+      TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >
@@ -83,14 +88,14 @@ export function createCheckboxFormField<
     TName extends ValidFieldName<
       TSchema,
       TNamespace,
-      TDiscriminatorField,
+      TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >,
-    TDiscriminatorField extends DiscriminatorField<TSchema>,
+    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
-      TDiscriminatorField
+      TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
   >(
@@ -100,7 +105,7 @@ export function createCheckboxFormField<
           TSchema,
           TNamespace,
           TName,
-          TDiscriminatorField,
+          TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >
@@ -113,7 +118,7 @@ export function createCheckboxFormField<
         TSchema,
         TNamespace,
         TName,
-        TDiscriminatorField,
+        TDiscriminatorKey,
         TDiscriminatorValue,
         TFieldValues
       >

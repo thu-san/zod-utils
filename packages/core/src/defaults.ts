@@ -1,4 +1,3 @@
-import type { util } from 'zod';
 import * as z from 'zod';
 import {
   canUnwrap,
@@ -6,7 +5,12 @@ import {
   getPrimitiveType,
   tryStripNullishOnly,
 } from './schema';
-import type { Simplify } from './types';
+import type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+  Simplify,
+} from './types';
 
 /**
  * Extracts the default value from a Zod field, recursively unwrapping optional, nullable, and union layers.
@@ -173,16 +177,16 @@ export function extractDefaultValue<T extends z.ZodType>(
  */
 export function getSchemaDefaults<
   TSchema extends z.ZodType,
-  TDiscriminatorKey extends keyof z.input<TSchema> & string,
-  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
-    util.Literal,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >(
   schema: TSchema,
   options?: {
-    discriminator?: {
-      key: TDiscriminatorKey;
-      value: TDiscriminatorValue;
-    };
+    discriminator?: Discriminator<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue
+    >;
   },
 ): Simplify<Partial<z.input<TSchema>>> {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

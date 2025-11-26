@@ -2,10 +2,23 @@
 
 // Re-export core utilities for convenience
 export * from '@zod-utils/core';
-
-// Local type utilities
+export type { FormSchemaContextType, FormSchemaContextValue } from './context';
+// Schema context
+export {
+  FormSchemaContext,
+  FormSchemaProvider,
+  isRequiredField,
+  useFormSchema,
+  useIsRequiredField,
+} from './context';
+// Type utilities
 export type {
+  // Discriminated union utilities
+  InferredFieldValues,
+  // Form input type transformations
   PartialWithAllNullables,
   PartialWithNullableObjects,
+  ValidFieldName,
 } from './types';
+// Main hook
 export { useZodForm } from './use-zod-form';

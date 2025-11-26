@@ -1,5 +1,10 @@
-import { type util, z } from 'zod';
+import { z } from 'zod';
 import { extractDiscriminatedSchema, getPrimitiveType } from './schema';
+import type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+} from './types';
 
 export function extractFieldFromSchema<
   TSchema extends z.ZodType,
@@ -7,9 +12,8 @@ export function extractFieldFromSchema<
     Required<z.input<TSchema>>,
     Record<TDiscriminatorKey, TDiscriminatorValue>
   >,
-  TDiscriminatorKey extends keyof z.input<TSchema> & string,
-  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
-    util.Literal,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >({
   schema,
   fieldName,
@@ -17,10 +21,11 @@ export function extractFieldFromSchema<
 }: {
   schema: TSchema;
   fieldName: TName;
-  discriminator?: {
-    key: TDiscriminatorKey;
-    value: TDiscriminatorValue;
-  };
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
 }) {
   let targetSchema: z.ZodObject | undefined;
 

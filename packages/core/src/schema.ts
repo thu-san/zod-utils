@@ -1,5 +1,4 @@
-import type { util } from 'zod';
-import * as z from 'zod';
+import { type util, z } from 'zod';
 import type {
   $InferUnionInput,
   $ZodCheckBigIntFormatDef,
@@ -24,6 +23,11 @@ import type {
   $ZodCheckStringFormatDef,
   $ZodCheckUpperCaseDef,
 } from 'zod/v4/core';
+import type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+} from './types';
 
 /**
  * Type representing a Zod type that has an unwrap method
@@ -530,7 +534,7 @@ export function getFieldChecks<T extends z.ZodTypeAny>(
  */
 type ExtractZodUnionMember<
   TSchema extends z.ZodUnion | z.ZodDiscriminatedUnion,
-  TDiscriminatorKey extends keyof z.input<TSchema> & string,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
     util.Literal,
 > = TSchema extends z.ZodUnion<infer Options>
@@ -540,7 +544,9 @@ type ExtractZodUnionMember<
     ]
     ? First extends z.ZodObject<infer Shape>
       ? TDiscriminatorKey extends keyof Shape
-        ? Shape[TDiscriminatorKey] extends z.ZodLiteral<TDiscriminatorValue>
+        ? Shape[TDiscriminatorKey] extends
+            | z.ZodLiteral<TDiscriminatorValue>
+            | z.ZodDefault<z.ZodLiteral<TDiscriminatorValue>>
           ? First
           : Rest extends []
             ? never
@@ -687,35 +693,37 @@ type ExtractZodUnionMember<
  * @since 0.6.0
  */
 export const extractDiscriminatedSchema = <
-  TSchema extends z.ZodUnion | z.ZodDiscriminatedUnion,
-  TDiscriminatorKey extends keyof z.input<TSchema> & string,
-  TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
-    util.Literal,
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  ReturnType extends TSchema extends z.ZodDiscriminatedUnion
+    ? ExtractZodUnionMember<TSchema, TDiscriminatorKey, TDiscriminatorValue>
+    : never,
 >({
   schema,
   key,
   value,
 }: {
   schema: TSchema;
-  key: TDiscriminatorKey;
-  value: TDiscriminatorValue;
-}) => {
-  return schema.options.find(
-    (
-      option,
-    ): option is ExtractZodUnionMember<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue
-    > => {
-      if (option instanceof z.ZodObject) {
-        const targetField = option.shape[String(key)];
-        if (!targetField) return false;
+} & Discriminator<
+  TSchema,
+  TDiscriminatorKey,
+  TDiscriminatorValue
+>): ReturnType => {
+  if (!(schema instanceof z.ZodDiscriminatedUnion)) {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return undefined as ReturnType;
+  }
 
-        const parseResult = targetField.safeParse(value);
-        return parseResult.success;
-      }
-      return false;
-    },
-  );
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return schema.options.find((option) => {
+    if (option instanceof z.ZodObject) {
+      const targetField = option.shape[String(key)];
+      if (!targetField) return false;
+
+      const parseResult = targetField.safeParse(value);
+      return parseResult.success;
+    }
+    return false;
+  }) as ReturnType;
 };

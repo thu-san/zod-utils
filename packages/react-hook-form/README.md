@@ -63,6 +63,9 @@ npm install @zod-utils/react-hook-form zod react react-hook-form @hookform/resol
 ## Features
 
 - 🎣 **useZodForm** - Automatic type transformation for form inputs (nullable/undefined) while preserving Zod schema validation
+- 📋 **FormSchemaProvider** - React Context for providing schema to form components
+- ✅ **useIsRequiredField** - Hook to check if a field requires valid input
+- 🔄 **Discriminated Union Support** - Full type-safe support for discriminated unions
 - 📦 **All core utilities** - Re-exports everything from `@zod-utils/core`
 - ⚛️ **React-optimized** - Built specifically for React applications
 
@@ -273,6 +276,116 @@ const form2 = useZodForm<
 
 ---
 
+## Form Schema Context
+
+The Form Schema Context system allows you to provide Zod schema context to deeply nested form components without prop drilling.
+
+### `FormSchemaProvider`
+
+Provides schema context to all child components. Use this to wrap your form.
+
+```tsx
+import { FormSchemaProvider } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  username: z.string().min(3).max(20),
+  email: z.string().email(),
+});
+
+function MyForm() {
+  return (
+    <FormSchemaProvider schema={schema}>
+      <form>
+        <UsernameField />
+        <EmailField />
+      </form>
+    </FormSchemaProvider>
+  );
+}
+```
+
+#### With Discriminated Union
+
+For discriminated unions, pass the discriminator to enable type-safe field access:
+
+```tsx
+const schema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string().min(1) }),
+  z.object({ mode: z.literal("edit"), id: z.number() }),
+]);
+
+function CreateModeForm() {
+  return (
+    <FormSchemaProvider
+      schema={schema}
+      discriminator={{ key: "mode", value: "create" }}
+    >
+      <NameField /> {/* Only fields from 'create' variant are available */}
+    </FormSchemaProvider>
+  );
+}
+```
+
+### `useFormSchema()`
+
+Access the schema context from child components:
+
+```tsx
+import { useFormSchema } from "@zod-utils/react-hook-form";
+
+function FieldComponent() {
+  const context = useFormSchema();
+  if (!context) return null;
+
+  const { schema, discriminator } = context;
+  // Use schema for field-level logic
+}
+```
+
+### `useIsRequiredField({ schema, fieldName, discriminator? })`
+
+Hook to check if a field requires valid input (shows validation errors on submit).
+The schema parameter is used for type inference only - the actual schema is retrieved from context.
+
+```tsx
+import { useIsRequiredField } from "@zod-utils/react-hook-form";
+
+function FormLabel({ name, schema }: { name: string; schema: z.ZodType }) {
+  const isRequired = useIsRequiredField({ schema, fieldName: name });
+
+  return (
+    <label>
+      {name}
+      {isRequired && <span className="text-red-500">*</span>}
+    </label>
+  );
+}
+```
+
+### `isRequiredField({ schema, fieldName, discriminator? })`
+
+Standalone function to check if a field requires valid input:
+
+```tsx
+import { isRequiredField } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  username: z.string().min(1), // Required - min(1) rejects empty
+  email: z.string(), // Not required - accepts empty string
+  age: z.number(), // Required - numbers reject empty input
+  bio: z.string().optional(), // Not required - optional
+});
+
+isRequiredField({ schema, fieldName: "username" }); // true
+isRequiredField({ schema, fieldName: "email" }); // false
+isRequiredField({ schema, fieldName: "age" }); // true
+isRequiredField({ schema, fieldName: "bio" }); // false
+```
+
+---
+
 ## Core Utilities (Re-exported)
 
 All utilities from `@zod-utils/core` are re-exported for convenience:
@@ -286,10 +399,23 @@ import {
   removeDefault,
   extractDefaultValue,
   type Simplify,
+  type ZodUnionCheck,
 
-  // Type utilities (react-hook-form specific)
+  // Form schema context
+  FormSchemaContext,
+  FormSchemaProvider,
+  useFormSchema,
+  useIsRequiredField,
+  isRequiredField,
+
+  // Type utilities
   type PartialWithNullableObjects,
   type PartialWithAllNullables,
+  type Discriminator,
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type InferredFieldValues,
+  type ValidFieldName,
 } from "@zod-utils/react-hook-form";
 ```
 
