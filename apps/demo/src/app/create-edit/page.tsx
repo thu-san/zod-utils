@@ -1,6 +1,10 @@
 'use client';
 
-import { getSchemaDefaults, useZodForm } from '@zod-utils/react-hook-form';
+import {
+  FormSchemaProvider,
+  getSchemaDefaults,
+  useZodForm,
+} from '@zod-utils/react-hook-form';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
@@ -14,7 +18,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
-import { FormSchemaProvider } from '@/lib/form-schema-context';
 
 const userSchema = z
   .discriminatedUnion('mode', [

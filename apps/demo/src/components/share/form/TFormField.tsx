@@ -1,11 +1,13 @@
+import type {
+  ValidFieldName as BaseValidFieldName,
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+  InferredFieldValues,
+} from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
-import {
-  type ControllerRenderProps,
-  type FieldValues,
-  type Path,
-  useFormContext,
-} from 'react-hook-form';
+import { type ControllerRenderProps, useFormContext } from 'react-hook-form';
 import type z from 'zod';
 import {
   FormControl,
@@ -21,31 +23,25 @@ import type {
 } from '@/types/i18n';
 import { TFormLabel } from './TFormLabel';
 
-export type DiscriminatorField<TSchema extends z.ZodType> =
-  keyof z.input<TSchema>;
-
-export type InferredFieldValues<TSchema extends z.ZodType> = z.input<TSchema> &
-  FieldValues;
-
-export type DiscriminatorValue<
-  TSchema extends z.ZodType,
-  TDiscriminatorField extends DiscriminatorField<TSchema>,
-> = TDiscriminatorField extends string
-  ? z.input<TSchema>[TDiscriminatorField]
-  : never;
-
+/**
+ * Type-safe field names for a specific discriminator value with i18n constraint.
+ *
+ * Extends the base ValidFieldName from @zod-utils/react-hook-form with
+ * translation key constraint for this demo app.
+ */
 export type ValidFieldName<
   TSchema extends z.ZodType,
   TNamespace extends FormNamespace,
-  TDiscriminatorField extends DiscriminatorField<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorField>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
   TFieldValues extends InferredFieldValues<TSchema>,
-> = keyof Extract<
-  Required<z.input<TSchema>>,
-  Record<TDiscriminatorField, TDiscriminatorValue>
+> = BaseValidFieldName<
+  TSchema,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFieldValues
 > &
-  translationKeys<`${TNamespace}.form`> &
-  Path<TFieldValues>;
+  translationKeys<`${TNamespace}.form`>;
 
 export function TFormField<
   TSchema extends z.ZodType,
@@ -53,14 +49,14 @@ export function TFormField<
   TName extends ValidFieldName<
     TSchema,
     TNamespace,
-    TDiscriminatorField,
+    TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
   >,
-  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
-    TDiscriminatorField
+    TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
 >({
@@ -80,10 +76,11 @@ export function TFormField<
   }) => ReactElement;
   description?: string;
   // The `discriminator` prop is used for type inference and is also passed to child components (e.g., TFormLabel). It is not used for runtime logic in this component.
-  discriminator?: {
-    key: TDiscriminatorField;
-    value: TDiscriminatorValue;
-  };
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
 }) {
   const { control } = useFormContext<TFieldValues>();
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -101,7 +98,7 @@ export function TFormField<
             TSchema,
             TNamespace,
             TName,
-            TDiscriminatorField,
+            TDiscriminatorKey,
             TDiscriminatorValue,
             TFieldValues
           >
@@ -126,14 +123,14 @@ export function createTFormField<
     TName extends ValidFieldName<
       TSchema,
       TNamespace,
-      TDiscriminatorField,
+      TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >,
-    TDiscriminatorField extends DiscriminatorField<TSchema>,
+    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
-      TDiscriminatorField
+      TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
   >(
@@ -143,7 +140,7 @@ export function createTFormField<
           TSchema,
           TNamespace,
           TName,
-          TDiscriminatorField,
+          TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >

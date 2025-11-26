@@ -15,4 +15,9 @@ export {
 } from './schema';
 
 // Type utilities
-export type { Simplify } from './types';
+export type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+  Simplify,
+} from './types';

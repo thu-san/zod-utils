@@ -63,6 +63,10 @@ npm install @zod-utils/react-hook-form zod react react-hook-form @hookform/resol
 ## Features
 
 - 🎣 **useZodForm** - Automatic type transformation for form inputs (nullable/undefined) while preserving Zod schema validation
+- 📋 **FormSchemaProvider** - React Context for providing schema to form components
+- ✅ **useIsFieldRequired** - Hook to check if a field requires valid input
+- 📝 **useValidationDescription** - Hook to generate validation descriptions with i18n adapter support
+- 🔄 **Discriminated Union Support** - Full type-safe support for discriminated unions
 - 📦 **All core utilities** - Re-exports everything from `@zod-utils/core`
 - ⚛️ **React-optimized** - Built specifically for React applications
 
@@ -273,6 +277,213 @@ const form2 = useZodForm<
 
 ---
 
+## Form Schema Context
+
+The Form Schema Context system allows you to provide Zod schema context to deeply nested form components without prop drilling.
+
+### `FormSchemaProvider`
+
+Provides schema context to all child components. Use this to wrap your form.
+
+```tsx
+import { FormSchemaProvider } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  username: z.string().min(3).max(20),
+  email: z.string().email(),
+});
+
+function MyForm() {
+  return (
+    <FormSchemaProvider schema={schema}>
+      <form>
+        <UsernameField />
+        <EmailField />
+      </form>
+    </FormSchemaProvider>
+  );
+}
+```
+
+#### With Discriminated Union
+
+For discriminated unions, pass the discriminator to enable type-safe field access:
+
+```tsx
+const schema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string().min(1) }),
+  z.object({ mode: z.literal("edit"), id: z.number() }),
+]);
+
+function CreateModeForm() {
+  return (
+    <FormSchemaProvider
+      schema={schema}
+      discriminator={{ key: "mode", value: "create" }}
+    >
+      <NameField /> {/* Only fields from 'create' variant are available */}
+    </FormSchemaProvider>
+  );
+}
+```
+
+### `useFormSchema()`
+
+Access the schema context from child components:
+
+```tsx
+import { useFormSchema } from "@zod-utils/react-hook-form";
+
+function FieldComponent() {
+  const context = useFormSchema();
+  if (!context) return null;
+
+  const { schema, discriminator } = context;
+  // Use schema for field-level logic
+}
+```
+
+### `useIsFieldRequired(fieldName)`
+
+Hook to check if a field requires valid input (shows validation errors on submit):
+
+```tsx
+import { useIsFieldRequired } from "@zod-utils/react-hook-form";
+
+function FormLabel({ name }: { name: string }) {
+  const isRequired = useIsFieldRequired(name);
+
+  return (
+    <label>
+      {name}
+      {isRequired && <span className="text-red-500">*</span>}
+    </label>
+  );
+}
+```
+
+### `isFieldRequired({ schema, fieldName, discriminator? })`
+
+Standalone function to check if a field requires valid input:
+
+```tsx
+import { isFieldRequired } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  username: z.string().min(1), // Required - min(1) rejects empty
+  email: z.string(), // Not required - accepts empty string
+  age: z.number(), // Required - numbers reject empty input
+  bio: z.string().optional(), // Not required - optional
+});
+
+isFieldRequired({ schema, fieldName: "username" }); // true
+isFieldRequired({ schema, fieldName: "email" }); // false
+isFieldRequired({ schema, fieldName: "age" }); // true
+isFieldRequired({ schema, fieldName: "bio" }); // false
+```
+
+---
+
+## Validation Description
+
+Generate human-readable validation descriptions from Zod schema checks. Perfect for form field hints and accessibility.
+
+### `useValidationDescription(fieldName, formatter?)`
+
+Hook to generate validation description using schema from context:
+
+```tsx
+import { useValidationDescription } from "@zod-utils/react-hook-form";
+
+function InputField({ name }: { name: string }) {
+  const description = useValidationDescription(name);
+  // e.g., "Max 20 characters" for z.string().max(20)
+
+  return (
+    <div>
+      <input name={name} />
+      {description && <span className="hint">{description}</span>}
+    </div>
+  );
+}
+```
+
+#### With Custom Formatter (i18n)
+
+Pass a custom formatter for internationalization:
+
+```tsx
+import {
+  useValidationDescription,
+  type ZodUnionCheck,
+} from "@zod-utils/react-hook-form";
+import { useTranslations } from "next-intl";
+
+function LocalizedInput({ name }: { name: string }) {
+  const t = useTranslations("validation");
+
+  const description = useValidationDescription(name, (check: ZodUnionCheck) => {
+    // Use check.check as i18n key: 'max_length', 'greater_than', etc.
+    return t(check.check, { value: check.value, maximum: check.maximum });
+  });
+
+  return <input aria-describedby={description} />;
+}
+```
+
+### `getValidationDescription(schema, fieldName, options?)`
+
+Standalone function for validation descriptions:
+
+```tsx
+import { getValidationDescription } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  username: z.string().min(3).max(20),
+  age: z.number().min(18).max(120),
+});
+
+getValidationDescription(schema, "username");
+// "Max 20 characters" (min_length excluded by default)
+
+getValidationDescription(schema, "age");
+// "Min 18, Max 120"
+
+// With custom formatter
+getValidationDescription(schema, "username", {
+  formatter: (check) => `Limit: ${check.maximum}`,
+});
+// "Limit: 20"
+
+// Include min_length
+getValidationDescription(schema, "username", {
+  includeChecks: new Set(["min_length", "max_length"]),
+});
+// "Min 3 characters, Max 20 characters"
+```
+
+### `defaultValidationFormatter(check)`
+
+The default English formatter used by `getValidationDescription`:
+
+```tsx
+import { defaultValidationFormatter } from "@zod-utils/react-hook-form";
+
+defaultValidationFormatter({ check: "max_length", maximum: 20 });
+// "Max 20 characters"
+
+defaultValidationFormatter({ check: "greater_than", value: 18, inclusive: true });
+// "Min 18"
+
+defaultValidationFormatter({ check: "less_than", value: 100, inclusive: false });
+// "Less than 100"
+```
+
+---
+
 ## Core Utilities (Re-exported)
 
 All utilities from `@zod-utils/core` are re-exported for convenience:
@@ -286,10 +497,28 @@ import {
   removeDefault,
   extractDefaultValue,
   type Simplify,
+  type ZodUnionCheck,
 
-  // Type utilities (react-hook-form specific)
+  // Form schema context
+  FormSchemaContext,
+  FormSchemaProvider,
+  useFormSchema,
+  useIsFieldRequired,
+  isFieldRequired,
+
+  // Validation description
+  useValidationDescription,
+  getValidationDescription,
+  defaultValidationFormatter,
+
+  // Type utilities
   type PartialWithNullableObjects,
   type PartialWithAllNullables,
+  type Discriminator,
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type InferredFieldValues,
+  type ValidFieldName,
 } from "@zod-utils/react-hook-form";
 ```
 

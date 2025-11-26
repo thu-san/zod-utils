@@ -1,15 +1,15 @@
+import type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+  InferredFieldValues,
+} from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
 import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import type { FormNamespace } from '@/types/i18n';
-import {
-  type DiscriminatorField,
-  type DiscriminatorValue,
-  type InferredFieldValues,
-  TFormField,
-  type ValidFieldName,
-} from './TFormField';
+import { TFormField, type ValidFieldName } from './TFormField';
 
 export function NumberFormField<
   TSchema extends z.ZodType,
@@ -17,14 +17,14 @@ export function NumberFormField<
   TName extends ValidFieldName<
     TSchema,
     TNamespace,
-    TDiscriminatorField,
+    TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
   >,
-  TDiscriminatorField extends DiscriminatorField<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
-    TDiscriminatorField
+    TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
 >({
@@ -43,16 +43,21 @@ export function NumberFormField<
   autoPlaceholder?: boolean;
   placeholder?: string;
   description?: string;
-  discriminator?: {
-    key: TDiscriminatorField;
-    value: TDiscriminatorValue;
-  };
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
 } & Omit<
   ComponentProps<typeof Input>,
   'name' | 'placeholder' | 'type' | 'onChange'
 >) {
   // Auto-generate validation description if not provided
-  const autoDescription = useValidationDescription(name);
+  const autoDescription = useValidationDescription({
+    schema,
+    fieldName: name,
+    discriminator,
+  });
   const finalDescription =
     description !== undefined ? description : autoDescription;
 
@@ -61,7 +66,7 @@ export function NumberFormField<
       TSchema,
       TNamespace,
       TName,
-      TDiscriminatorField,
+      TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >
@@ -103,14 +108,14 @@ export function createNumberFormField<
     TName extends ValidFieldName<
       TSchema,
       TNamespace,
-      TDiscriminatorField,
+      TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >,
-    TDiscriminatorField extends DiscriminatorField<TSchema>,
+    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
-      TDiscriminatorField
+      TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
   >(
@@ -120,7 +125,7 @@ export function createNumberFormField<
           TSchema,
           TNamespace,
           TName,
-          TDiscriminatorField,
+          TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >
@@ -133,7 +138,7 @@ export function createNumberFormField<
         TSchema,
         TNamespace,
         TName,
-        TDiscriminatorField,
+        TDiscriminatorKey,
         TDiscriminatorValue,
         TFieldValues
       >

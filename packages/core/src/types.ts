@@ -1,3 +1,6 @@
+import type z from 'zod';
+import type { util } from 'zod';
+
 /**
  * Simplifies complex TypeScript types for better IDE hover tooltips and error messages.
  *
@@ -41,3 +44,52 @@
 export type Simplify<T> = {
   [K in keyof T]: T[K];
 } & {};
+
+// ============================================================================
+// Discriminated Union Type Utilities
+// ============================================================================
+
+/**
+ * Extracts all field keys from a Zod schema's input type.
+ *
+ * @example
+ * ```typescript
+ * const schema = z.object({ name: z.string(), age: z.number() });
+ * type Keys = DiscriminatorKey<typeof schema>;
+ * // "name" | "age"
+ * ```
+ */
+export type DiscriminatorKey<TSchema extends z.ZodType> =
+  keyof z.input<TSchema> & string;
+
+/**
+ * Extracts the value type for a discriminator field.
+ *
+ * @example
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number() }),
+ * ]);
+ * type Mode = DiscriminatorValue<typeof schema, 'mode'>;
+ * // "create" | "edit"
+ * ```
+ */
+export type DiscriminatorValue<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+> = TDiscriminatorKey extends string
+  ? z.input<TSchema>[TDiscriminatorKey] & util.Literal
+  : never;
+
+/**
+ * Discriminator configuration for discriminated union schemas.
+ */
+export type Discriminator<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+> = {
+  key: TDiscriminatorKey;
+  value: TDiscriminatorValue;
+};
