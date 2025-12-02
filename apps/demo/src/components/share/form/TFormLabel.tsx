@@ -3,25 +3,54 @@ import {
   type DiscriminatorKey,
   type DiscriminatorValue,
   type InferredFieldValues,
+  useExtractFieldFromSchema,
   useIsRequiredField,
+  type ValidFieldPaths,
+  type ValidPaths,
 } from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
 import { FormLabel } from '@/components/ui/form';
-import type {
-  FormNamespace,
-  FormTranslationKey,
-  translationKeys,
-} from '@/types/i18n';
-import type { ValidFieldName } from './TFormField';
+
+export const useFieldLabel = <
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  const TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  >,
+>({
+  schema,
+  name,
+  discriminator,
+}: {
+  schema: TSchema;
+  name: TPath;
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
+}) => {
+  const field = useExtractFieldFromSchema({
+    schema,
+    name,
+    discriminator,
+  });
+
+  const t = useTranslations();
+  const translationKey = field?.meta()?.translationKey;
+  const value = translationKey ? t(translationKey) : 'This field';
+
+  return value;
+};
 
 export function TFormLabel<
   TSchema extends z.ZodType,
-  TNamespace extends FormNamespace,
-  TName extends ValidFieldName<
+  TPath extends ValidFieldPaths<
     TSchema,
-    TNamespace,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
@@ -35,49 +64,43 @@ export function TFormLabel<
 >({
   schema,
   name,
-  namespace,
   discriminator,
   ...props
 }: Omit<ComponentProps<typeof FormLabel>, 'children'> & {
   schema: TSchema;
-  name: TName;
-  namespace: TNamespace;
+  name: TPath;
   discriminator?: Discriminator<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue
   >;
 }) {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const t = useTranslations(namespace as FormNamespace);
-
-  const value = t(
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    `form.${name as translationKeys<FormTranslationKey>}`,
-  );
+  const label = useFieldLabel({
+    schema,
+    name,
+    discriminator,
+  });
 
   const isRequired = useIsRequiredField({
     schema,
-    fieldName: name,
+    name,
     discriminator,
   });
 
   return (
     <FormLabel {...props}>
-      {value}
+      {label}
       {isRequired && <span className="text-red-500 ml-1">*</span>}
     </FormLabel>
   );
 }
 
-export function createTFormLabel<
-  TSchema extends z.ZodType,
-  TNamespace extends FormNamespace,
->(factoryProps: { schema: TSchema; namespace: TNamespace }) {
+export function createTFormLabel<TSchema extends z.ZodType>(factoryProps: {
+  schema: TSchema;
+}) {
   return function BoundTFormLabel<
-    TName extends ValidFieldName<
+    TName extends ValidFieldPaths<
       TSchema,
-      TNamespace,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
@@ -93,20 +116,18 @@ export function createTFormLabel<
       React.ComponentProps<
         typeof TFormLabel<
           TSchema,
-          TNamespace,
           TName,
           TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >
       >,
-      'namespace' | 'schema'
+      'schema'
     >,
   ) {
     return (
       <TFormLabel<
         TSchema,
-        TNamespace,
         TName,
         TDiscriminatorKey,
         TDiscriminatorValue,

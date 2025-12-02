@@ -6,6 +6,8 @@ import {
   FormSchemaContext,
   FormSchemaProvider,
   isRequiredField,
+  useExtractFieldFromSchema,
+  useFieldChecks,
   useFormSchema,
   useIsRequiredField,
 } from '../context';
@@ -94,7 +96,7 @@ describe('useIsRequiredField', () => {
   it('should return false when not in provider', () => {
     const schema = z.object({ name: z.string() });
     const { result } = renderHook(() =>
-      useIsRequiredField({ schema, fieldName: 'name' }),
+      useIsRequiredField({ schema, name: 'name' }),
     );
 
     expect(result.current).toBe(false);
@@ -111,13 +113,13 @@ describe('useIsRequiredField', () => {
     );
 
     const { result: nameResult } = renderHook(
-      () => useIsRequiredField({ schema, fieldName: 'name' }),
+      () => useIsRequiredField({ schema, name: 'name' }),
       { wrapper },
     );
     expect(nameResult.current).toBe(true);
 
     const { result: bioResult } = renderHook(
-      () => useIsRequiredField({ schema, fieldName: 'bio' }),
+      () => useIsRequiredField({ schema, name: 'bio' }),
       { wrapper },
     );
     expect(bioResult.current).toBe(false);
@@ -149,7 +151,7 @@ describe('useIsRequiredField', () => {
       () =>
         useIsRequiredField({
           schema,
-          fieldName: 'name',
+          name: 'name',
           discriminator: { key: 'mode', value: 'create' },
         }),
       { wrapper: createWrapper },
@@ -169,7 +171,7 @@ describe('useIsRequiredField', () => {
       () =>
         useIsRequiredField({
           schema,
-          fieldName: 'name',
+          name: 'name',
           discriminator: { key: 'mode', value: 'edit' },
         }),
       { wrapper: editWrapper },
@@ -184,7 +186,7 @@ describe('isRequiredField', () => {
       name: z.string().min(1),
     });
 
-    expect(isRequiredField({ schema, fieldName: 'name' })).toBe(true);
+    expect(isRequiredField({ schema, name: 'name' })).toBe(true);
   });
 
   it('should return false for optional field', () => {
@@ -192,7 +194,7 @@ describe('isRequiredField', () => {
       bio: z.string().optional(),
     });
 
-    expect(isRequiredField({ schema, fieldName: 'bio' })).toBe(false);
+    expect(isRequiredField({ schema, name: 'bio' })).toBe(false);
   });
 
   it('should return false for nullable field', () => {
@@ -200,7 +202,7 @@ describe('isRequiredField', () => {
       nickname: z.string().nullable(),
     });
 
-    expect(isRequiredField({ schema, fieldName: 'nickname' })).toBe(false);
+    expect(isRequiredField({ schema, name: 'nickname' })).toBe(false);
   });
 
   it('should return true for number field (requires valid input)', () => {
@@ -208,7 +210,7 @@ describe('isRequiredField', () => {
       age: z.number(),
     });
 
-    expect(isRequiredField({ schema, fieldName: 'age' })).toBe(true);
+    expect(isRequiredField({ schema, name: 'age' })).toBe(true);
   });
 
   it('should return false for number with default', () => {
@@ -216,7 +218,7 @@ describe('isRequiredField', () => {
       count: z.number().optional(),
     });
 
-    expect(isRequiredField({ schema, fieldName: 'count' })).toBe(false);
+    expect(isRequiredField({ schema, name: 'count' })).toBe(false);
   });
 
   it('should return false for plain string (accepts empty)', () => {
@@ -224,7 +226,7 @@ describe('isRequiredField', () => {
       notes: z.string(),
     });
 
-    expect(isRequiredField({ schema, fieldName: 'notes' })).toBe(false);
+    expect(isRequiredField({ schema, name: 'notes' })).toBe(false);
   });
 
   it('should return false for non-existent field', () => {
@@ -236,7 +238,7 @@ describe('isRequiredField', () => {
       isRequiredField({
         schema,
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        fieldName: 'nonexistent' as unknown as 'name',
+        name: 'nonexistent' as unknown as 'name',
       }),
     ).toBe(false);
   });
@@ -256,7 +258,7 @@ describe('isRequiredField', () => {
     expect(
       isRequiredField({
         schema,
-        fieldName: 'value',
+        name: 'value',
         discriminator: { key: 'type', value: 'a' },
       }),
     ).toBe(true);
@@ -264,7 +266,7 @@ describe('isRequiredField', () => {
     expect(
       isRequiredField({
         schema,
-        fieldName: 'count',
+        name: 'count',
         discriminator: { key: 'type', value: 'b' },
       }),
     ).toBe(true);
@@ -279,7 +281,7 @@ describe('isRequiredField', () => {
     // Without discriminator, can't determine which variant to check
     expect(
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      isRequiredField({ schema, fieldName: 'name' as unknown as 'mode' }),
+      isRequiredField({ schema, name: 'name' as unknown as 'mode' }),
     ).toBe(false);
   });
 
@@ -291,7 +293,204 @@ describe('isRequiredField', () => {
       })
       .transform((data) => ({ ...data, computed: true }));
 
-    expect(isRequiredField({ schema, fieldName: 'name' })).toBe(true);
-    expect(isRequiredField({ schema, fieldName: 'bio' })).toBe(false);
+    expect(isRequiredField({ schema, name: 'name' })).toBe(true);
+    expect(isRequiredField({ schema, name: 'bio' })).toBe(false);
+  });
+});
+
+describe('useExtractFieldFromSchema', () => {
+  it('should extract field schema from object', () => {
+    const schema = z.object({
+      name: z.string().min(3).max(20),
+      age: z.number(),
+    });
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider schema={schema}>{children}</FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () => useExtractFieldFromSchema({ schema, name: 'name' }),
+      { wrapper },
+    );
+
+    expect(result.current).toBeDefined();
+    expect(result.current).toBeInstanceOf(z.ZodString);
+  });
+
+  it('should return undefined for non-existent field', () => {
+    const schema = z.object({
+      name: z.string(),
+    });
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider schema={schema}>{children}</FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () =>
+        useExtractFieldFromSchema({
+          schema,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          name: 'nonexistent' as unknown as 'name',
+        }),
+      { wrapper },
+    );
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('should extract field from discriminated union with discriminator', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('create'), name: z.string() }),
+      z.object({ mode: z.literal('edit'), id: z.number() }),
+    ]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider
+        schema={schema}
+        discriminator={{ key: 'mode', value: 'edit' }}
+      >
+        {children}
+      </FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () =>
+        useExtractFieldFromSchema({
+          schema,
+          name: 'id',
+          discriminator: { key: 'mode', value: 'edit' },
+        }),
+      { wrapper },
+    );
+
+    expect(result.current).toBeDefined();
+    expect(result.current).toBeInstanceOf(z.ZodNumber);
+  });
+});
+
+describe('useFieldChecks', () => {
+  it('should work without provider (takes schema directly)', () => {
+    const schema = z.object({
+      name: z.string().min(3).max(20),
+    });
+
+    const { result } = renderHook(() =>
+      useFieldChecks({ schema, name: 'name' }),
+    );
+
+    // Works without provider since schema is passed directly
+    expect(result.current.length).toBeGreaterThan(0);
+    expect(result.current.some((c) => c.check === 'min_length')).toBe(true);
+    expect(result.current.some((c) => c.check === 'max_length')).toBe(true);
+  });
+
+  it('should return validation checks for field', () => {
+    const schema = z.object({
+      name: z.string().min(3).max(20),
+      age: z.number(),
+    });
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider schema={schema}>{children}</FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () => useFieldChecks({ schema, name: 'name' }),
+      { wrapper },
+    );
+
+    expect(result.current.length).toBeGreaterThan(0);
+    expect(result.current.some((c) => c.check === 'min_length')).toBe(true);
+    expect(result.current.some((c) => c.check === 'max_length')).toBe(true);
+  });
+
+  it('should return empty array for field without checks', () => {
+    const schema = z.object({
+      name: z.string(),
+    });
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider schema={schema}>{children}</FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () => useFieldChecks({ schema, name: 'name' }),
+      { wrapper },
+    );
+
+    expect(result.current).toEqual([]);
+  });
+
+  it('should return empty array for non-existent field', () => {
+    const schema = z.object({
+      name: z.string().min(3),
+    });
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider schema={schema}>{children}</FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () =>
+        useFieldChecks({
+          schema,
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          name: 'nonexistent' as unknown as 'name',
+        }),
+      { wrapper },
+    );
+
+    expect(result.current).toEqual([]);
+  });
+
+  it('should handle discriminated union with discriminator', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('create'), name: z.string().min(1).max(50) }),
+      z.object({ mode: z.literal('edit'), id: z.number() }),
+    ]);
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider
+        schema={schema}
+        discriminator={{ key: 'mode', value: 'create' }}
+      >
+        {children}
+      </FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () =>
+        useFieldChecks({
+          schema,
+          name: 'name',
+          discriminator: { key: 'mode', value: 'create' },
+        }),
+      { wrapper },
+    );
+
+    expect(result.current.length).toBeGreaterThan(0);
+    expect(result.current.some((c) => c.check === 'min_length')).toBe(true);
+    expect(result.current.some((c) => c.check === 'max_length')).toBe(true);
+  });
+
+  it('should handle number field checks', () => {
+    const schema = z.object({
+      age: z.number().min(18).max(120),
+    });
+
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <FormSchemaProvider schema={schema}>{children}</FormSchemaProvider>
+    );
+
+    const { result } = renderHook(
+      () => useFieldChecks({ schema, name: 'age' }),
+      { wrapper },
+    );
+
+    expect(result.current.length).toBeGreaterThan(0);
+    expect(result.current.some((c) => c.check === 'greater_than')).toBe(true);
+    expect(result.current.some((c) => c.check === 'less_than')).toBe(true);
   });
 });

@@ -343,7 +343,7 @@ function FieldComponent() {
 }
 ```
 
-### `useIsRequiredField({ schema, fieldName, discriminator? })`
+### `useIsRequiredField({ schema, name, discriminator? })`
 
 Hook to check if a field requires valid input (shows validation errors on submit).
 The schema parameter is used for type inference only - the actual schema is retrieved from context.
@@ -352,7 +352,7 @@ The schema parameter is used for type inference only - the actual schema is retr
 import { useIsRequiredField } from "@zod-utils/react-hook-form";
 
 function FormLabel({ name, schema }: { name: string; schema: z.ZodType }) {
-  const isRequired = useIsRequiredField({ schema, fieldName: name });
+  const isRequired = useIsRequiredField({ schema, name });
 
   return (
     <label>
@@ -363,7 +363,7 @@ function FormLabel({ name, schema }: { name: string; schema: z.ZodType }) {
 }
 ```
 
-### `isRequiredField({ schema, fieldName, discriminator? })`
+### `isRequiredField({ schema, name, discriminator? })`
 
 Standalone function to check if a field requires valid input:
 
@@ -378,11 +378,48 @@ const schema = z.object({
   bio: z.string().optional(), // Not required - optional
 });
 
-isRequiredField({ schema, fieldName: "username" }); // true
-isRequiredField({ schema, fieldName: "email" }); // false
-isRequiredField({ schema, fieldName: "age" }); // true
-isRequiredField({ schema, fieldName: "bio" }); // false
+isRequiredField({ schema, name: "username" }); // true
+isRequiredField({ schema, name: "email" }); // false
+isRequiredField({ schema, name: "age" }); // true
+isRequiredField({ schema, name: "bio" }); // false
 ```
+
+### `useExtractFieldFromSchema({ schema, name, discriminator? })`
+
+Hook to extract a field's Zod schema from a parent schema. Memoized for performance.
+
+```tsx
+import { useExtractFieldFromSchema } from "@zod-utils/react-hook-form";
+
+function FieldInfo({ schema, name }: { schema: z.ZodType; name: string }) {
+  const fieldSchema = useExtractFieldFromSchema({ schema, name });
+
+  if (!fieldSchema) return null;
+
+  // Use fieldSchema for custom validation or field info
+  return <span>{fieldSchema._zod.def.typeName}</span>;
+}
+```
+
+### `useFieldChecks({ schema, name, discriminator? })`
+
+Hook to get validation checks from a field's Zod schema. Useful for displaying validation hints like max length or min/max values.
+
+```tsx
+import { useFieldChecks } from "@zod-utils/react-hook-form";
+
+function FieldHint({ schema, name }: { schema: z.ZodType; name: string }) {
+  const checks = useFieldChecks({ schema, name });
+
+  const maxLength = checks.find((c) => c.check === "max_length");
+  if (maxLength) {
+    return <span>Max {maxLength.maximum} characters</span>;
+  }
+  return null;
+}
+```
+
+**Supported check types:** `min_length`, `max_length`, `greater_than`, `less_than`, `string_format`, and more.
 
 ---
 
@@ -398,15 +435,20 @@ import {
   getPrimitiveType,
   removeDefault,
   extractDefaultValue,
+  extendWithMeta,
+  extractFieldFromSchema,
+  getFieldChecks,
   type Simplify,
   type ZodUnionCheck,
 
-  // Form schema context
+  // Form schema context & hooks
   FormSchemaContext,
   FormSchemaProvider,
   useFormSchema,
   useIsRequiredField,
   isRequiredField,
+  useExtractFieldFromSchema,
+  useFieldChecks,
 
   // Type utilities
   type PartialWithNullableObjects,
@@ -415,7 +457,7 @@ import {
   type DiscriminatorKey,
   type DiscriminatorValue,
   type InferredFieldValues,
-  type ValidFieldName,
+  type ValidFieldPaths,
 } from "@zod-utils/react-hook-form";
 ```
 

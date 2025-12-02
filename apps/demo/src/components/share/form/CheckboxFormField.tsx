@@ -3,19 +3,17 @@ import type {
   DiscriminatorKey,
   DiscriminatorValue,
   InferredFieldValues,
+  ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
-import type { FormNamespace } from '@/types/i18n';
-import { TFormField, type ValidFieldName } from './TFormField';
+import { TFormField } from './TFormField';
 
 export function CheckboxFormField<
   TSchema extends z.ZodType,
-  TNamespace extends FormNamespace,
-  TName extends ValidFieldName<
+  TPath extends ValidFieldPaths<
     TSchema,
-    TNamespace,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
@@ -29,14 +27,12 @@ export function CheckboxFormField<
 >({
   schema,
   name,
-  namespace,
   description,
   discriminator,
   ...inputProps
 }: {
   schema: TSchema;
-  name: TName;
-  namespace: TNamespace;
+  name: TPath;
   description?: string;
   discriminator?: Discriminator<
     TSchema,
@@ -47,7 +43,7 @@ export function CheckboxFormField<
   // Auto-generate validation description if not provided
   const autoDescription = useValidationDescription({
     schema,
-    fieldName: name,
+    name,
     discriminator,
   });
   const finalDescription =
@@ -56,15 +52,13 @@ export function CheckboxFormField<
   return (
     <TFormField<
       TSchema,
-      TNamespace,
-      TName,
+      TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >
       schema={schema}
       name={name}
-      namespace={namespace}
       description={finalDescription}
       discriminator={discriminator}
       render={({ field }) => (
@@ -82,12 +76,10 @@ export function CheckboxFormField<
 
 export function createCheckboxFormField<
   TSchema extends z.ZodType,
-  TNamespace extends FormNamespace,
->(factoryProps: { schema: TSchema; namespace: TNamespace }) {
+>(factoryProps: { schema: TSchema }) {
   return function BoundCheckboxFormField<
-    TName extends ValidFieldName<
+    TPath extends ValidFieldPaths<
       TSchema,
-      TNamespace,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
@@ -103,21 +95,19 @@ export function createCheckboxFormField<
       React.ComponentProps<
         typeof CheckboxFormField<
           TSchema,
-          TNamespace,
-          TName,
+          TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >
       >,
-      'namespace' | 'schema'
+      'schema'
     >,
   ) {
     return (
       <CheckboxFormField<
         TSchema,
-        TNamespace,
-        TName,
+        TPath,
         TDiscriminatorKey,
         TDiscriminatorValue,
         TFieldValues

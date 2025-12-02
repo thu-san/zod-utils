@@ -18,12 +18,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
+import { formErrorHandler } from '@/lib/error-map';
 
 const userSchema = z
   .discriminatedUnion('mode', [
     z.object({
       mode: z.literal('create').default('create'),
-      name: z.string().min(1, 'Name is required'),
+      name: z.string().min(1),
       age: z.number().optional().default(18),
     }),
     z.object({
@@ -39,9 +40,8 @@ const userSchema = z
 
 type UserFormData = z.infer<typeof userSchema>;
 
-const InputFormField = createInputFormField({
+const UserInputFormField = createInputFormField({
   schema: userSchema,
-  namespace: 'user',
 });
 
 export default function CreateEditPage() {
@@ -55,6 +55,9 @@ export default function CreateEditPage() {
         value: mode,
       },
     }),
+    zodResolverOptions: {
+      error: formErrorHandler,
+    },
   });
 
   // Update form when mode changes
@@ -137,7 +140,6 @@ export default function CreateEditPage() {
                   <NumberFormField
                     schema={userSchema}
                     name="id"
-                    namespace="user"
                     placeholder="Enter ID"
                     description="Required in edit mode"
                     discriminator={{ key: 'mode', value: mode }}
@@ -145,18 +147,15 @@ export default function CreateEditPage() {
                 )}
 
                 {/* Name Field */}
-                <InputFormField
+                <UserInputFormField
                   name="name"
-                  placeholder={
-                    mode === 'create'
-                      ? 'Enter name (required)'
-                      : 'Enter name (optional)'
-                  }
+                  placeholder="Enter name"
                   description={
                     mode === 'create'
                       ? 'Required field'
                       : 'Optional in edit mode'
                   }
+                  discriminator={{ key: 'mode', value: mode }}
                 />
 
                 {/* Age Field (only in create mode) */}
@@ -164,7 +163,6 @@ export default function CreateEditPage() {
                   <NumberFormField
                     schema={userSchema}
                     name="age"
-                    namespace="user"
                     placeholder="Enter age (optional)"
                     description="Optional in create mode"
                     discriminator={{ key: 'mode', value: mode }}
@@ -173,7 +171,7 @@ export default function CreateEditPage() {
 
                 {/* Bio Field (only in edit mode) */}
                 {mode === 'edit' && (
-                  <InputFormField
+                  <UserInputFormField
                     name="bio"
                     placeholder="Enter bio (optional)"
                     description="Optional in edit mode"

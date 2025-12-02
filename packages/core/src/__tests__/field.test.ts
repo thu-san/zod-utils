@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
-import { extractFieldFromSchema } from '../field';
+import { extendWithMeta, extractFieldFromSchema } from '../field';
 
 describe('extractFieldFromSchema', () => {
   describe('ZodObject schemas', () => {
@@ -13,7 +13,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'name',
+        name: 'name',
       });
 
       expect(result).toBeDefined();
@@ -28,7 +28,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'age',
+        name: 'age',
       });
 
       expect(result).toBeDefined();
@@ -43,7 +43,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'bio',
+        name: 'bio',
       });
 
       expect(result).toBeDefined();
@@ -58,7 +58,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'age',
+        name: 'age',
       });
 
       expect(result).toBeDefined();
@@ -84,7 +84,7 @@ describe('extractFieldFromSchema', () => {
     it('should extract field from discriminated union with discriminator (create mode)', () => {
       const result = extractFieldFromSchema({
         schema: userSchema,
-        fieldName: 'name',
+        name: 'name',
         discriminator: {
           key: 'mode',
           value: 'create',
@@ -98,7 +98,7 @@ describe('extractFieldFromSchema', () => {
     it('should extract field from discriminated union with discriminator (edit mode)', () => {
       const result = extractFieldFromSchema({
         schema: userSchema,
-        fieldName: 'id',
+        name: 'id',
         discriminator: {
           key: 'mode',
           value: 'edit',
@@ -112,7 +112,7 @@ describe('extractFieldFromSchema', () => {
     it('should extract optional field from discriminated union', () => {
       const result = extractFieldFromSchema({
         schema: userSchema,
-        fieldName: 'age',
+        name: 'age',
         discriminator: {
           key: 'mode',
           value: 'create',
@@ -126,7 +126,7 @@ describe('extractFieldFromSchema', () => {
     it('should return undefined when discriminator is not provided', () => {
       const result = extractFieldFromSchema({
         schema: userSchema,
-        fieldName: 'name',
+        name: 'name',
       });
 
       expect(result).toBeUndefined();
@@ -148,7 +148,7 @@ describe('extractFieldFromSchema', () => {
 
       const cardNumberResult = extractFieldFromSchema({
         schema: paymentSchema,
-        fieldName: 'cardNumber',
+        name: 'cardNumber',
         discriminator: {
           key: 'method',
           value: 'card',
@@ -160,7 +160,7 @@ describe('extractFieldFromSchema', () => {
 
       const emailResult = extractFieldFromSchema({
         schema: paymentSchema,
-        fieldName: 'email',
+        name: 'email',
         discriminator: {
           key: 'method',
           value: 'paypal',
@@ -185,7 +185,7 @@ describe('extractFieldFromSchema', () => {
 
       const dataResult = extractFieldFromSchema({
         schema: responseSchema,
-        fieldName: 'data',
+        name: 'data',
         discriminator: {
           key: 'success',
           value: true,
@@ -197,7 +197,7 @@ describe('extractFieldFromSchema', () => {
 
       const errorResult = extractFieldFromSchema({
         schema: responseSchema,
-        fieldName: 'error',
+        name: 'error',
         discriminator: {
           key: 'success',
           value: false,
@@ -222,7 +222,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema: statusSchema,
-        fieldName: 'message',
+        name: 'message',
         discriminator: {
           key: 'code',
           value: 200,
@@ -245,7 +245,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'name',
+        name: 'name',
       });
 
       expect(result).toBeDefined();
@@ -268,7 +268,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'name',
+        name: 'name',
         discriminator: {
           key: 'mode',
           value: 'create',
@@ -290,7 +290,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'email',
+        name: 'email',
       });
 
       expect(result).toBeDefined();
@@ -303,7 +303,8 @@ describe('extractFieldFromSchema', () => {
       const schema = z.string();
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'anyField',
+        // @ts-expect-error - Testing invalid path on non-object schema
+        name: 'anyField',
       });
 
       expect(result).toBeUndefined();
@@ -313,7 +314,34 @@ describe('extractFieldFromSchema', () => {
       const schema = z.array(z.string());
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'anyField',
+        // @ts-expect-error - Testing invalid path on non-object schema
+        name: 'anyField',
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for array with non-numeric segment', () => {
+      const schema = z.object({
+        items: z.array(z.object({ name: z.string() })),
+      });
+      const result = extractFieldFromSchema({
+        schema,
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        name: 'items.notANumber.name' as 'items.0.name',
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined when navigating through unsupported type', () => {
+      const schema = z.object({
+        count: z.number(),
+      });
+      const result = extractFieldFromSchema({
+        schema,
+        // @ts-expect-error - Testing path through non-navigable type
+        name: 'count.something',
       });
 
       expect(result).toBeUndefined();
@@ -333,7 +361,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        fieldName: 'type',
+        name: 'type',
         discriminator: {
           key: 'type',
           value: 'a',
@@ -356,7 +384,7 @@ describe('extractFieldFromSchema', () => {
 
       const settingsResult = extractFieldFromSchema({
         schema,
-        fieldName: 'settings',
+        name: 'settings',
       });
 
       expect(settingsResult).toBeDefined();
@@ -364,11 +392,205 @@ describe('extractFieldFromSchema', () => {
 
       const tagsResult = extractFieldFromSchema({
         schema,
-        fieldName: 'tags',
+        name: 'tags',
       });
 
       expect(tagsResult).toBeDefined();
       expect(tagsResult).toBeInstanceOf(z.ZodArray);
+    });
+  });
+
+  describe('nested path extraction', () => {
+    it('should extract nested field from object schema', () => {
+      const schema = z.object({
+        user: z.object({
+          profile: z.object({
+            name: z.string(),
+            age: z.number(),
+          }),
+        }),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'user.profile.name',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should extract field from array element', () => {
+      const schema = z.object({
+        addresses: z.array(
+          z.object({
+            street: z.string(),
+            city: z.string(),
+          }),
+        ),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'addresses.0.street',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should skip array index and access element field directly', () => {
+      const schema = z.object({
+        items: z.array(
+          z.object({
+            name: z.string(),
+            quantity: z.number(),
+          }),
+        ),
+      });
+
+      // With numeric index
+      const resultWithIndex = extractFieldFromSchema({
+        schema,
+        name: 'items.0.name',
+      });
+
+      expect(resultWithIndex).toBeDefined();
+      expect(resultWithIndex).toBeInstanceOf(z.ZodString);
+
+      // Also works with any index
+      const resultWithOtherIndex = extractFieldFromSchema({
+        schema,
+        name: 'items.99.quantity',
+      });
+
+      expect(resultWithOtherIndex).toBeDefined();
+      expect(resultWithOtherIndex).toBeInstanceOf(z.ZodNumber);
+    });
+
+    it('should handle deeply nested paths with arrays', () => {
+      const schema = z.object({
+        company: z.object({
+          departments: z.array(
+            z.object({
+              employees: z.array(
+                z.object({
+                  name: z.string(),
+                  email: z.string().email(),
+                }),
+              ),
+            }),
+          ),
+        }),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'company.departments.0.employees.0.email',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should return undefined for invalid nested path', () => {
+      const schema = z.object({
+        user: z.object({
+          name: z.string(),
+        }),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'user.nonexistent.field',
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle optional nested objects', () => {
+      const schema = z.object({
+        profile: z
+          .object({
+            bio: z.string(),
+          })
+          .optional(),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'profile.bio',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should handle nested objects with defaults', () => {
+      const schema = z.object({
+        settings: z
+          .object({
+            theme: z.string(),
+          })
+          .default({ theme: 'light' }),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'settings.theme',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+  });
+});
+
+describe('extendWithMeta', () => {
+  it('should preserve metadata when extending a field', () => {
+    const baseField = z.string().meta({ translationKey: 'user.field.name' });
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(3).max(100));
+
+    expect(extendedField.meta()).toEqual({ translationKey: 'user.field.name' });
+  });
+
+  it('should apply the transformation correctly', () => {
+    const baseField = z.string().meta({ translationKey: 'user.field.name' });
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(3).max(100));
+
+    // Should fail min(3) validation
+    expect(extendedField.safeParse('ab').success).toBe(false);
+    // Should pass validation
+    expect(extendedField.safeParse('abc').success).toBe(true);
+    // Should fail max(100) validation
+    expect(extendedField.safeParse('a'.repeat(101)).success).toBe(false);
+  });
+
+  it('should work when field has no metadata', () => {
+    const baseField = z.string();
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(1));
+
+    expect(extendedField.meta()).toBeUndefined();
+    expect(extendedField.safeParse('').success).toBe(false);
+    expect(extendedField.safeParse('a').success).toBe(true);
+  });
+
+  it('should preserve complex metadata', () => {
+    const baseField = z.number().meta({
+      translationKey: 'user.field.age',
+      description: 'User age',
+      validation: { min: 0, max: 150 },
+    });
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(18).max(120));
+
+    expect(extendedField.meta()).toEqual({
+      translationKey: 'user.field.age',
+      description: 'User age',
+      validation: { min: 0, max: 150 },
     });
   });
 });

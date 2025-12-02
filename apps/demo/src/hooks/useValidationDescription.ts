@@ -1,13 +1,12 @@
 'use client';
 
-import {
-  type Discriminator,
-  type DiscriminatorKey,
-  type DiscriminatorValue,
-  extractFieldFromSchema,
-  getFieldChecks,
+import type {
+  Discriminator,
+  DiscriminatorKey,
+  DiscriminatorValue,
+  ValidPaths,
 } from '@zod-utils/core';
-import { useFormSchema } from '@zod-utils/react-hook-form';
+import { useFieldChecks } from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
 import type { z } from 'zod';
 
@@ -24,7 +23,7 @@ import type { z } from 'zod';
  * - `greater_than` - Minimum value for numbers/dates
  * - `less_than` - Maximum value for numbers/dates
  *
- * @param fieldName - The name of the field to generate description for
+ * @param params.name - The name of the field to generate description for
  * @returns Formatted validation description string (e.g., "Max 20") or empty string
  *
  * @example
@@ -50,41 +49,26 @@ import type { z } from 'zod';
  */
 export function useValidationDescription<
   TSchema extends z.ZodType,
-  TName extends keyof Extract<
-    Required<z.input<TSchema>>,
-    Record<TDiscriminatorKey, TDiscriminatorValue>
-  >,
+  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >(params: {
   schema: TSchema;
-  fieldName: TName;
+  name: TPath;
   discriminator?: Discriminator<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue
   >;
 }): string {
-  const context = useFormSchema(params);
-
   const t = useTranslations('user.validation');
 
-  if (!context) {
-    return '';
-  }
-
-  const field = extractFieldFromSchema({
-    schema: context.schema,
-    fieldName: params.fieldName,
-    discriminator: context.discriminator,
+  // Get all validation checks from the field (memoized)
+  const checks = useFieldChecks({
+    schema: params.schema,
+    name: params.name,
+    discriminator: params.discriminator,
   });
-
-  if (!field) {
-    return '';
-  }
-
-  // Get all validation checks from the field
-  const checks = getFieldChecks(field);
 
   // Filter to only max length and numeric range checks
   // Note: min_length is intentionally excluded as it indicates a "required" field,

@@ -330,7 +330,7 @@ const editSchema = extractDiscriminatedSchema({
 
 ---
 
-### `extractFieldFromSchema(schema, fieldName, discriminator?)`
+### `extractFieldFromSchema(schema, name, discriminator?)`
 
 Extract a single field from a Zod object or discriminated union schema.
 
@@ -349,7 +349,7 @@ const userSchema = z.object({
 
 const nameField = extractFieldFromSchema({
   schema: userSchema,
-  fieldName: 'name',
+  name: 'name',
 });
 // Returns: ZodString
 
@@ -370,7 +370,7 @@ const formSchema = z.discriminatedUnion('mode', [
 // Extract field from specific variant
 const idField = extractFieldFromSchema({
   schema: formSchema,
-  fieldName: 'id',
+  name: 'id',
   discriminator: {
     key: 'mode',
     value: 'edit',
@@ -381,7 +381,7 @@ const idField = extractFieldFromSchema({
 // Without discriminator on discriminated union, returns undefined
 const fieldWithoutDiscriminator = extractFieldFromSchema({
   schema: formSchema,
-  fieldName: 'name',
+  name: 'name',
 });
 // Returns: undefined (need discriminator to know which variant)
 
@@ -395,12 +395,61 @@ const transformedSchema = z
 
 const nameFromTransformed = extractFieldFromSchema({
   schema: transformedSchema,
-  fieldName: 'name',
+  name: 'name',
 });
 // Returns: ZodString (from the input type, not affected by transform)
 ```
 
 **Discriminated union support:** When extracting fields from discriminated unions, you must provide the `discriminator` option with `key` and `value` to specify which variant to use.
+
+---
+
+### `extendWithMeta(field, transform)`
+
+Extends a Zod field with a transformation while preserving its metadata.
+
+This is useful when you want to add validations or transformations to a field but keep the original metadata (like `translationKey`) intact.
+
+```typescript
+import { extendWithMeta } from "@zod-utils/core";
+import { z } from "zod";
+
+// Base field with metadata
+const baseField = z.string().meta({ translationKey: 'user.field.name' });
+
+// Extend with validation while keeping metadata
+const extendedField = extendWithMeta(baseField, (f) => f.min(3).max(100));
+
+extendedField.meta(); // { translationKey: 'user.field.name' }
+
+// Validation still works
+extendedField.parse('ab');     // throws - too short
+extendedField.parse('abc');    // 'abc' - valid
+```
+
+**Use case:** When building forms with shared field definitions, you may want to reuse a base field with metadata across multiple schemas while adding schema-specific validations:
+
+```typescript
+// Shared field definitions with i18n metadata
+const fields = {
+  name: z.string().meta({ translationKey: 'user.field.name' }),
+  email: z.string().email().meta({ translationKey: 'user.field.email' }),
+};
+
+// Create form uses base fields with additional constraints
+const createFormSchema = z.object({
+  name: extendWithMeta(fields.name, (f) => f.min(3).max(50)),
+  email: extendWithMeta(fields.email, (f) => f.min(5)),
+});
+
+// Edit form uses same fields with different constraints
+const editFormSchema = z.object({
+  name: extendWithMeta(fields.name, (f) => f.optional()),
+  email: fields.email, // no extension needed
+});
+```
+
+**Note:** If the original field has no metadata, the transformed field is returned as-is without calling `.meta()`.
 
 ---
 

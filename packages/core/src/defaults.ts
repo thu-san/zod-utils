@@ -1,10 +1,6 @@
 import * as z from 'zod';
-import {
-  canUnwrap,
-  extractDiscriminatedSchema,
-  getPrimitiveType,
-  tryStripNullishOnly,
-} from './schema';
+import { extractDiscriminatedSchema } from './discriminatedSchema';
+import { canUnwrap, getPrimitiveType, tryStripNullishOnly } from './schema';
 import type {
   Discriminator,
   DiscriminatorKey,
