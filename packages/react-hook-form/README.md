@@ -384,6 +384,43 @@ isRequiredField({ schema, name: "age" }); // true
 isRequiredField({ schema, name: "bio" }); // false
 ```
 
+### `useExtractFieldFromSchema({ schema, name, discriminator? })`
+
+Hook to extract a field's Zod schema from a parent schema. Memoized for performance.
+
+```tsx
+import { useExtractFieldFromSchema } from "@zod-utils/react-hook-form";
+
+function FieldInfo({ schema, name }: { schema: z.ZodType; name: string }) {
+  const fieldSchema = useExtractFieldFromSchema({ schema, name });
+
+  if (!fieldSchema) return null;
+
+  // Use fieldSchema for custom validation or field info
+  return <span>{fieldSchema._zod.def.typeName}</span>;
+}
+```
+
+### `useFieldChecks({ schema, name, discriminator? })`
+
+Hook to get validation checks from a field's Zod schema. Useful for displaying validation hints like max length or min/max values.
+
+```tsx
+import { useFieldChecks } from "@zod-utils/react-hook-form";
+
+function FieldHint({ schema, name }: { schema: z.ZodType; name: string }) {
+  const checks = useFieldChecks({ schema, name });
+
+  const maxLength = checks.find((c) => c.check === "max_length");
+  if (maxLength) {
+    return <span>Max {maxLength.maximum} characters</span>;
+  }
+  return null;
+}
+```
+
+**Supported check types:** `min_length`, `max_length`, `greater_than`, `less_than`, `string_format`, and more.
+
 ---
 
 ## Core Utilities (Re-exported)
@@ -398,15 +435,20 @@ import {
   getPrimitiveType,
   removeDefault,
   extractDefaultValue,
+  extendWithMeta,
+  extractFieldFromSchema,
+  getFieldChecks,
   type Simplify,
   type ZodUnionCheck,
 
-  // Form schema context
+  // Form schema context & hooks
   FormSchemaContext,
   FormSchemaProvider,
   useFormSchema,
   useIsRequiredField,
   isRequiredField,
+  useExtractFieldFromSchema,
+  useFieldChecks,
 
   // Type utilities
   type PartialWithNullableObjects,
