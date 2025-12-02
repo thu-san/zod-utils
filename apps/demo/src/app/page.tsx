@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { formErrorHandler } from '@/lib/error-map';
 
 const formSchema = z.object({
   // String fields
@@ -191,6 +192,9 @@ export default function UserProfileForm() {
   const form = useZodForm({
     schema: formSchema,
     defaultValues: getSchemaDefaults(formSchema),
+    zodResolverOptions: {
+      error: formErrorHandler,
+    },
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {

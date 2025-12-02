@@ -18,12 +18,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
+import { formErrorHandler } from '@/lib/error-map';
 
 const userSchema = z
   .discriminatedUnion('mode', [
     z.object({
       mode: z.literal('create').default('create'),
-      name: z.string().min(1, 'Name is required'),
+      name: z.string().min(1),
       age: z.number().optional().default(18),
     }),
     z.object({
@@ -55,6 +56,9 @@ export default function CreateEditPage() {
         value: mode,
       },
     }),
+    zodResolverOptions: {
+      error: formErrorHandler,
+    },
   });
 
   // Update form when mode changes
