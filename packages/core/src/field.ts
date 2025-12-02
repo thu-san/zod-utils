@@ -113,3 +113,34 @@ export function extractFieldFromSchema<
     | (ExtractZodByPath<TSchema, TPath> & z.ZodType)
     | undefined;
 }
+
+/**
+ * Extends a Zod field with a transformation while preserving its metadata.
+ *
+ * This is useful when you want to add validations or transformations to a field
+ * but keep the original metadata (like translationKey) intact.
+ *
+ * @param field - The original Zod field
+ * @param transform - A function that transforms the field
+ * @returns The transformed field with preserved metadata
+ *
+ * @example
+ * ```typescript
+ * const baseField = z.string().meta({ translationKey: 'user.field.name' });
+ *
+ * // Add min/max validation while keeping the translationKey
+ * const extendedField = extendWithMeta(baseField, (f) => f.min(3).max(100));
+ * extendedField.meta(); // { translationKey: 'user.field.name' }
+ * ```
+ */
+export function extendWithMeta<T extends z.ZodType, R extends z.ZodType>(
+  field: T,
+  transform: (f: T) => R,
+): R {
+  const transformedField = transform(field);
+  const meta = field.meta();
+  if (!meta) {
+    return transformedField;
+  }
+  return transformedField.meta({ ...meta });
+}

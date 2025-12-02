@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
-import { extractFieldFromSchema } from '../field';
+import { extendWithMeta, extractFieldFromSchema } from '../field';
 
 describe('extractFieldFromSchema', () => {
   describe('ZodObject schemas', () => {
@@ -542,6 +542,55 @@ describe('extractFieldFromSchema', () => {
 
       expect(result).toBeDefined();
       expect(result).toBeInstanceOf(z.ZodString);
+    });
+  });
+});
+
+describe('extendWithMeta', () => {
+  it('should preserve metadata when extending a field', () => {
+    const baseField = z.string().meta({ translationKey: 'user.field.name' });
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(3).max(100));
+
+    expect(extendedField.meta()).toEqual({ translationKey: 'user.field.name' });
+  });
+
+  it('should apply the transformation correctly', () => {
+    const baseField = z.string().meta({ translationKey: 'user.field.name' });
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(3).max(100));
+
+    // Should fail min(3) validation
+    expect(extendedField.safeParse('ab').success).toBe(false);
+    // Should pass validation
+    expect(extendedField.safeParse('abc').success).toBe(true);
+    // Should fail max(100) validation
+    expect(extendedField.safeParse('a'.repeat(101)).success).toBe(false);
+  });
+
+  it('should work when field has no metadata', () => {
+    const baseField = z.string();
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(1));
+
+    expect(extendedField.meta()).toBeUndefined();
+    expect(extendedField.safeParse('').success).toBe(false);
+    expect(extendedField.safeParse('a').success).toBe(true);
+  });
+
+  it('should preserve complex metadata', () => {
+    const baseField = z.number().meta({
+      translationKey: 'user.field.age',
+      description: 'User age',
+      validation: { min: 0, max: 150 },
+    });
+
+    const extendedField = extendWithMeta(baseField, (f) => f.min(18).max(120));
+
+    expect(extendedField.meta()).toEqual({
+      translationKey: 'user.field.age',
+      description: 'User age',
+      validation: { min: 0, max: 150 },
     });
   });
 });
