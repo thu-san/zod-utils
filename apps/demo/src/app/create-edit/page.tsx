@@ -40,9 +40,8 @@ const userSchema = z
 
 type UserFormData = z.infer<typeof userSchema>;
 
-const InputFormField = createInputFormField({
+const UserInputFormField = createInputFormField({
   schema: userSchema,
-  namespace: 'user',
 });
 
 export default function CreateEditPage() {
@@ -141,7 +140,6 @@ export default function CreateEditPage() {
                   <NumberFormField
                     schema={userSchema}
                     name="id"
-                    namespace="user"
                     placeholder="Enter ID"
                     description="Required in edit mode"
                     discriminator={{ key: 'mode', value: mode }}
@@ -149,7 +147,7 @@ export default function CreateEditPage() {
                 )}
 
                 {/* Name Field */}
-                <InputFormField
+                <UserInputFormField
                   name="name"
                   placeholder={
                     mode === 'create'
@@ -168,7 +166,6 @@ export default function CreateEditPage() {
                   <NumberFormField
                     schema={userSchema}
                     name="age"
-                    namespace="user"
                     placeholder="Enter age (optional)"
                     description="Optional in create mode"
                     discriminator={{ key: 'mode', value: mode }}
@@ -177,7 +174,7 @@ export default function CreateEditPage() {
 
                 {/* Bio Field (only in edit mode) */}
                 {mode === 'edit' && (
-                  <InputFormField
+                  <UserInputFormField
                     name="bio"
                     placeholder="Enter bio (optional)"
                     description="Optional in edit mode"

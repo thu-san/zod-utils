@@ -91,3 +91,109 @@ export type Discriminator<
   key: TDiscriminatorKey;
   value: TDiscriminatorValue;
 };
+
+// ============================================================================
+// Path Type Utilities
+// ============================================================================
+
+type Primitive = string | number | boolean | null | undefined | symbol | bigint;
+type NonZeroDigit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+type PathsHint<T, Prefix extends string = ''> = T extends Primitive
+  ? never
+  : T extends (infer E)[]
+    ?
+        | (Prefix extends '' ? never : Prefix)
+        | `${Prefix}.0`
+        | PathsHint<E, `${Prefix}.0`>
+    : T extends object
+      ? {
+          [K in keyof T & string]:
+            | (Prefix extends '' ? K : `${Prefix}.${K}`)
+            | PathsHint<T[K], Prefix extends '' ? K : `${Prefix}.${K}`>;
+        }[keyof T & string]
+      : never;
+
+// Matches 1-9, 10, 11, 12... (any number starting with non-zero)
+type NonZeroIndex = `${NonZeroDigit}` | `${NonZeroDigit}${number}`;
+
+type PathsLoose<T, Prefix extends string = ''> = T extends Primitive
+  ? never
+  : T extends (infer E)[]
+    ?
+        | (Prefix extends '' ? never : Prefix)
+        | `${Prefix}.${NonZeroIndex}`
+        | PathsLoose<E, `${Prefix}.${NonZeroIndex}`>
+    : T extends object
+      ? {
+          [K in keyof T & string]:
+            | (Prefix extends '' ? K : `${Prefix}.${K}`)
+            | PathsLoose<T[K], Prefix extends '' ? K : `${Prefix}.${K}`>;
+        }[keyof T & string]
+      : never;
+
+/**
+ * Generates all valid dot-notation paths for a given type.
+ * Supports nested objects and arrays with numeric indices.
+ *
+ * @example
+ * ```typescript
+ * type User = { name: string; address: { city: string } };
+ * type UserPaths = Paths<User>;
+ * // "name" | "address" | "address.city"
+ * ```
+ */
+export type Paths<T> = PathsHint<T> | PathsLoose<T>;
+
+/**
+ * Extracts fields common to all variants in a union type.
+ *
+ * Uses `Pick<T, keyof T>` to normalize union types by extracting only
+ * the keys that exist across all union members.
+ *
+ * @example
+ * ```typescript
+ * type A = { mode: 'create'; name: string };
+ * type B = { mode: 'edit'; id: number };
+ * type Common = CommonFields<A | B>;
+ * // { mode: 'create' | 'edit' }
+ * ```
+ */
+export type CommonFields<T> = Pick<T, keyof T>;
+
+/**
+ * Generates valid dot-notation paths for fields in a discriminated union variant.
+ *
+ * Given a schema and discriminator value, extracts all possible field paths
+ * (including nested paths) for that specific variant.
+ *
+ * @example
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number() }),
+ * ]);
+ *
+ * type CreatePaths = ValidPaths<typeof schema, 'mode', 'create'>;
+ * // "mode" | "name"
+ *
+ * type EditPaths = ValidPaths<typeof schema, 'mode', 'edit'>;
+ * // "mode" | "id"
+ * ```
+ */
+export type ValidPaths<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+> = Paths<
+  CommonFields<
+    Extract<
+      Required<z.input<TSchema>>,
+      TDiscriminatorKey extends never
+        ? z.input<TSchema>
+        : TDiscriminatorValue extends never
+          ? z.input<TSchema>
+          : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
+    >
+  >
+>;

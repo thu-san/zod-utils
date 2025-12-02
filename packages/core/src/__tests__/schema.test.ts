@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
+import { extractDiscriminatedSchema } from '../discriminatedSchema';
 import {
   canUnwrap,
-  extractDiscriminatedSchema,
   getFieldChecks,
   getPrimitiveType,
   removeDefault,

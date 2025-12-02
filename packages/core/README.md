@@ -330,7 +330,7 @@ const editSchema = extractDiscriminatedSchema({
 
 ---
 
-### `extractFieldFromSchema(schema, fieldName, discriminator?)`
+### `extractFieldFromSchema(schema, name, discriminator?)`
 
 Extract a single field from a Zod object or discriminated union schema.
 
@@ -349,7 +349,7 @@ const userSchema = z.object({
 
 const nameField = extractFieldFromSchema({
   schema: userSchema,
-  fieldName: 'name',
+  name: 'name',
 });
 // Returns: ZodString
 
@@ -370,7 +370,7 @@ const formSchema = z.discriminatedUnion('mode', [
 // Extract field from specific variant
 const idField = extractFieldFromSchema({
   schema: formSchema,
-  fieldName: 'id',
+  name: 'id',
   discriminator: {
     key: 'mode',
     value: 'edit',
@@ -381,7 +381,7 @@ const idField = extractFieldFromSchema({
 // Without discriminator on discriminated union, returns undefined
 const fieldWithoutDiscriminator = extractFieldFromSchema({
   schema: formSchema,
-  fieldName: 'name',
+  name: 'name',
 });
 // Returns: undefined (need discriminator to know which variant)
 
@@ -395,7 +395,7 @@ const transformedSchema = z
 
 const nameFromTransformed = extractFieldFromSchema({
   schema: transformedSchema,
-  fieldName: 'name',
+  name: 'name',
 });
 // Returns: ZodString (from the input type, not affected by transform)
 ```

@@ -1,23 +1,6 @@
 // Zod schema utilities
-
-// Zod defaults extraction
-export { extractDefaultValue, getSchemaDefaults } from './defaults';
-export { extractFieldFromSchema } from './field';
-export {
-  canUnwrap,
-  extractDiscriminatedSchema,
-  getFieldChecks,
-  getPrimitiveType,
-  removeDefault,
-  requiresValidInput,
-  tryStripNullishOnly,
-  type ZodUnionCheck,
-} from './schema';
-
-// Type utilities
-export type {
-  Discriminator,
-  DiscriminatorKey,
-  DiscriminatorValue,
-  Simplify,
-} from './types';
+export * from './defaults';
+export * from './discriminatedSchema';
+export * from './field';
+export * from './schema';
+export * from './types';

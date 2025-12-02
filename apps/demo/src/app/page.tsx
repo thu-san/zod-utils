@@ -38,48 +38,119 @@ import { formErrorHandler } from '@/lib/error-map';
 
 const formSchema = z.object({
   // String fields
-  stringRequired: z.string().nonempty().max(100),
-  stringOptional: z.string().optional(),
-  stringRequiredWithDefault: z.string().min(3).default('Default String'),
-  stringOptionalWithDefault: z.string().optional().default('Optional Default'),
-  stringNullish: z.string().nullable(),
-  stringNullishWithDefault: z.string().nullable().default('Nullable Default'),
+  stringRequired: z
+    .string()
+    .nonempty()
+    .max(100)
+    .meta({ translationKey: 'user.field.stringRequired' }),
+  stringOptional: z
+    .string()
+    .optional()
+    .meta({ translationKey: 'user.field.stringOptional' }),
+  stringRequiredWithDefault: z
+    .string()
+    .min(3)
+    .default('Default String')
+    .meta({ translationKey: 'user.field.stringRequiredWithDefault' }),
+  stringOptionalWithDefault: z
+    .string()
+    .optional()
+    .default('Optional Default')
+    .meta({ translationKey: 'user.field.stringOptionalWithDefault' }),
+  stringNullish: z
+    .string()
+    .nullable()
+    .meta({ translationKey: 'user.field.stringNullish' }),
+  stringNullishWithDefault: z
+    .string()
+    .nullable()
+    .default('Nullable Default')
+    .meta({ translationKey: 'user.field.stringNullishWithDefault' }),
 
   // Number fields
   // NOTE: *OptionalWithDefault fields can't be cleared (reverts to default).
   // Use *NullishWithDefault instead and set null to clear.
-  numberRequired: z.number(),
-  numberOptional: z.number().optional(),
-  numberRequiredWithDefault: z.number().default(42),
-  numberOptionalWithDefault: z.number().optional().default(100),
-  numberNullish: z.number().nullable(),
-  numberNullishWithDefault: z.number().nullable().default(200),
+  numberRequired: z
+    .number()
+    .meta({ translationKey: 'user.field.numberRequired' }),
+  numberOptional: z
+    .number()
+    .optional()
+    .meta({ translationKey: 'user.field.numberOptional' }),
+  numberRequiredWithDefault: z
+    .number()
+    .default(42)
+    .meta({ translationKey: 'user.field.numberRequiredWithDefault' }),
+  numberOptionalWithDefault: z
+    .number()
+    .optional()
+    .default(100)
+    .meta({ translationKey: 'user.field.numberOptionalWithDefault' }),
+  numberNullish: z
+    .number()
+    .nullable()
+    .meta({ translationKey: 'user.field.numberNullish' }),
+  numberNullishWithDefault: z
+    .number()
+    .nullable()
+    .default(200)
+    .meta({ translationKey: 'user.field.numberNullishWithDefault' }),
 
   // Boolean fields
-  booleanRequired: z.boolean(),
-  booleanOptional: z.boolean().optional(),
-  booleanRequiredWithDefault: z.boolean().default(true),
-  booleanOptionalWithDefault: z.boolean().optional().default(false),
-  booleanNullish: z.boolean().nullable(),
-  booleanNullishWithDefault: z.boolean().nullable().default(true),
+  booleanRequired: z
+    .boolean()
+    .meta({ translationKey: 'user.field.booleanRequired' }),
+  booleanOptional: z
+    .boolean()
+    .optional()
+    .meta({ translationKey: 'user.field.booleanOptional' }),
+  booleanRequiredWithDefault: z
+    .boolean()
+    .default(true)
+    .meta({ translationKey: 'user.field.booleanRequiredWithDefault' }),
+  booleanOptionalWithDefault: z
+    .boolean()
+    .optional()
+    .default(false)
+    .meta({ translationKey: 'user.field.booleanOptionalWithDefault' }),
+  booleanNullish: z
+    .boolean()
+    .nullable()
+    .meta({ translationKey: 'user.field.booleanNullish' }),
+  booleanNullishWithDefault: z
+    .boolean()
+    .nullable()
+    .default(true)
+    .meta({ translationKey: 'user.field.booleanNullishWithDefault' }),
 
   // Array of String fields
-  arrayOfStringRequired: z.array(z.string()).nonempty(),
-  arrayOfStringOptional: z.array(z.string()).optional(),
+  arrayOfStringRequired: z
+    .array(z.string())
+    .nonempty()
+    .meta({ translationKey: 'user.field.arrayOfStringRequired' }),
+  arrayOfStringOptional: z
+    .array(z.string())
+    .optional()
+    .meta({ translationKey: 'user.field.arrayOfStringOptional' }),
   arrayOfStringRequiredWithDefault: z
     .array(z.string())
     .nonempty()
-    .default(['tag1', 'tag2']),
+    .default(['tag1', 'tag2'])
+    .meta({ translationKey: 'user.field.arrayOfStringRequiredWithDefault' }),
   arrayOfStringOptionalWithDefault: z
     .array(z.string())
     .optional()
-    .default(['optional1']),
-  arrayOfStringNullish: z.array(z.string()).nullable(),
+    .default(['optional1'])
+    .meta({ translationKey: 'user.field.arrayOfStringOptionalWithDefault' }),
+  arrayOfStringNullish: z
+    .array(z.string())
+    .nullable()
+    .meta({ translationKey: 'user.field.arrayOfStringNullish' }),
   arrayOfStringNullishWithDefault: z
     .array(z.string())
     .nullable()
-    .default(['nullable1']),
-
+    .default(['nullable1'])
+    .meta({ translationKey: 'user.field.arrayOfStringNullishWithDefault' }),
   // Array of Objects fields
   arrayOfObjectsRequired: z
     .array(
@@ -174,15 +245,12 @@ const formSchema = z.object({
 
 const UserInputFormField = createInputFormField({
   schema: formSchema,
-  namespace: 'user',
 });
 const UserNumberFormField = createNumberFormField({
   schema: formSchema,
-  namespace: 'user',
 });
 const UserCheckboxFormField = createCheckboxFormField({
   schema: formSchema,
-  namespace: 'user',
 });
 
 export default function UserProfileForm() {
@@ -343,7 +411,6 @@ export default function UserProfileForm() {
                           <FormItem>
                             <TFormLabel
                               schema={formSchema}
-                              namespace="user"
                               name="arrayOfStringRequired"
                             />
                             <FormControl>
@@ -377,7 +444,7 @@ export default function UserProfileForm() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              {t('form.arrayOfStringOptional')}
+                              {t('field.arrayOfStringOptional')}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -414,7 +481,6 @@ export default function UserProfileForm() {
                           <FormItem>
                             <TFormLabel
                               schema={formSchema}
-                              namespace="user"
                               name="arrayOfStringRequiredWithDefault"
                             />
                             <FormControl>
@@ -451,7 +517,7 @@ export default function UserProfileForm() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              {t('form.arrayOfStringOptionalWithDefault')}
+                              {t('field.arrayOfStringOptionalWithDefault')}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -491,7 +557,7 @@ export default function UserProfileForm() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              {t('form.arrayOfStringNullish')}
+                              {t('field.arrayOfStringNullish')}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -526,7 +592,7 @@ export default function UserProfileForm() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>
-                              {t('form.arrayOfStringNullishWithDefault')}
+                              {t('field.arrayOfStringNullishWithDefault')}
                             </FormLabel>
                             <FormControl>
                               <Input

@@ -4,10 +4,20 @@ import {
   type Discriminator,
   type DiscriminatorKey,
   type DiscriminatorValue,
+  type ExtractZodByPath,
   extractFieldFromSchema,
+  getFieldChecks,
   requiresValidInput,
+  type ValidPaths,
+  type ZodUnionCheck,
 } from '@zod-utils/core';
-import { type Context, createContext, type ReactNode, useContext } from 'react';
+import {
+  type Context,
+  createContext,
+  type ReactNode,
+  useContext,
+  useMemo,
+} from 'react';
 import type { z } from 'zod';
 
 /**
@@ -178,16 +188,15 @@ export function FormSchemaProvider<
 /**
  * Hook to check if a field requires valid input based on the Zod schema.
  *
- * Uses the schema from {@link FormSchemaContext} to determine if a field
- * will show validation errors when submitted with empty/invalid input.
+ * Memoized - only recalculates when schema, name, or discriminator changes.
  *
- * @param params - Schema, field name, and optional discriminator (schema used for type inference)
+ * @param params - Schema, name, and optional discriminator
  * @returns true if the field requires valid input, false otherwise
  *
  * @example
  * ```tsx
  * function MyFieldLabel({ name, schema }: { name: string; schema: z.ZodType }) {
- *   const isRequired = useIsRequiredField({ schema, fieldName: name });
+ *   const isRequired = useIsRequiredField({ schema, name });
  *
  *   return (
  *     <label>
@@ -200,39 +209,26 @@ export function FormSchemaProvider<
  */
 export function useIsRequiredField<
   TSchema extends z.ZodType,
-  TName extends keyof Extract<
-    Required<z.input<TSchema>>,
-    Record<TDiscriminatorKey, TDiscriminatorValue>
-  >,
+  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >({
-  fieldName,
-  ...props
+  schema,
+  name,
+  discriminator,
 }: {
   schema: TSchema;
-  fieldName: TName;
+  name: TPath;
   discriminator?: Discriminator<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue
   >;
 }): boolean {
-  const context = useFormSchema<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue
-  >(props);
-
-  if (!context) {
-    return false;
-  }
-
-  return isRequiredField({
-    schema: context.schema,
-    fieldName,
-    discriminator: context.discriminator,
-  });
+  return useMemo(
+    () => isRequiredField({ schema, name, discriminator }),
+    [schema, name, discriminator],
+  );
 }
 
 /**
@@ -257,8 +253,8 @@ export function useIsRequiredField<
  *   bio: z.string().optional(),
  * });
  *
- * isRequiredField({ schema, fieldName: 'name' }); // true
- * isRequiredField({ schema, fieldName: 'bio' });  // false
+ * isRequiredField({ schema, name: 'name' }); // true
+ * isRequiredField({ schema, name: 'bio' });  // false
  * ```
  *
  * @example
@@ -271,26 +267,23 @@ export function useIsRequiredField<
  *
  * isRequiredField({
  *   schema,
- *   fieldName: 'name',
+ *   name: 'name',
  *   discriminator: { key: 'mode', value: 'create' },
  * }); // true
  * ```
  */
 export function isRequiredField<
   TSchema extends z.ZodType,
-  TName extends keyof Extract<
-    Required<z.input<TSchema>>,
-    Record<TDiscriminatorKey, TDiscriminatorValue>
-  >,
+  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >({
   schema,
-  fieldName,
+  name,
   discriminator,
 }: {
   schema: TSchema;
-  fieldName: TName;
+  name: TPath;
   discriminator?: Discriminator<
     TSchema,
     TDiscriminatorKey,
@@ -299,7 +292,7 @@ export function isRequiredField<
 }): boolean {
   const field = extractFieldFromSchema({
     schema,
-    fieldName,
+    name,
     discriminator,
   });
 
@@ -308,4 +301,112 @@ export function isRequiredField<
   }
 
   return requiresValidInput(field);
+}
+
+/**
+ * React hook to extract a field's Zod schema from a parent schema.
+ *
+ * Memoized - only recalculates when schema, name, or discriminator changes.
+ * Supports nested paths and discriminated unions.
+ *
+ * @param params - Schema, name, and optional discriminator
+ * @returns The Zod schema for the field, or undefined if not found
+ *
+ * @example
+ * ```tsx
+ * function MyFieldInfo({ name, schema }: { name: string; schema: z.ZodType }) {
+ *   const fieldSchema = useExtractFieldFromSchema({ schema, name });
+ *
+ *   if (!fieldSchema) return null;
+ *
+ *   // Use fieldSchema for custom validation or field info
+ *   return <span>{fieldSchema._zod.typeName}</span>;
+ * }
+ * ```
+ *
+ * @example
+ * With discriminated union
+ * ```tsx
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number() }),
+ * ]);
+ *
+ * const fieldSchema = useExtractFieldFromSchema({
+ *   schema,
+ *   name: 'name',
+ *   discriminator: { key: 'mode', value: 'create' },
+ * });
+ * // Returns z.string() schema
+ * ```
+ */
+export function useExtractFieldFromSchema<
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+>({
+  schema,
+  name,
+  discriminator,
+}: {
+  schema: TSchema;
+  name: TPath;
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
+}): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+  return useMemo(
+    () => extractFieldFromSchema({ schema, name, discriminator }),
+    [schema, name, discriminator],
+  );
+}
+
+/**
+ * Hook to get validation checks from a field's Zod schema.
+ *
+ * Memoized - only recalculates when schema, name, or discriminator changes.
+ * Combines field extraction and check retrieval in one cached operation.
+ *
+ * @param params - Schema, name, and optional discriminator
+ * @returns Array of validation checks (min, max, pattern, etc.) or empty array
+ *
+ * @example
+ * ```tsx
+ * function MyFieldHint({ schema, name }: { schema: z.ZodType; name: string }) {
+ *   const checks = useFieldChecks({ schema, name });
+ *
+ *   const maxLength = checks.find(c => c.check === 'max_length');
+ *   if (maxLength) {
+ *     return <span>Max {maxLength.maximum} characters</span>;
+ *   }
+ *   return null;
+ * }
+ * ```
+ */
+export function useFieldChecks<
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+>({
+  schema,
+  name,
+  discriminator,
+}: {
+  schema: TSchema;
+  name: TPath;
+  discriminator?: Discriminator<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
+}): ZodUnionCheck[] {
+  return useMemo(() => {
+    const field = extractFieldFromSchema({ schema, name, discriminator });
+    if (!field) return [];
+    return getFieldChecks(field);
+  }, [schema, name, discriminator]);
 }

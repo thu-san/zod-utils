@@ -343,7 +343,7 @@ function FieldComponent() {
 }
 ```
 
-### `useIsRequiredField({ schema, fieldName, discriminator? })`
+### `useIsRequiredField({ schema, name, discriminator? })`
 
 Hook to check if a field requires valid input (shows validation errors on submit).
 The schema parameter is used for type inference only - the actual schema is retrieved from context.
@@ -352,7 +352,7 @@ The schema parameter is used for type inference only - the actual schema is retr
 import { useIsRequiredField } from "@zod-utils/react-hook-form";
 
 function FormLabel({ name, schema }: { name: string; schema: z.ZodType }) {
-  const isRequired = useIsRequiredField({ schema, fieldName: name });
+  const isRequired = useIsRequiredField({ schema, name });
 
   return (
     <label>
@@ -363,7 +363,7 @@ function FormLabel({ name, schema }: { name: string; schema: z.ZodType }) {
 }
 ```
 
-### `isRequiredField({ schema, fieldName, discriminator? })`
+### `isRequiredField({ schema, name, discriminator? })`
 
 Standalone function to check if a field requires valid input:
 
@@ -378,10 +378,10 @@ const schema = z.object({
   bio: z.string().optional(), // Not required - optional
 });
 
-isRequiredField({ schema, fieldName: "username" }); // true
-isRequiredField({ schema, fieldName: "email" }); // false
-isRequiredField({ schema, fieldName: "age" }); // true
-isRequiredField({ schema, fieldName: "bio" }); // false
+isRequiredField({ schema, name: "username" }); // true
+isRequiredField({ schema, name: "email" }); // false
+isRequiredField({ schema, name: "age" }); // true
+isRequiredField({ schema, name: "bio" }); // false
 ```
 
 ---
@@ -415,7 +415,7 @@ import {
   type DiscriminatorKey,
   type DiscriminatorValue,
   type InferredFieldValues,
-  type ValidFieldName,
+  type ValidFieldPaths,
 } from "@zod-utils/react-hook-form";
 ```
 

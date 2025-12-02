@@ -3,20 +3,18 @@ import type {
   DiscriminatorKey,
   DiscriminatorValue,
   InferredFieldValues,
+  ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
 import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
-import type { FormNamespace } from '@/types/i18n';
-import { TFormField, type ValidFieldName } from './TFormField';
+import { TFormField } from './TFormField';
 
 export function NumberFormField<
   TSchema extends z.ZodType,
-  TNamespace extends FormNamespace,
-  TName extends ValidFieldName<
+  TPath extends ValidFieldPaths<
     TSchema,
-    TNamespace,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
@@ -30,7 +28,6 @@ export function NumberFormField<
 >({
   schema,
   name,
-  namespace,
   autoPlaceholder,
   placeholder,
   description,
@@ -38,8 +35,7 @@ export function NumberFormField<
   ...inputProps
 }: {
   schema: TSchema;
-  name: TName;
-  namespace: TNamespace;
+  name: TPath;
   autoPlaceholder?: boolean;
   placeholder?: string;
   description?: string;
@@ -55,7 +51,7 @@ export function NumberFormField<
   // Auto-generate validation description if not provided
   const autoDescription = useValidationDescription({
     schema,
-    fieldName: name,
+    name,
     discriminator,
   });
   const finalDescription =
@@ -64,15 +60,13 @@ export function NumberFormField<
   return (
     <TFormField<
       TSchema,
-      TNamespace,
-      TName,
+      TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
     >
       schema={schema}
       name={name}
-      namespace={namespace}
       description={finalDescription}
       discriminator={discriminator}
       render={({ field, label }) => (
@@ -100,14 +94,12 @@ export function NumberFormField<
   );
 }
 
-export function createNumberFormField<
-  TSchema extends z.ZodType,
-  TNamespace extends FormNamespace,
->(factoryProps: { schema: TSchema; namespace: TNamespace }) {
+export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
+  schema: TSchema;
+}) {
   return function BoundNumberFormField<
-    TName extends ValidFieldName<
+    TPath extends ValidFieldPaths<
       TSchema,
-      TNamespace,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
@@ -123,21 +115,19 @@ export function createNumberFormField<
       React.ComponentProps<
         typeof NumberFormField<
           TSchema,
-          TNamespace,
-          TName,
+          TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
           TFieldValues
         >
       >,
-      'namespace' | 'schema'
+      'schema'
     >,
   ) {
     return (
       <NumberFormField<
         TSchema,
-        TNamespace,
-        TName,
+        TPath,
         TDiscriminatorKey,
         TDiscriminatorValue,
         TFieldValues

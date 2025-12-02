@@ -2,6 +2,7 @@ import type {
   DiscriminatorKey,
   DiscriminatorValue,
   Simplify,
+  ValidPaths,
 } from '@zod-utils/core';
 import type { FieldValues, Path } from 'react-hook-form';
 import type { z } from 'zod';
@@ -88,21 +89,18 @@ export type InferredFieldValues<TSchema extends z.ZodType> = z.input<TSchema> &
  *   z.object({ mode: z.literal('edit'), id: z.number() }),
  * ]);
  *
- * type CreateFields = ValidFieldName<typeof schema, 'mode', 'create'>;
+ * type CreateFields = ValidFieldPaths<typeof schema, 'mode', 'create'>;
  * // "mode" | "name"
  *
- * type EditFields = ValidFieldName<typeof schema, 'mode', 'edit'>;
+ * type EditFields = ValidFieldPaths<typeof schema, 'mode', 'edit'>;
  * // "mode" | "id"
  * ```
  */
-export type ValidFieldName<
+export type ValidFieldPaths<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
   TFieldValues extends
     InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
-> = keyof Extract<
-  Required<z.input<TSchema>>,
-  Record<TDiscriminatorKey, TDiscriminatorValue>
-> &
+> = ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue> &
   Path<TFieldValues>;
