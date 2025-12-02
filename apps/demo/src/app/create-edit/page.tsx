@@ -149,16 +149,13 @@ export default function CreateEditPage() {
                 {/* Name Field */}
                 <UserInputFormField
                   name="name"
-                  placeholder={
-                    mode === 'create'
-                      ? 'Enter name (required)'
-                      : 'Enter name (optional)'
-                  }
+                  placeholder="Enter name"
                   description={
                     mode === 'create'
                       ? 'Required field'
                       : 'Optional in edit mode'
                   }
+                  discriminator={{ key: 'mode', value: mode }}
                 />
 
                 {/* Age Field (only in create mode) */}
