@@ -20,8 +20,10 @@ import type {
  * - ✅ Validated output is still type-safe with exact Zod schema types
  * - ✅ Automatic zodResolver setup - no manual configuration needed
  *
- * @template TOutput - The Zod schema output type (extends FieldValues)
  * @template TInput - The Zod schema input type (accepts nullable/undefined values during form editing)
+ * @template TOutput - The Zod schema output type (extends FieldValues)
+ * @template TFormInput - The form input type (defaults to PartialWithNullableObjects<TInput>)
+ * @template TDefaultValues - The type of default values (inferred from usage for better type safety)
  *
  * @param options - Configuration object
  * @param options.schema - Zod schema with two-type signature `z.ZodType<TOutput, TInput>`
@@ -175,13 +177,14 @@ export const useZodForm = <
   TOutput extends FieldValues,
   TFormInput extends
     PartialWithAllNullables<TInput> = PartialWithNullableObjects<TInput>,
+  TDefaultValues extends Partial<TFormInput> | undefined = undefined,
 >({
   schema,
   zodResolverOptions,
   ...formOptions
 }: {
   schema: z.ZodType<TOutput, TInput>;
-  defaultValues?: TFormInput;
+  defaultValues?: TDefaultValues;
   zodResolverOptions?: Parameters<typeof zodResolver>[1];
 } & Omit<
   UseFormProps<TFormInput, unknown, TOutput>,
