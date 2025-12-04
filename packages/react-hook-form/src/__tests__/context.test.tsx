@@ -102,6 +102,27 @@ describe('useIsRequiredField', () => {
     expect(result.current).toBe(false);
   });
 
+  it('should return false when schema is not provided', () => {
+    const { result } = renderHook(() =>
+      useIsRequiredField({ name: 'name' } as Parameters<
+        typeof useIsRequiredField
+      >[0]),
+    );
+
+    expect(result.current).toBe(false);
+  });
+
+  it('should return false when name is not provided', () => {
+    const schema = z.object({ name: z.string().min(1) });
+    const { result } = renderHook(() =>
+      useIsRequiredField({ schema } as Parameters<
+        typeof useIsRequiredField
+      >[0]),
+    );
+
+    expect(result.current).toBe(false);
+  });
+
   it('should return true for required field', () => {
     const schema = z.object({
       name: z.string().min(1),
