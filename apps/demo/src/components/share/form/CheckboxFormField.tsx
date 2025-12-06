@@ -3,7 +3,7 @@ import type {
   DiscriminatorKey,
   DiscriminatorValue,
   InferredFieldValues,
-  ValidFieldPaths,
+  ValidFieldPathsOfType,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
@@ -12,8 +12,9 @@ import { TFormField } from './TFormField';
 
 export function CheckboxFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPaths<
+  TPath extends ValidFieldPathsOfType<
     TSchema,
+    boolean,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
@@ -78,8 +79,9 @@ export function createCheckboxFormField<
   TSchema extends z.ZodType,
 >(factoryProps: { schema: TSchema }) {
   return function BoundCheckboxFormField<
-    TPath extends ValidFieldPaths<
+    TPath extends ValidFieldPathsOfType<
       TSchema,
+      boolean,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
