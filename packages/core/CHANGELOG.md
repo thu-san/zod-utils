@@ -1,5 +1,11 @@
 # @zod-utils/core
 
+## 2.0.1
+
+### Patch Changes
+
+- 5fdf8b7: Make schema and name optional in useIsRequiredField hook and improve useZodForm type inference for defaultValues
+
 ## 2.0.0
 
 ### Major Changes
