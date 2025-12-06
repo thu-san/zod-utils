@@ -519,6 +519,124 @@ type Simple = Simplify<Complex>;
 
 ---
 
+### `DiscriminatedInput<TSchema, TDiscriminatorKey, TDiscriminatorValue>`
+
+Extracts the input type from a discriminated union variant. For discriminated unions, narrows to the variant matching the discriminator value and returns its input type. For regular schemas, returns the full input type.
+
+```typescript
+import type { DiscriminatedInput } from "@zod-utils/core";
+import { z } from "zod";
+
+const schema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string() }),
+  z.object({ mode: z.literal("edit"), id: z.number() }),
+]);
+
+type CreateInput = DiscriminatedInput<typeof schema, "mode", "create">;
+// { mode: 'create'; name: string }
+
+type EditInput = DiscriminatedInput<typeof schema, "mode", "edit">;
+// { mode: 'edit'; id: number }
+```
+
+---
+
+### `ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>`
+
+Generates all valid dot-notation paths for a schema. For discriminated unions, narrows to the specific variant first.
+
+```typescript
+import type { ValidPaths } from "@zod-utils/core";
+import { z } from "zod";
+
+const schema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string() }),
+  z.object({ mode: z.literal("edit"), id: z.number() }),
+]);
+
+type CreatePaths = ValidPaths<typeof schema, "mode", "create">;
+// "mode" | "name"
+
+type EditPaths = ValidPaths<typeof schema, "mode", "edit">;
+// "mode" | "id"
+```
+
+---
+
+### `ValidPathsOfType<TSchema, TValueConstraint, TDiscriminatorKey?, TDiscriminatorValue?>`
+
+Extracts field paths from a schema where the field value type matches a constraint. Filters schema keys to only those whose input type (with nullish stripped) extends the given `TValueConstraint`.
+
+```typescript
+import type { ValidPathsOfType } from "@zod-utils/core";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string(),
+  age: z.number(),
+  email: z.string().optional(),
+  count: z.number().nullable(),
+  active: z.boolean(),
+});
+
+// Get all string field paths
+type StringPaths = ValidPathsOfType<typeof schema, string>;
+// "name" | "email"
+
+// Get all number field paths
+type NumberPaths = ValidPathsOfType<typeof schema, number>;
+// "age" | "count"
+
+// Get all boolean field paths
+type BooleanPaths = ValidPathsOfType<typeof schema, boolean>;
+// "active"
+```
+
+**With discriminated unions:**
+
+```typescript
+const formSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string(), age: z.number() }),
+  z.object({ mode: z.literal("edit"), id: z.number(), title: z.string() }),
+]);
+
+// Get number paths for 'edit' variant only
+type EditNumberPaths = ValidPathsOfType<
+  typeof formSchema,
+  number,
+  "mode",
+  "edit"
+>;
+// "id"
+
+// Get string paths for 'create' variant
+type CreateStringPaths = ValidPathsOfType<
+  typeof formSchema,
+  string,
+  "mode",
+  "create"
+>;
+// "name"
+```
+
+**Array and object filtering:**
+
+```typescript
+const schema = z.object({
+  tags: z.array(z.string()),
+  scores: z.array(z.number()),
+  profile: z.object({ bio: z.string() }),
+});
+
+type StringArrayPaths = ValidPathsOfType<typeof schema, string[]>;
+// "tags"
+
+type ProfilePaths = ValidPathsOfType<typeof schema, { bio: string }>;
+// "profile"
+```
+
+---
+
 ## License
 
 MIT

@@ -458,6 +458,7 @@ import {
   type DiscriminatorValue,
   type InferredFieldValues,
   type ValidFieldPaths,
+  type ValidFieldPathsOfType,
 } from "@zod-utils/react-hook-form";
 ```
 
@@ -522,6 +523,69 @@ type FormInput = PartialWithAllNullables<User>;
 ```
 
 Use this when all fields need to accept `null`, not just objects/arrays.
+
+---
+
+#### `ValidFieldPathsOfType<TSchema, TValueConstraint, TDiscriminatorKey?, TDiscriminatorValue?, TFieldValues?>`
+
+Extracts field paths where the value type matches a constraint. Useful for building type-safe form components that only accept paths of specific types.
+
+```typescript
+import type { ValidFieldPathsOfType } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string(),
+  age: z.number(),
+  score: z.number().optional(),
+  active: z.boolean(),
+});
+
+// Only accept number field paths
+type NumberPaths = ValidFieldPathsOfType<typeof schema, number>;
+// "age" | "score"
+
+// Only accept boolean field paths
+type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
+// "active"
+```
+
+**Use case - Type-safe form field components:**
+
+```tsx
+// NumberFormField only accepts paths to number fields
+function NumberFormField<
+  TSchema extends z.ZodType,
+  TPath extends ValidFieldPathsOfType<TSchema, number>
+>({ schema, name }: { schema: TSchema; name: TPath }) {
+  // name is guaranteed to be a path to a number field
+  return <input type="number" name={name} />;
+}
+
+// ✅ Works - 'age' is a number field
+<NumberFormField schema={schema} name="age" />
+
+// ❌ TypeScript error - 'name' is a string field, not number
+<NumberFormField schema={schema} name="name" />
+```
+
+**With discriminated unions:**
+
+```typescript
+const formSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string(), priority: z.number() }),
+  z.object({ mode: z.literal("edit"), id: z.number(), rating: z.number() }),
+]);
+
+// Number paths for 'edit' variant
+type EditNumberPaths = ValidFieldPathsOfType<
+  typeof formSchema,
+  number,
+  "mode",
+  "edit"
+>;
+// "id" | "rating"
+```
 
 ---
 

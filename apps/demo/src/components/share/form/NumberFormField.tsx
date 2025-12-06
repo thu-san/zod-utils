@@ -3,7 +3,7 @@ import type {
   DiscriminatorKey,
   DiscriminatorValue,
   InferredFieldValues,
-  ValidFieldPaths,
+  ValidFieldPathsOfType,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
@@ -13,8 +13,9 @@ import { TFormField } from './TFormField';
 
 export function NumberFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPaths<
+  TPath extends ValidFieldPathsOfType<
     TSchema,
+    number,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFieldValues
@@ -98,8 +99,9 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
   schema: TSchema;
 }) {
   return function BoundNumberFormField<
-    TPath extends ValidFieldPaths<
+    TPath extends ValidFieldPathsOfType<
       TSchema,
+      number,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues

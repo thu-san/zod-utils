@@ -3,6 +3,7 @@ import type {
   DiscriminatorValue,
   Simplify,
   ValidPaths,
+  ValidPathsOfType,
 } from '@zod-utils/core';
 import type { FieldValues, Path } from 'react-hook-form';
 import type { z } from 'zod';
@@ -103,4 +104,77 @@ export type ValidFieldPaths<
   TFieldValues extends
     InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
 > = ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue> &
+  Path<TFieldValues>;
+
+/**
+ * Type-safe field paths filtered by value type for React Hook Form.
+ *
+ * Combines `ValidPathsOfType` (filters by value type) with React Hook Form's
+ * `Path` type for full compatibility with form field APIs.
+ *
+ * @template TSchema - The Zod schema type
+ * @template TValueConstraint - The value type to filter by
+ * @template TDiscriminatorKey - The discriminator key (for discriminated unions)
+ * @template TDiscriminatorValue - The discriminator value (for discriminated unions)
+ * @template TFieldValues - The form field values type (inferred from schema)
+ *
+ * @example
+ * Get all string field paths for form
+ * ```typescript
+ * const schema = z.object({
+ *   name: z.string(),
+ *   age: z.number(),
+ *   email: z.string().optional(),
+ * });
+ *
+ * type StringFields = ValidFieldPathsOfType<typeof schema, string>;
+ * // "name" | "email" - compatible with react-hook-form Path
+ * ```
+ *
+ * @example
+ * Get all number field paths for form
+ * ```typescript
+ * const schema = z.object({
+ *   id: z.number(),
+ *   name: z.string(),
+ *   count: z.number().optional(),
+ * });
+ *
+ * type NumberFields = ValidFieldPathsOfType<typeof schema, number>;
+ * // "id" | "count"
+ * ```
+ *
+ * @example
+ * With discriminated union
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number() }),
+ * ]);
+ *
+ * type EditNumberFields = ValidFieldPathsOfType<typeof schema, number, 'mode', 'edit'>;
+ * // "id"
+ * ```
+ *
+ * @see {@link ValidPathsOfType} for the base type without react-hook-form Path intersection
+ * @see {@link ValidFieldPaths} for discriminated union field filtering
+ * @since 0.5.0
+ */
+export type ValidFieldPathsOfType<
+  TSchema extends z.ZodType,
+  TValueConstraint,
+  TDiscriminatorKey extends
+    DiscriminatorKey<TSchema> = DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFieldValues extends
+    InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
+> = ValidPathsOfType<
+  TSchema,
+  TValueConstraint,
+  TDiscriminatorKey,
+  TDiscriminatorValue
+> &
   Path<TFieldValues>;

@@ -1,7 +1,9 @@
 import { describe, expectTypeOf, it } from 'vitest';
+import { z } from 'zod';
 import type {
   PartialWithAllNullables,
   PartialWithNullableObjects,
+  ValidFieldPathsOfType,
 } from '../types';
 
 describe('PartialWithNullableObjects', () => {
@@ -282,5 +284,110 @@ describe('PartialWithAllNullables', () => {
     expectTypeOf<{ name: null }>().toMatchTypeOf<Result>();
     expectTypeOf<{ profile: null }>().toMatchTypeOf<Result>();
     expectTypeOf<{ tags: null }>().toMatchTypeOf<Result>();
+  });
+});
+
+describe('ValidFieldPathsOfType', () => {
+  describe('basic type filtering', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+      email: z.string().optional(),
+      count: z.number().nullable(),
+      active: z.boolean(),
+    });
+
+    it('should extract string field paths', () => {
+      type StringPaths = ValidFieldPathsOfType<typeof schema, string>;
+
+      expectTypeOf<StringPaths>().toEqualTypeOf<'name' | 'email'>();
+    });
+
+    it('should extract number field paths', () => {
+      type NumberPaths = ValidFieldPathsOfType<typeof schema, number>;
+
+      expectTypeOf<NumberPaths>().toEqualTypeOf<'age' | 'count'>();
+    });
+
+    it('should extract boolean field paths', () => {
+      type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
+
+      expectTypeOf<BooleanPaths>().toEqualTypeOf<'active'>();
+    });
+  });
+
+  describe('array type filtering', () => {
+    const schema = z.object({
+      name: z.string(),
+      tags: z.array(z.string()),
+      scores: z.array(z.number()),
+      items: z.array(z.object({ id: z.number() })),
+    });
+
+    it('should extract string array paths', () => {
+      type StringArrayPaths = ValidFieldPathsOfType<typeof schema, string[]>;
+
+      expectTypeOf<StringArrayPaths>().toEqualTypeOf<'tags'>();
+    });
+
+    it('should extract number array paths', () => {
+      type NumberArrayPaths = ValidFieldPathsOfType<typeof schema, number[]>;
+
+      expectTypeOf<NumberArrayPaths>().toEqualTypeOf<'scores'>();
+    });
+
+    it('should extract object array paths', () => {
+      type ObjectArrayPaths = ValidFieldPathsOfType<
+        typeof schema,
+        { id: number }[]
+      >;
+
+      expectTypeOf<ObjectArrayPaths>().toEqualTypeOf<'items'>();
+    });
+  });
+
+  describe('enum and literal handling', () => {
+    it('should include enum fields when filtering for string (literals extend string)', () => {
+      const schema = z.object({
+        mode: z.enum(['create', 'edit']),
+        name: z.string(),
+      });
+
+      // Both 'mode' and 'name' have types that extend string
+      type StringPaths = ValidFieldPathsOfType<typeof schema, string>;
+      expectTypeOf<StringPaths>().toEqualTypeOf<'mode' | 'name'>();
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should return never for non-matching types', () => {
+      const schema = z.object({
+        name: z.string(),
+        age: z.number(),
+      });
+
+      type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
+
+      expectTypeOf<BooleanPaths>().toBeNever();
+    });
+
+    it('should handle complex real-world form schema', () => {
+      const userFormSchema = z.object({
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        email: z.string().email(),
+        age: z.number().min(0),
+        tags: z.array(z.string()),
+        isActive: z.boolean(),
+      });
+
+      type StringPaths = ValidFieldPathsOfType<typeof userFormSchema, string>;
+      type NumberPaths = ValidFieldPathsOfType<typeof userFormSchema, number>;
+
+      expectTypeOf<StringPaths>().toEqualTypeOf<
+        'firstName' | 'lastName' | 'email'
+      >();
+      expectTypeOf<NumberPaths>().toEqualTypeOf<'age'>();
+    });
   });
 });

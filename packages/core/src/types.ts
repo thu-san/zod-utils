@@ -162,6 +162,47 @@ export type Paths<T> = PathsHint<T> | PathsLoose<T>;
 export type CommonFields<T> = Pick<T, keyof T>;
 
 /**
+ * Extracts the input type from a discriminated union variant.
+ *
+ * For discriminated unions, narrows to the variant matching the discriminator value
+ * and returns its input type. For regular schemas, returns the full input type.
+ *
+ * @template TSchema - The Zod schema type
+ * @template TDiscriminatorKey - The discriminator key
+ * @template TDiscriminatorValue - The discriminator value to match
+ *
+ * @example
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number() }),
+ * ]);
+ *
+ * type CreateInput = DiscriminatedInput<typeof schema, 'mode', 'create'>;
+ * // { mode: 'create'; name: string }
+ *
+ * type EditInput = DiscriminatedInput<typeof schema, 'mode', 'edit'>;
+ * // { mode: 'edit'; id: number }
+ * ```
+ *
+ * @since 0.5.0
+ */
+export type DiscriminatedInput<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+> = CommonFields<
+  Extract<
+    Required<z.input<TSchema>>,
+    TDiscriminatorKey extends never
+      ? z.input<TSchema>
+      : TDiscriminatorValue extends never
+        ? z.input<TSchema>
+        : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
+  >
+>;
+
+/**
  * Generates valid dot-notation paths for fields in a discriminated union variant.
  *
  * Given a schema and discriminator value, extracts all possible field paths
@@ -185,15 +226,70 @@ export type ValidPaths<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-> = Paths<
-  CommonFields<
-    Extract<
-      Required<z.input<TSchema>>,
-      TDiscriminatorKey extends never
-        ? z.input<TSchema>
-        : TDiscriminatorValue extends never
-          ? z.input<TSchema>
-          : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
-    >
-  >
+> = Paths<DiscriminatedInput<TSchema, TDiscriminatorKey, TDiscriminatorValue>>;
+
+/**
+ * Extracts field paths from a schema where the field value type matches a constraint.
+ *
+ * Filters schema keys to only those whose input type (with nullish stripped via `NonNullable`)
+ * extends the given `TValueConstraint`. For discriminated unions, first narrows to the
+ * specific variant before filtering.
+ *
+ * @template TSchema - The Zod schema type
+ * @template TValueConstraint - The value type to filter by
+ * @template TDiscriminatorKey - The discriminator key (for discriminated unions)
+ * @template TDiscriminatorValue - The discriminator value (for discriminated unions)
+ *
+ * @example
+ * Get all string field paths
+ * ```typescript
+ * const schema = z.object({
+ *   name: z.string(),
+ *   age: z.number(),
+ *   email: z.string().optional(),
+ * });
+ *
+ * type StringPaths = ValidPathsOfType<typeof schema, string>;
+ * // "name" | "email"
+ * ```
+ *
+ * @example
+ * With discriminated union - filter by type within a variant
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string(), age: z.number() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number(), name: z.string() }),
+ * ]);
+ *
+ * type EditNumberPaths = ValidPathsOfType<typeof schema, number, 'mode', 'edit'>;
+ * // "id" - only number fields in 'edit' variant
+ * ```
+ *
+ * @see {@link ValidPaths} for discriminated union path filtering
+ * @since 0.5.0
+ */
+export type ValidPathsOfType<
+  TSchema extends z.ZodType,
+  TValueConstraint,
+  TDiscriminatorKey extends
+    DiscriminatorKey<TSchema> = DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TVariant = DiscriminatedInput<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >,
+> = NonNullable<
+  Extract<
+    {
+      [K in keyof TVariant]: NonNullable<TVariant[K]> extends TValueConstraint
+        ? K
+        : never;
+    }[keyof TVariant],
+    string
+  > &
+    ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>
 >;
