@@ -277,7 +277,11 @@ export type ValidPathsOfType<
     TSchema,
     TDiscriminatorKey
   > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
-  TVariant = DiscriminatedInput<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TVariant = DiscriminatedInput<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >,
 > = NonNullable<
   Extract<
     {
