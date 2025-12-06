@@ -23,7 +23,7 @@
     "lint": "biome check . && npm run lint:eslint && npm run lint:typescript",
     "lint:fix": "biome check --write .",
     "size": "size-limit",
-    "pre-pr": "npm run build && npm run lint && npm run test && npm run bench && npm run size",
+    "pre-pr": "npm run build && npm run lint && npm run test && npm run test:coverage && npm run bench && npm run size",
     "prepare": "husky",
     "publish:core": "npm publish --workspace=packages/core",
     "publish:rhf": "npm publish --workspace=packages/react-hook-form",

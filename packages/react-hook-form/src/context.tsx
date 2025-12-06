@@ -190,8 +190,8 @@ export function FormSchemaProvider<
  *
  * Memoized - only recalculates when schema, name, or discriminator changes.
  *
- * @param params - Schema, name, and optional discriminator
- * @returns true if the field requires valid input, false otherwise
+ * @param params - Schema, name, and optional discriminator (schema and name are optional)
+ * @returns true if the field requires valid input, false if it doesn't or if schema/name is not provided
  *
  * @example
  * ```tsx
@@ -217,18 +217,21 @@ export function useIsRequiredField<
   name,
   discriminator,
 }: {
-  schema: TSchema;
-  name: TPath;
+  schema?: TSchema;
+  name?: TPath;
   discriminator?: Discriminator<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue
   >;
 }): boolean {
-  return useMemo(
-    () => isRequiredField({ schema, name, discriminator }),
-    [schema, name, discriminator],
-  );
+  return useMemo(() => {
+    if (!schema || !name) {
+      return false;
+    }
+
+    return isRequiredField({ schema, name, discriminator });
+  }, [schema, name, discriminator]);
 }
 
 /**

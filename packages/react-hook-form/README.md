@@ -343,10 +343,10 @@ function FieldComponent() {
 }
 ```
 
-### `useIsRequiredField({ schema, name, discriminator? })`
+### `useIsRequiredField({ schema?, name?, discriminator? })`
 
 Hook to check if a field requires valid input (shows validation errors on submit).
-The schema parameter is used for type inference only - the actual schema is retrieved from context.
+Returns `false` if schema or name is not provided, making it safe to use in conditional contexts.
 
 ```tsx
 import { useIsRequiredField } from "@zod-utils/react-hook-form";
