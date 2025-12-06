@@ -1,5 +1,20 @@
 # @zod-utils/react-hook-form
 
+## 2.0.2
+
+### Patch Changes
+
+- 227068e: - New `DiscriminatedInput` type helper for extracting input
+  types from discriminated union variants
+  - New `ValidPathsOfType` type for filtering schema paths by
+    value type (e.g., get all `number` paths)
+  - New `ValidFieldPathsOfType` type for React Hook Form
+    integration
+  - Refactored `ValidPaths` to use shared `DiscriminatedInput`
+    helper
+- Updated dependencies [227068e]
+  - @zod-utils/core@2.0.2
+
 ## 2.0.1
 
 ### Patch Changes

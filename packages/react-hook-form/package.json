@@ -1,6 +1,6 @@
 {
   "name": "@zod-utils/react-hook-form",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "React Hook Form integration and utilities for Zod schemas",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
