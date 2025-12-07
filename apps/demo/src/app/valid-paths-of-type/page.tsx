@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import type { ValidPathsOfType } from '@zod-utils/react-hook-form';
+import { useState } from 'react';
 import z from 'zod';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -11,7 +12,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 
 // Demo schema with various field types and nesting levels
 const demoSchema = z.object({
@@ -345,11 +345,9 @@ function PersonalEducationSection<TPath extends PersonalEducationPaths>({
   );
 }
 
-function PersonalNotificationsSection<TPath extends PersonalNotificationsPaths>({
-  name,
-}: {
-  name: TPath;
-}) {
+function PersonalNotificationsSection<
+  TPath extends PersonalNotificationsPaths,
+>({ name }: { name: TPath }) {
   return (
     <div className="flex items-center gap-2 p-2 bg-violet-50 dark:bg-violet-950 rounded">
       <span className="text-xs text-violet-600 dark:text-violet-400">
@@ -647,7 +645,9 @@ function PathSection({
 }
 
 export default function ValidPathsOfTypePage() {
-  const [activeTab, setActiveTab] = useState<'basic' | 'discriminated'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'discriminated'>(
+    'basic',
+  );
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] p-4">
@@ -734,191 +734,189 @@ function BasicSchemaContent() {
     }),
   }),
 });`}
-            </pre>
-          </div>
+        </pre>
+      </div>
 
-          <Separator />
+      <Separator />
 
-          {/* Interactive Demo - Actual Components */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg">Interactive Demo</h3>
-              <p className="text-sm text-muted-foreground">
-                These are actual components using ValidPathsOfType. Hover over
-                the <code>name</code> prop in your IDE to see IntelliSense!
-              </p>
-            </div>
+      {/* Interactive Demo - Actual Components */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold text-lg">Interactive Demo</h3>
+          <p className="text-sm text-muted-foreground">
+            These are actual components using ValidPathsOfType. Hover over the{' '}
+            <code>name</code> prop in your IDE to see IntelliSense!
+          </p>
+        </div>
 
-            <div className="grid gap-2">
-              {/* String inputs - only accepts string paths */}
-              <StringInput schema={demoSchema} name="name" />
-              <StringInput schema={demoSchema} name="email" />
-              <StringInput schema={demoSchema} name="profile.bio" />
-              <StringInput
-                schema={demoSchema}
-                name="settings.preferences.theme"
-              />
-              {/* Try uncommenting: <StringInput schema={demoSchema} name="age" /> */}
-              {/* ❌ Error: 'age' is number, not string */}
+        <div className="grid gap-2">
+          {/* String inputs - only accepts string paths */}
+          <StringInput schema={demoSchema} name="name" />
+          <StringInput schema={demoSchema} name="email" />
+          <StringInput schema={demoSchema} name="profile.bio" />
+          <StringInput schema={demoSchema} name="settings.preferences.theme" />
+          {/* Try uncommenting: <StringInput schema={demoSchema} name="age" /> */}
+          {/* ❌ Error: 'age' is number, not string */}
 
-              {/* Number inputs - only accepts number paths */}
-              <NumberInput schema={demoSchema} name="age" />
-              <NumberInput schema={demoSchema} name="profile.followers" />
-              {/* Try uncommenting: <NumberInput schema={demoSchema} name="name" /> */}
-              {/* ❌ Error: 'name' is string, not number */}
+          {/* Number inputs - only accepts number paths */}
+          <NumberInput schema={demoSchema} name="age" />
+          <NumberInput schema={demoSchema} name="profile.followers" />
+          {/* Try uncommenting: <NumberInput schema={demoSchema} name="name" /> */}
+          {/* ❌ Error: 'name' is string, not number */}
 
-              {/* Boolean inputs - only accepts boolean paths */}
-              <BooleanInput schema={demoSchema} name="isActive" />
-              <BooleanInput schema={demoSchema} name="profile.verified" />
-              <BooleanInput
-                schema={demoSchema}
-                name="settings.notifications.email"
-              />
-              {/* Try uncommenting: <BooleanInput schema={demoSchema} name="age" /> */}
-              {/* ❌ Error: 'age' is number, not boolean */}
-
-              {/* Object sections - TPath auto-inferred from name prop! */}
-              <ProfileSection schema={demoSchema} name="profile" />
-              <AddressSection schema={demoSchema} name="addresses.0" />
-              <NotificationsSection schema={demoSchema} name="settings.notifications" />
-              {/* Try uncommenting: <ProfileSection schema={demoSchema} name="settings" /> */}
-              {/* ❌ Error: 'settings' doesn't resolve to Profile type */}
-            </div>
-
-            <div className="bg-muted p-3 rounded-md text-xs">
-              <p className="text-muted-foreground">
-                <strong>Tip:</strong> Try changing the <code>name</code> prop
-                values above to invalid paths - TypeScript will show an error!
-              </p>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* String Paths */}
-          <PathSection
-            title="String Paths"
-            description="All paths where the value type is string"
-            paths={stringPaths}
-            color="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-            typeDefinition="type StringPaths = ValidPathsOfType<typeof schema, string>"
+          {/* Boolean inputs - only accepts boolean paths */}
+          <BooleanInput schema={demoSchema} name="isActive" />
+          <BooleanInput schema={demoSchema} name="profile.verified" />
+          <BooleanInput
+            schema={demoSchema}
+            name="settings.notifications.email"
           />
+          {/* Try uncommenting: <BooleanInput schema={demoSchema} name="age" /> */}
+          {/* ❌ Error: 'age' is number, not boolean */}
 
-          <Separator />
-
-          {/* Number Paths */}
-          <PathSection
-            title="Number Paths"
-            description="All paths where the value type is number"
-            paths={numberPaths}
-            color="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-            typeDefinition="type NumberPaths = ValidPathsOfType<typeof schema, number>"
+          {/* Object sections - TPath auto-inferred from name prop! */}
+          <ProfileSection schema={demoSchema} name="profile" />
+          <AddressSection schema={demoSchema} name="addresses.0" />
+          <NotificationsSection
+            schema={demoSchema}
+            name="settings.notifications"
           />
+          {/* Try uncommenting: <ProfileSection schema={demoSchema} name="settings" /> */}
+          {/* ❌ Error: 'settings' doesn't resolve to Profile type */}
+        </div>
 
-          <Separator />
+        <div className="bg-muted p-3 rounded-md text-xs">
+          <p className="text-muted-foreground">
+            <strong>Tip:</strong> Try changing the <code>name</code> prop values
+            above to invalid paths - TypeScript will show an error!
+          </p>
+        </div>
+      </div>
 
-          {/* Boolean Paths */}
-          <PathSection
-            title="Boolean Paths"
-            description="All paths where the value type is boolean"
-            paths={booleanPaths}
-            color="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-            typeDefinition="type BooleanPaths = ValidPathsOfType<typeof schema, boolean>"
-          />
+      <Separator />
 
-          <Separator />
+      {/* String Paths */}
+      <PathSection
+        title="String Paths"
+        description="All paths where the value type is string"
+        paths={stringPaths}
+        color="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+        typeDefinition="type StringPaths = ValidPathsOfType<typeof schema, string>"
+      />
 
-          {/* Object Paths */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg">Object Paths</h3>
-              <p className="text-sm text-muted-foreground">
-                Filter paths by object shape - useful for nested form sections
-              </p>
-            </div>
+      <Separator />
 
-            <div className="space-y-3">
-              <div>
-                <div className="bg-muted p-3 rounded-md mb-2">
-                  <code className="text-xs text-muted-foreground">
-                    {`type Profile = z.infer<typeof schema>['profile']`}
-                  </code>
-                  <br />
-                  <code className="text-xs text-muted-foreground">
-                    {`type ProfilePaths = ValidPathsOfType<typeof schema, Profile>`}
-                  </code>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {profilePaths.map((path) => (
-                    <PathBadge
-                      key={path}
-                      path={path}
-                      color="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-                    />
-                  ))}
-                </div>
-              </div>
+      {/* Number Paths */}
+      <PathSection
+        title="Number Paths"
+        description="All paths where the value type is number"
+        paths={numberPaths}
+        color="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+        typeDefinition="type NumberPaths = ValidPathsOfType<typeof schema, number>"
+      />
 
-              <div>
-                <div className="bg-muted p-3 rounded-md mb-2">
-                  <code className="text-xs text-muted-foreground">
-                    {`type Address = z.infer<typeof schema>['addresses'][number]`}
-                  </code>
-                  <br />
-                  <code className="text-xs text-muted-foreground">
-                    {`type AddressPaths = ValidPathsOfType<typeof schema, Address>`}
-                  </code>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {addressPaths.map((path) => (
-                    <PathBadge
-                      key={path}
-                      path={path}
-                      color="bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200"
-                    />
-                  ))}
-                </div>
-              </div>
+      <Separator />
 
-              <div>
-                <div className="bg-muted p-3 rounded-md mb-2">
-                  <code className="text-xs text-muted-foreground">
-                    {`type Notifications = z.infer<typeof schema>['settings']['notifications']`}
-                  </code>
-                  <br />
-                  <code className="text-xs text-muted-foreground">
-                    {`type NotificationsPaths = ValidPathsOfType<typeof schema, Notifications>`}
-                  </code>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {notificationsPaths.map((path) => (
-                    <PathBadge
-                      key={path}
-                      path={path}
-                      color="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200"
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Boolean Paths */}
+      <PathSection
+        title="Boolean Paths"
+        description="All paths where the value type is boolean"
+        paths={booleanPaths}
+        color="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+        typeDefinition="type BooleanPaths = ValidPathsOfType<typeof schema, boolean>"
+      />
 
-          <Separator />
+      <Separator />
 
-          {/* Use Cases */}
+      {/* Object Paths */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="font-semibold text-lg">Object Paths</h3>
+          <p className="text-sm text-muted-foreground">
+            Filter paths by object shape - useful for nested form sections
+          </p>
+        </div>
+
+        <div className="space-y-3">
           <div>
-            <h3 className="font-semibold text-lg mb-3">
-              Actual Usage Examples
-            </h3>
-            <div className="space-y-4 text-sm text-muted-foreground">
-              <div>
-                <p className="mb-2">
-                  <strong>1. Type-safe form field components:</strong> Create
-                  input components that only accept paths matching their
-                  expected value type.
-                </p>
-                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                  {`// Only accepts paths that resolve to string values
+            <div className="bg-muted p-3 rounded-md mb-2">
+              <code className="text-xs text-muted-foreground">
+                {`type Profile = z.infer<typeof schema>['profile']`}
+              </code>
+              <br />
+              <code className="text-xs text-muted-foreground">
+                {`type ProfilePaths = ValidPathsOfType<typeof schema, Profile>`}
+              </code>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {profilePaths.map((path) => (
+                <PathBadge
+                  key={path}
+                  path={path}
+                  color="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="bg-muted p-3 rounded-md mb-2">
+              <code className="text-xs text-muted-foreground">
+                {`type Address = z.infer<typeof schema>['addresses'][number]`}
+              </code>
+              <br />
+              <code className="text-xs text-muted-foreground">
+                {`type AddressPaths = ValidPathsOfType<typeof schema, Address>`}
+              </code>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {addressPaths.map((path) => (
+                <PathBadge
+                  key={path}
+                  path={path}
+                  color="bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200"
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="bg-muted p-3 rounded-md mb-2">
+              <code className="text-xs text-muted-foreground">
+                {`type Notifications = z.infer<typeof schema>['settings']['notifications']`}
+              </code>
+              <br />
+              <code className="text-xs text-muted-foreground">
+                {`type NotificationsPaths = ValidPathsOfType<typeof schema, Notifications>`}
+              </code>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {notificationsPaths.map((path) => (
+                <PathBadge
+                  key={path}
+                  path={path}
+                  color="bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Use Cases */}
+      <div>
+        <h3 className="font-semibold text-lg mb-3">Actual Usage Examples</h3>
+        <div className="space-y-4 text-sm text-muted-foreground">
+          <div>
+            <p className="mb-2">
+              <strong>1. Type-safe form field components:</strong> Create input
+              components that only accept paths matching their expected value
+              type.
+            </p>
+            <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+              {`// Only accepts paths that resolve to string values
 // TPath is auto-inferred from the 'name' prop!
 function StringInput<
   TSchema extends z.ZodType,
@@ -932,15 +930,15 @@ function StringInput<
 // Usage - no type params needed:
 <StringInput schema={schema} name="profile.bio" />  // ✅ OK
 <StringInput schema={schema} name="age" />          // ❌ Error: number`}
-                </pre>
-              </div>
+            </pre>
+          </div>
 
-              <div>
-                <p className="mb-2">
-                  <strong>2. Number-only inputs with validation:</strong>
-                </p>
-                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                  {`function NumberInput<
+          <div>
+            <p className="mb-2">
+              <strong>2. Number-only inputs with validation:</strong>
+            </p>
+            <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+              {`function NumberInput<
   TSchema extends z.ZodType,
   TPath extends ValidPathsOfType<TSchema, number>,
 >({ schema, name, min, max }: {
@@ -958,15 +956,15 @@ function StringInput<
 <NumberInput schema={schema} name="age" min={0} max={120} />  // ✅ OK
 <NumberInput schema={schema} name="profile.followers" />      // ✅ OK
 <NumberInput schema={schema} name="name" />                   // ❌ Error`}
-                </pre>
-              </div>
+            </pre>
+          </div>
 
-              <div>
-                <p className="mb-2">
-                  <strong>3. Object section components with useWatch:</strong>
-                </p>
-                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                  {`type Profile = z.infer<typeof schema>['profile'];
+          <div>
+            <p className="mb-2">
+              <strong>3. Object section components with useWatch:</strong>
+            </p>
+            <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+              {`type Profile = z.infer<typeof schema>['profile'];
 
 // TPath is auto-inferred from the 'name' prop - no manual type params!
 function ProfileSection<
@@ -987,15 +985,15 @@ function ProfileSection<
 // Usage - TPath inferred automatically:
 <ProfileSection schema={schema} name="profile" />  // ✅ OK
 <ProfileSection schema={schema} name="settings" /> // ❌ Error: wrong type`}
-                </pre>
-              </div>
+            </pre>
+          </div>
 
-              <div>
-                <p className="mb-2">
-                  <strong>4. Array item rendering with type safety:</strong>
-                </p>
-                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                  {`type Address = z.infer<typeof schema>['addresses'][number];
+          <div>
+            <p className="mb-2">
+              <strong>4. Array item rendering with type safety:</strong>
+            </p>
+            <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+              {`type Address = z.infer<typeof schema>['addresses'][number];
 
 function AddressCard<TPath extends ValidPathsOfType<typeof schema, Address>>({
   name,
@@ -1017,15 +1015,15 @@ const { fields } = useFieldArray({ control, name: 'addresses' });
 {fields.map((_, index) => (
   <AddressCard key={index} name={\`addresses.\${index}\`} />  // ✅ Type-safe
 ))}`}
-                </pre>
-              </div>
+            </pre>
+          </div>
 
-              <div>
-                <p className="mb-2">
-                  <strong>5. Bulk operations on paths of same type:</strong>
-                </p>
-                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                  {`// Reset all boolean fields to false
+          <div>
+            <p className="mb-2">
+              <strong>5. Bulk operations on paths of same type:</strong>
+            </p>
+            <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+              {`// Reset all boolean fields to false
 type BoolPaths = ValidPathsOfType<typeof schema, boolean>;
 const booleanFields: BoolPaths[] = [
   'isActive',
@@ -1039,12 +1037,12 @@ function resetBooleans(form: UseFormReturn<z.infer<typeof schema>>) {
     form.setValue(path, false);  // ✅ Type-safe: path resolves to boolean
   });
 }`}
-                </pre>
-              </div>
-            </div>
+            </pre>
           </div>
         </div>
-      );
+      </div>
+    </div>
+  );
 }
 
 function DiscriminatedSchemaContent() {
@@ -1052,7 +1050,9 @@ function DiscriminatedSchemaContent() {
     <div className="space-y-6">
       {/* Schema Display */}
       <div>
-        <h3 className="font-semibold text-sm mb-2">Discriminated Union Schema</h3>
+        <h3 className="font-semibold text-sm mb-2">
+          Discriminated Union Schema
+        </h3>
         <pre className="bg-muted p-4 rounded-md text-xs overflow-x-auto max-h-80 overflow-y-auto">
           {`const schema = z.discriminatedUnion('type', [
   // PERSONAL variant
@@ -1184,8 +1184,8 @@ function DiscriminatedSchemaContent() {
         <div className="bg-muted p-3 rounded-md text-xs">
           <p className="text-muted-foreground">
             <strong>Key Insight:</strong> Personal and Business variants have
-            completely different nested structures. ValidPathsOfType ensures
-            you can only use paths that exist in the selected variant!
+            completely different nested structures. ValidPathsOfType ensures you
+            can only use paths that exist in the selected variant!
           </p>
         </div>
       </div>
