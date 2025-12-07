@@ -160,11 +160,18 @@ describe('ValidPathsOfType', () => {
       isActive: z.boolean(),
     });
 
-    it('should extract all string paths', () => {
+    it('should extract all string paths including nested', () => {
       type StringPaths = ValidPathsOfType<typeof userFormSchema, string>;
 
       expectTypeOf<StringPaths>().toEqualTypeOf<
-        'firstName' | 'lastName' | 'email'
+        | 'firstName'
+        | 'lastName'
+        | 'email'
+        | 'profile.bio'
+        | 'profile.website'
+        | 'addresses.0.street'
+        | 'addresses.0.city'
+        | 'addresses.0.zip'
       >();
     });
 
@@ -187,6 +194,91 @@ describe('ValidPathsOfType', () => {
       >;
 
       expectTypeOf<AddressPaths>().toEqualTypeOf<'addresses'>();
+    });
+  });
+
+  describe('nested path support', () => {
+    it('should extract nested string paths from objects', () => {
+      const schema = z.object({
+        name: z.string(),
+        profile: z.object({
+          bio: z.string(),
+          avatar: z.string(),
+        }),
+      });
+
+      type StringPaths = ValidPathsOfType<typeof schema, string>;
+
+      expectTypeOf<StringPaths>().toEqualTypeOf<
+        'name' | 'profile.bio' | 'profile.avatar'
+      >();
+    });
+
+    it('should extract nested number paths from objects', () => {
+      const schema = z.object({
+        count: z.number(),
+        stats: z.object({
+          views: z.number(),
+          likes: z.number(),
+        }),
+      });
+
+      type NumberPaths = ValidPathsOfType<typeof schema, number>;
+
+      expectTypeOf<NumberPaths>().toEqualTypeOf<
+        'count' | 'stats.views' | 'stats.likes'
+      >();
+    });
+
+    it('should extract paths from nested arrays', () => {
+      const schema = z.object({
+        items: z.array(
+          z.object({
+            name: z.string(),
+            price: z.number(),
+          }),
+        ),
+      });
+
+      type StringPaths = ValidPathsOfType<typeof schema, string>;
+      type NumberPaths = ValidPathsOfType<typeof schema, number>;
+
+      expectTypeOf<StringPaths>().toEqualTypeOf<'items.0.name'>();
+      expectTypeOf<NumberPaths>().toEqualTypeOf<'items.0.price'>();
+    });
+
+    it('should extract deeply nested paths', () => {
+      const schema = z.object({
+        level1: z.object({
+          level2: z.object({
+            level3: z.object({
+              value: z.string(),
+            }),
+          }),
+        }),
+      });
+
+      type StringPaths = ValidPathsOfType<typeof schema, string>;
+
+      expectTypeOf<StringPaths>().toEqualTypeOf<'level1.level2.level3.value'>();
+    });
+
+    it('should handle mixed nested types', () => {
+      const schema = z.object({
+        user: z.object({
+          name: z.string(),
+          age: z.number(),
+          isActive: z.boolean(),
+        }),
+      });
+
+      type StringPaths = ValidPathsOfType<typeof schema, string>;
+      type NumberPaths = ValidPathsOfType<typeof schema, number>;
+      type BooleanPaths = ValidPathsOfType<typeof schema, boolean>;
+
+      expectTypeOf<StringPaths>().toEqualTypeOf<'user.name'>();
+      expectTypeOf<NumberPaths>().toEqualTypeOf<'user.age'>();
+      expectTypeOf<BooleanPaths>().toEqualTypeOf<'user.isActive'>();
     });
   });
 

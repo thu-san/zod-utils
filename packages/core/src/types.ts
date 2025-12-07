@@ -99,6 +99,85 @@ export type Discriminator<
 type Primitive = string | number | boolean | null | undefined | symbol | bigint;
 type NonZeroDigit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
+// Matches 1-9, 10, 11, 12... (any number starting with non-zero)
+type NonZeroIndex = `${NonZeroDigit}` | `${NonZeroDigit}${number}`;
+
+/**
+ * Generates paths filtered by value type with .0 hint for arrays.
+ * Used for IDE autocomplete hints.
+ */
+type PathsOfTypeHint<
+  T,
+  TValueConstraint,
+  Prefix extends string = '',
+> = T extends Primitive
+  ? never
+  : T extends (infer E)[]
+    ?
+        | (NonNullable<T> extends TValueConstraint
+            ? Prefix extends ''
+              ? never
+              : Prefix
+            : never)
+        | (NonNullable<E> extends TValueConstraint ? `${Prefix}.0` : never)
+        | PathsOfTypeHint<NonNullable<E>, TValueConstraint, `${Prefix}.0`>
+    : T extends object
+      ? {
+          [K in keyof T & string]:
+            | (NonNullable<T[K]> extends TValueConstraint
+                ? Prefix extends ''
+                  ? K
+                  : `${Prefix}.${K}`
+                : never)
+            | PathsOfTypeHint<
+                NonNullable<T[K]>,
+                TValueConstraint,
+                Prefix extends '' ? K : `${Prefix}.${K}`
+              >;
+        }[keyof T & string]
+      : never;
+
+/**
+ * Generates paths filtered by value type with non-zero indices for arrays.
+ * Used for runtime path validation.
+ */
+type PathsOfTypeLoose<
+  T,
+  TValueConstraint,
+  Prefix extends string = '',
+> = T extends Primitive
+  ? never
+  : T extends (infer E)[]
+    ?
+        | (NonNullable<T> extends TValueConstraint
+            ? Prefix extends ''
+              ? never
+              : Prefix
+            : never)
+        | (NonNullable<E> extends TValueConstraint
+            ? `${Prefix}.${NonZeroIndex}`
+            : never)
+        | PathsOfTypeLoose<
+            NonNullable<E>,
+            TValueConstraint,
+            `${Prefix}.${NonZeroIndex}`
+          >
+    : T extends object
+      ? {
+          [K in keyof T & string]:
+            | (NonNullable<T[K]> extends TValueConstraint
+                ? Prefix extends ''
+                  ? K
+                  : `${Prefix}.${K}`
+                : never)
+            | PathsOfTypeLoose<
+                NonNullable<T[K]>,
+                TValueConstraint,
+                Prefix extends '' ? K : `${Prefix}.${K}`
+              >;
+        }[keyof T & string]
+      : never;
+
 type PathsHint<T, Prefix extends string = ''> = T extends Primitive
   ? never
   : T extends (infer E)[]
@@ -113,9 +192,6 @@ type PathsHint<T, Prefix extends string = ''> = T extends Primitive
             | PathsHint<T[K], Prefix extends '' ? K : `${Prefix}.${K}`>;
         }[keyof T & string]
       : never;
-
-// Matches 1-9, 10, 11, 12... (any number starting with non-zero)
-type NonZeroIndex = `${NonZeroDigit}` | `${NonZeroDigit}${number}`;
 
 type PathsLoose<T, Prefix extends string = ''> = T extends Primitive
   ? never
@@ -231,9 +307,9 @@ export type ValidPaths<
 /**
  * Extracts field paths from a schema where the field value type matches a constraint.
  *
- * Filters schema keys to only those whose input type (with nullish stripped via `NonNullable`)
- * extends the given `TValueConstraint`. For discriminated unions, first narrows to the
- * specific variant before filtering.
+ * Filters schema paths (including nested paths) to only those whose input type
+ * (with nullish stripped via `NonNullable`) extends the given `TValueConstraint`.
+ * For discriminated unions, first narrows to the specific variant before filtering.
  *
  * @template TSchema - The Zod schema type
  * @template TValueConstraint - The value type to filter by
@@ -241,16 +317,20 @@ export type ValidPaths<
  * @template TDiscriminatorValue - The discriminator value (for discriminated unions)
  *
  * @example
- * Get all string field paths
+ * Get all string field paths (including nested)
  * ```typescript
  * const schema = z.object({
  *   name: z.string(),
  *   age: z.number(),
  *   email: z.string().optional(),
+ *   profile: z.object({
+ *     bio: z.string(),
+ *     avatar: z.string(),
+ *   }),
  * });
  *
  * type StringPaths = ValidPathsOfType<typeof schema, string>;
- * // "name" | "email"
+ * // "name" | "email" | "profile.bio" | "profile.avatar"
  * ```
  *
  * @example
@@ -283,13 +363,6 @@ export type ValidPathsOfType<
     TDiscriminatorValue
   >,
 > = NonNullable<
-  Extract<
-    {
-      [K in keyof TVariant]: NonNullable<TVariant[K]> extends TValueConstraint
-        ? K
-        : never;
-    }[keyof TVariant],
-    string
-  > &
-    ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>
+  | PathsOfTypeHint<TVariant, TValueConstraint>
+  | PathsOfTypeLoose<TVariant, TValueConstraint>
 >;
