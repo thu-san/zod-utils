@@ -142,7 +142,7 @@ describe('ValidPathsOfType', () => {
     const userFormSchema = z.object({
       firstName: z.string().min(1),
       lastName: z.string().min(1),
-      email: z.string().email(),
+      email: z.email(),
       age: z.number().min(0),
       score: z.number().optional(),
       tags: z.array(z.string()),
@@ -155,7 +155,7 @@ describe('ValidPathsOfType', () => {
       ),
       profile: z.object({
         bio: z.string(),
-        website: z.string().url().optional(),
+        website: z.url().optional(),
       }),
       isActive: z.boolean(),
     });
@@ -167,11 +167,84 @@ describe('ValidPathsOfType', () => {
         | 'firstName'
         | 'lastName'
         | 'email'
-        | 'profile.bio'
-        | 'profile.website'
+        | 'tags.0'
+        | 'tags.1'
+        | 'tags.4'
+        | 'tags.2'
+        | 'tags.3'
+        | 'tags.5'
+        | 'tags.6'
+        | 'tags.7'
+        | 'tags.8'
+        | 'tags.9'
+        | `tags.1${number}`
+        | `tags.4${number}`
+        | `tags.2${number}`
+        | `tags.3${number}`
+        | `tags.5${number}`
+        | `tags.6${number}`
+        | `tags.7${number}`
+        | `tags.8${number}`
+        | `tags.9${number}`
         | 'addresses.0.street'
         | 'addresses.0.city'
         | 'addresses.0.zip'
+        | 'addresses.1.street'
+        | 'addresses.1.city'
+        | 'addresses.1.zip'
+        | `addresses.2.street`
+        | `addresses.2.city`
+        | `addresses.2.zip`
+        | `addresses.3.street`
+        | `addresses.3.city`
+        | `addresses.3.zip`
+        | `addresses.4.street`
+        | `addresses.4.city`
+        | `addresses.4.zip`
+        | `addresses.5.street`
+        | `addresses.5.city`
+        | `addresses.5.zip`
+        | `addresses.6.street`
+        | `addresses.6.city`
+        | `addresses.6.zip`
+        | `addresses.7.street`
+        | `addresses.7.city`
+        | `addresses.7.zip`
+        | `addresses.8.street`
+        | `addresses.8.city`
+        | `addresses.8.zip`
+        | `addresses.9.street`
+        | `addresses.9.city`
+        | `addresses.9.zip`
+        | `addresses.1${number}.street`
+        | `addresses.1${number}.city`
+        | `addresses.1${number}.zip`
+        | `addresses.2${number}.street`
+        | `addresses.2${number}.city`
+        | `addresses.2${number}.zip`
+        | `addresses.3${number}.street`
+        | `addresses.3${number}.city`
+        | `addresses.3${number}.zip`
+        | `addresses.4${number}.street`
+        | `addresses.4${number}.city`
+        | `addresses.4${number}.zip`
+        | `addresses.5${number}.street`
+        | `addresses.5${number}.city`
+        | `addresses.5${number}.zip`
+        | `addresses.6${number}.street`
+        | `addresses.6${number}.city`
+        | `addresses.6${number}.zip`
+        | `addresses.7${number}.street`
+        | `addresses.7${number}.city`
+        | `addresses.7${number}.zip`
+        | `addresses.8${number}.street`
+        | `addresses.8${number}.city`
+        | `addresses.8${number}.zip`
+        | `addresses.9${number}.street`
+        | `addresses.9${number}.city`
+        | `addresses.9${number}.zip`
+        | 'profile.bio'
+        | 'profile.website'
       >();
     });
 
@@ -232,6 +305,7 @@ describe('ValidPathsOfType', () => {
 
     it('should extract paths from nested arrays', () => {
       const schema = z.object({
+        dummy: z.string().default(''), // without this, array only became string instead of string literals
         items: z.array(
           z.object({
             name: z.string(),
@@ -243,12 +317,54 @@ describe('ValidPathsOfType', () => {
       type StringPaths = ValidPathsOfType<typeof schema, string>;
       type NumberPaths = ValidPathsOfType<typeof schema, number>;
 
-      expectTypeOf<StringPaths>().toEqualTypeOf<'items.0.name'>();
-      expectTypeOf<NumberPaths>().toEqualTypeOf<'items.0.price'>();
+      expectTypeOf<StringPaths>().toEqualTypeOf<
+        | 'dummy'
+        | 'items.0.name'
+        | 'items.4.name'
+        | 'items.1.name'
+        | 'items.2.name'
+        | 'items.3.name'
+        | 'items.5.name'
+        | 'items.6.name'
+        | 'items.7.name'
+        | 'items.8.name'
+        | 'items.9.name'
+        | `items.4${number}.name`
+        | `items.1${number}.name`
+        | `items.2${number}.name`
+        | `items.3${number}.name`
+        | `items.5${number}.name`
+        | `items.6${number}.name`
+        | `items.7${number}.name`
+        | `items.8${number}.name`
+        | `items.9${number}.name`
+      >();
+      expectTypeOf<NumberPaths>().toEqualTypeOf<
+        | 'items.0.price'
+        | 'items.4.price'
+        | 'items.1.price'
+        | 'items.2.price'
+        | 'items.3.price'
+        | 'items.5.price'
+        | 'items.6.price'
+        | 'items.7.price'
+        | 'items.8.price'
+        | 'items.9.price'
+        | `items.4${number}.price`
+        | `items.1${number}.price`
+        | `items.2${number}.price`
+        | `items.3${number}.price`
+        | `items.5${number}.price`
+        | `items.6${number}.price`
+        | `items.7${number}.price`
+        | `items.8${number}.price`
+        | `items.9${number}.price`
+      >();
     });
 
     it('should extract deeply nested paths', () => {
       const schema = z.object({
+        dummy: z.string().default(''), // without this, array only became string instead of string literals
         level1: z.object({
           level2: z.object({
             level3: z.object({
@@ -260,11 +376,14 @@ describe('ValidPathsOfType', () => {
 
       type StringPaths = ValidPathsOfType<typeof schema, string>;
 
-      expectTypeOf<StringPaths>().toEqualTypeOf<'level1.level2.level3.value'>();
+      expectTypeOf<StringPaths>().toEqualTypeOf<
+        'dummy' | 'level1.level2.level3.value'
+      >();
     });
 
     it('should handle mixed nested types', () => {
       const schema = z.object({
+        dummy: z.string().default(''), // without this, array only became string instead of string literals
         user: z.object({
           name: z.string(),
           age: z.number(),
@@ -276,7 +395,7 @@ describe('ValidPathsOfType', () => {
       type NumberPaths = ValidPathsOfType<typeof schema, number>;
       type BooleanPaths = ValidPathsOfType<typeof schema, boolean>;
 
-      expectTypeOf<StringPaths>().toEqualTypeOf<'user.name'>();
+      expectTypeOf<StringPaths>().toEqualTypeOf<'dummy' | 'user.name'>();
       expectTypeOf<NumberPaths>().toEqualTypeOf<'user.age'>();
       expectTypeOf<BooleanPaths>().toEqualTypeOf<'user.isActive'>();
     });

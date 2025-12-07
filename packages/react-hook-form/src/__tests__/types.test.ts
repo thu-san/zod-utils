@@ -385,7 +385,28 @@ describe('ValidFieldPathsOfType', () => {
       type NumberPaths = ValidFieldPathsOfType<typeof userFormSchema, number>;
 
       expectTypeOf<StringPaths>().toEqualTypeOf<
-        'firstName' | 'lastName' | 'email'
+        | 'firstName'
+        | 'lastName'
+        | 'email'
+        | 'tags.0'
+        | 'tags.1'
+        | 'tags.2'
+        | 'tags.4'
+        | 'tags.3'
+        | 'tags.5'
+        | 'tags.6'
+        | 'tags.7'
+        | 'tags.8'
+        | 'tags.9'
+        | `tags.1${number}`
+        | `tags.2${number}`
+        | `tags.4${number}`
+        | `tags.3${number}`
+        | `tags.5${number}`
+        | `tags.6${number}`
+        | `tags.7${number}`
+        | `tags.8${number}`
+        | `tags.9${number}`
       >();
       expectTypeOf<NumberPaths>().toEqualTypeOf<'age'>();
     });
