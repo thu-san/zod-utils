@@ -1,6 +1,11 @@
 'use client';
 
-import type { ValidPathsOfType } from '@zod-utils/react-hook-form';
+import type {
+  DiscriminatorKey,
+  DiscriminatorValue,
+  InferredFieldValues,
+  ValidFieldPaths,
+} from '@zod-utils/react-hook-form';
 import { useState } from 'react';
 import z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -12,6 +17,25 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+
+// Helper type alias for filtering paths by value type
+// This provides a cleaner API for the demo - ValidFieldPaths now includes filter type support
+
+type ValidPathsOfType<
+  TSchema extends z.ZodType,
+  TFilterType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+> = ValidFieldPaths<
+  TSchema,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  InferredFieldValues<TSchema>,
+  TFilterType
+>;
 
 // Demo schema with various field types and nesting levels
 const demoSchema = z.object({
@@ -54,7 +78,7 @@ const demoSchema = z.object({
 });
 
 // Type-level path extraction - these are compile-time types!
-type StringPaths = ValidPathsOfType<typeof demoSchema, string>;
+type StringPaths = ValidPathsOfType<typeof demoSchema, string | undefined>;
 type NumberPaths = ValidPathsOfType<typeof demoSchema, number>;
 type BooleanPaths = ValidPathsOfType<typeof demoSchema, boolean>;
 

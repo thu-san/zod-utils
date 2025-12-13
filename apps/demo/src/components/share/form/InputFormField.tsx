@@ -1,7 +1,7 @@
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  FormFieldSelector,
   InferredFieldValues,
   ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
@@ -11,81 +11,111 @@ import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import { TFormField } from './TFormField';
 
-export type CommonFields<T> = Pick<T, keyof T>;
-
 export function InputFormField<
   TSchema extends z.ZodType,
   TPath extends ValidFieldPaths<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues
+    TFieldValues,
+    TFilterType,
+    TStrict
   >,
-  const TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
   >,
-  TFieldValues extends InferredFieldValues<TSchema>,
->({
-  schema,
-  name,
-  autoPlaceholder,
-  placeholder,
-  description,
-  discriminator,
-  ...inputProps
-}: {
-  schema: TSchema;
-  name: TPath;
-  autoPlaceholder?: boolean;
-  placeholder?: string;
-  description?: string;
-  discriminator?: Discriminator<
+  TFieldValues extends
+    InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  allProps: FormFieldSelector<
     TSchema,
+    TPath,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-} & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'>) {
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  > & {
+    autoPlaceholder?: boolean;
+    placeholder?: string;
+    description?: string;
+  } & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'>,
+) {
+  const {
+    schema,
+    name,
+    autoPlaceholder,
+    placeholder,
+    description,
+    discriminator,
+    ...inputProps
+  } = allProps;
+
   // Auto-generate validation description if not provided
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const autoDescription = useValidationDescription({
     schema,
     name,
     discriminator,
-  });
+  } as unknown as Parameters<typeof useValidationDescription>[0]);
   const finalDescription =
     description !== undefined ? description : autoDescription;
 
-  return (
-    <TFormField<
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  const formFieldProps = {
+    ...allProps,
+    description: finalDescription,
+    render: ({
+      field,
+      label,
+    }: {
+      field: {
+        value: string;
+        onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+        onBlur: () => void;
+        name: string;
+        ref: React.Ref<HTMLInputElement>;
+      };
+      label: string;
+    }) => (
+      <Input
+        {...inputProps}
+        value={field.value ?? ''}
+        onChange={field.onChange}
+        onBlur={field.onBlur}
+        name={field.name}
+        ref={field.ref}
+        placeholder={
+          placeholder ||
+          (autoPlaceholder ? `Please enter ${label.toLowerCase()}` : undefined)
+        }
+      />
+    ),
+  } as React.ComponentProps<
+    typeof TFormField<
       TSchema,
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >
-      schema={schema}
-      name={name}
-      description={finalDescription}
-      discriminator={discriminator}
-      render={({ field, label }) => (
-        <Input
-          {...inputProps}
-          value={field.value ?? ''}
-          onChange={field.onChange}
-          onBlur={field.onBlur}
-          name={field.name}
-          ref={field.ref}
-          placeholder={
-            placeholder ||
-            (autoPlaceholder
-              ? `Please enter ${label.toLowerCase()}`
-              : undefined)
-          }
-        />
-      )}
-    />
-  );
+  >;
+
+  return TFormField<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >(formFieldProps);
 }
 
 export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
@@ -96,39 +126,59 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
       TSchema,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >,
     TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorKey
     >,
-    TFieldValues extends InferredFieldValues<TSchema>,
+    TFieldValues extends
+      InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
+    TFilterType = unknown,
+    TStrict extends boolean = true,
   >(
     props: Omit<
-      React.ComponentProps<
+      Parameters<
         typeof InputFormField<
           TSchema,
           TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
-          TFieldValues
+          TFieldValues,
+          TFilterType,
+          TStrict
         >
-      >,
-      'namespace' | 'schema'
+      >[0],
+      'schema'
     >,
   ) {
-    return (
-      <InputFormField<
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const mergedProps = {
+      ...factoryProps,
+      ...props,
+    } as Parameters<
+      typeof InputFormField<
         TSchema,
         TPath,
         TDiscriminatorKey,
         TDiscriminatorValue,
-        TFieldValues
+        TFieldValues,
+        TFilterType,
+        TStrict
       >
-        {...factoryProps}
-        {...props}
-      />
-    );
+    >[0];
+
+    return InputFormField<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues,
+      TFilterType,
+      TStrict
+    >(mergedProps);
   };
 }

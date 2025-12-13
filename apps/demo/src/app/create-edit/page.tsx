@@ -90,10 +90,15 @@ export default function CreateEditPage() {
     });
   }
 
+  const discriminator = { key: 'mode', value: mode } as const;
+
   return (
     <FormSchemaProvider
       schema={userSchema}
-      discriminator={{ key: 'mode', value: mode }}
+      discriminator={
+        // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
+        discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
+      }
     >
       <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] p-4">
         <Card className="w-full sm:max-w-md">
@@ -142,7 +147,10 @@ export default function CreateEditPage() {
                     name="id"
                     placeholder="Enter ID"
                     description="Required in edit mode"
-                    discriminator={{ key: 'mode', value: mode }}
+                    discriminator={
+                      // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
+                      discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
+                    }
                   />
                 )}
 
@@ -155,7 +163,10 @@ export default function CreateEditPage() {
                       ? 'Required field'
                       : 'Optional in edit mode'
                   }
-                  discriminator={{ key: 'mode', value: mode }}
+                  discriminator={
+                    // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
+                    discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
+                  }
                 />
 
                 {/* Age Field (only in create mode) */}
@@ -165,7 +176,10 @@ export default function CreateEditPage() {
                     name="age"
                     placeholder="Enter age (optional)"
                     description="Optional in create mode"
-                    discriminator={{ key: 'mode', value: mode }}
+                    discriminator={
+                      // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
+                      discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
+                    }
                   />
                 )}
 
@@ -175,7 +189,10 @@ export default function CreateEditPage() {
                     name="bio"
                     placeholder="Enter bio (optional)"
                     description="Optional in edit mode"
-                    discriminator={{ key: 'mode', value: mode }}
+                    discriminator={
+                      // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
+                      discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
+                    }
                   />
                 )}
 

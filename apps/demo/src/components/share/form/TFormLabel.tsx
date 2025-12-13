@@ -1,11 +1,9 @@
 import {
-  type Discriminator,
   type DiscriminatorKey,
   type DiscriminatorValue,
-  type InferredFieldValues,
+  type FieldSelector,
   useExtractFieldFromSchema,
   useIsRequiredField,
-  type ValidFieldPaths,
   type ValidPaths,
 } from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
@@ -15,30 +13,31 @@ import { FormLabel } from '@/components/ui/form';
 
 export const useFieldLabel = <
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
   >,
->({
-  schema,
-  name,
-  discriminator,
-}: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params: FieldSelector<
     TSchema,
+    TPath,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}) => {
-  const field = useExtractFieldFromSchema({
-    schema,
-    name,
-    discriminator,
-  });
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+) => {
+  const field = useExtractFieldFromSchema(params);
 
   const t = useTranslations();
   const translationKey = field?.meta()?.translationKey;
@@ -49,43 +48,48 @@ export const useFieldLabel = <
 
 export function TFormLabel<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPaths<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues
+    TFilterType,
+    TStrict
   >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
   >,
-  TFieldValues extends InferredFieldValues<TSchema>,
->({
-  schema,
-  name,
-  discriminator,
-  ...props
-}: Omit<ComponentProps<typeof FormLabel>, 'children'> & {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  props: Omit<ComponentProps<typeof FormLabel>, 'children'> &
+    FieldSelector<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >,
+) {
+  const label = useFieldLabel<
     TSchema,
+    TPath,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}) {
-  const label = useFieldLabel({
-    schema,
-    name,
-    discriminator,
-  });
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(props);
 
-  const isRequired = useIsRequiredField({
-    schema,
-    name,
-    discriminator,
-  });
+  const isRequired = useIsRequiredField<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(props);
 
   return (
     <FormLabel {...props}>
@@ -99,43 +103,57 @@ export function createTFormLabel<TSchema extends z.ZodType>(factoryProps: {
   schema: TSchema;
 }) {
   return function BoundTFormLabel<
-    TName extends ValidFieldPaths<
+    TPath extends ValidPaths<
       TSchema,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFilterType,
+      TStrict
     >,
     TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorKey
     >,
-    TFieldValues extends InferredFieldValues<TSchema>,
+    TFilterType = unknown,
+    TStrict extends boolean = true,
   >(
     props: Omit<
       React.ComponentProps<
         typeof TFormLabel<
           TSchema,
-          TName,
+          TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
-          TFieldValues
+          TFilterType,
+          TStrict
         >
       >,
       'schema'
     >,
   ) {
-    return (
-      <TFormLabel<
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    const mergedProps = {
+      ...factoryProps,
+      ...props,
+    } as React.ComponentProps<
+      typeof TFormLabel<
         TSchema,
-        TName,
+        TPath,
         TDiscriminatorKey,
         TDiscriminatorValue,
-        TFieldValues
+        TFilterType,
+        TStrict
       >
-        {...factoryProps}
-        {...props}
-      />
-    );
+    >;
+
+    return TFormLabel<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >(mergedProps);
   };
 }

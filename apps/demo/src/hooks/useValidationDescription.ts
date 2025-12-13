@@ -49,9 +49,17 @@ import type { z } from 'zod';
  */
 export function useValidationDescription<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 >(params: {
   schema: TSchema;
   name: TPath;
@@ -64,11 +72,10 @@ export function useValidationDescription<
   const t = useTranslations('user.validation');
 
   // Get all validation checks from the field (memoized)
-  const checks = useFieldChecks({
-    schema: params.schema,
-    name: params.name,
-    discriminator: params.discriminator,
-  });
+  const checks = useFieldChecks(
+    // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
+    params as any, // eslint-disable-line @typescript-eslint/consistent-type-assertions
+  );
 
   // Filter to only max length and numeric range checks
   // Note: min_length is intentionally excluded as it indicates a "required" field,
