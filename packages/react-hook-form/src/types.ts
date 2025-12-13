@@ -175,7 +175,7 @@ export type ValidFieldPaths<
  *   age: z.number(),
  * });
  *
- * type NameSelector = FieldValueSelector<typeof schema, 'name'>;
+ * type NameSelector = FormFieldSelector<typeof schema, 'name'>;
  * // { schema: typeof schema; name: 'name' }
  * ```
  *
@@ -187,13 +187,13 @@ export type ValidFieldPaths<
  *   z.object({ mode: z.literal('edit'), id: z.number() }),
  * ]);
  *
- * type CreateNameSelector = FieldValueSelector<typeof schema, 'name', 'mode', 'create'>;
+ * type CreateNameSelector = FormFieldSelector<typeof schema, 'name', 'mode', 'create'>;
  * // { schema: typeof schema; name: 'name'; discriminator: { key: 'mode'; value: 'create' } }
  * ```
  *
  * @see {@link FieldSelector} from `@zod-utils/core` for the base type
  */
-export type FieldValueSelector<
+export type FormFieldSelector<
   TSchema extends z.ZodType,
   TPath extends ValidFieldPaths<
     TSchema,
@@ -225,4 +225,5 @@ export type FieldValueSelector<
   : {
       schema: TSchema;
       name: TPath;
+      discriminator?: never;
     };
