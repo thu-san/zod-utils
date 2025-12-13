@@ -303,7 +303,6 @@ describe('extractFieldFromSchema', () => {
       const schema = z.string();
       const result = extractFieldFromSchema({
         schema,
-        // @ts-expect-error - Testing invalid path on non-object schema
         name: 'anyField',
       });
 
@@ -502,6 +501,7 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
+        // @ts-expect-error - Testing runtime behavior with invalid path
         name: 'user.nonexistent.field',
       });
 
