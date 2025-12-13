@@ -124,6 +124,7 @@ describe('extractFieldFromSchema', () => {
     });
 
     it('should return undefined when discriminator is not provided', () => {
+      // @ts-expect-error - intentionally testing without discriminator
       const result = extractFieldFromSchema({
         schema: userSchema,
         name: 'name',

@@ -2,9 +2,9 @@ import { z } from 'zod';
 import { extractDiscriminatedSchema } from './discriminatedSchema';
 import { getPrimitiveType } from './schema';
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  FieldSelector,
   ValidPaths,
 } from './types';
 
@@ -52,22 +52,29 @@ export type ExtractZodByPath<Schema, Path extends string> = NavigateZod<
 
 export function extractFieldFromSchema<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 >({
   schema,
   name,
   discriminator,
-}: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+}: FieldSelector<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+>): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
   let currentSchema: z.ZodType | undefined;
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

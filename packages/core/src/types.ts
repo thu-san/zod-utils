@@ -1,4 +1,5 @@
 import type { util, z } from 'zod';
+import type { SomeType } from 'zod/v4/core';
 /**
  * Simplifies complex TypeScript types for better IDE hover tooltips and error messages.
  *
@@ -219,6 +220,26 @@ export type Paths<
 export type CommonFields<T> = Pick<T, keyof T>;
 
 /**
+ * Recursively unwraps Zod wrapper types to get the core schema type.
+ * Handles: ZodPipe (transform), ZodOptional, ZodNullable, ZodDefault
+ */
+export type UnwrapZodType<T> = T extends z.ZodPipe<infer In, SomeType>
+  ? UnwrapZodType<In>
+  : T extends z.ZodOptional<infer Inner>
+    ? UnwrapZodType<Inner>
+    : T extends z.ZodNullable<infer Inner>
+      ? UnwrapZodType<Inner>
+      : T extends z.ZodDefault<infer Inner>
+        ? UnwrapZodType<Inner>
+        : T;
+
+/**
+ * Checks if the core (unwrapped) type is a ZodDiscriminatedUnion.
+ */
+export type IsDiscriminatedUnion<T> =
+  UnwrapZodType<T> extends z.ZodDiscriminatedUnion ? true : false;
+
+/**
  * Extracts the input type from a discriminated union variant.
  *
  * For discriminated unions, narrows to the variant matching the discriminator value
@@ -247,7 +268,7 @@ export type DiscriminatedInput<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-> = TSchema extends z.ZodDiscriminatedUnion
+> = IsDiscriminatedUnion<TSchema> extends true
   ? CommonFields<
       Extract<
         z.input<TSchema>,
@@ -291,6 +312,39 @@ export type ValidPaths<
   TStrict
 >;
 
+type InnerFieldSelector<
+  TCheckSchema extends z.ZodType,
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = TCheckSchema extends z.ZodDiscriminatedUnion
+  ? {
+      schema: TSchema;
+      name: TPath;
+      discriminator: Discriminator<
+        TSchema,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >;
+    }
+  : {
+      schema: TSchema;
+      name: TPath;
+      discriminator?: undefined;
+    };
+
 export type FieldSelector<
   TSchema extends z.ZodType,
   TPath extends ValidPaths<
@@ -307,17 +361,24 @@ export type FieldSelector<
   > = never,
   TFilterType = unknown,
   TStrict extends boolean = true,
-> = TSchema extends z.ZodDiscriminatedUnion
-  ? {
-      schema: TSchema;
-      name: TPath;
-      discriminator: Discriminator<
+> = TSchema extends z.ZodPipe<infer In, SomeType>
+  ? In extends z.ZodType
+    ? InnerFieldSelector<
+        In,
         TSchema,
+        TPath,
         TDiscriminatorKey,
-        TDiscriminatorValue
-      >;
-    }
-  : {
-      schema: TSchema;
-      name: TPath;
-    };
+        TDiscriminatorValue,
+        TFilterType,
+        TStrict
+      >
+    : never
+  : InnerFieldSelector<
+      TSchema,
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >;

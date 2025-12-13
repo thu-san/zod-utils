@@ -43,11 +43,10 @@ describe('FormSchemaProvider', () => {
       z.object({ mode: z.literal('edit'), id: z.number() }),
     ]);
 
+    const discriminator = { key: 'mode', value: 'create' } as const;
+
     const wrapper = ({ children }: { children: ReactNode }) => (
-      <FormSchemaProvider
-        schema={schema}
-        discriminator={{ key: 'mode', value: 'create' }}
-      >
+      <FormSchemaProvider schema={schema} discriminator={discriminator}>
         {children}
       </FormSchemaProvider>
     );
@@ -56,7 +55,7 @@ describe('FormSchemaProvider', () => {
       () =>
         useFormSchema({
           schema,
-          discriminator: { key: 'mode', value: 'create' },
+          discriminator,
         }),
       { wrapper },
     );
@@ -114,6 +113,7 @@ describe('useIsRequiredField', () => {
   it('should return false when name is not provided', () => {
     const schema = z.object({ name: z.string().min(1) });
     const { result } = renderHook(() =>
+      // @ts-expect-error - intentionally testing undefined name
       useIsRequiredField({ schema, name: undefined }),
     );
 
@@ -156,11 +156,11 @@ describe('useIsRequiredField', () => {
       }),
     ]);
 
+    const createDiscriminator = { key: 'mode', value: 'create' } as const;
+    const editDiscriminator = { key: 'mode', value: 'edit' } as const;
+
     const createWrapper = ({ children }: { children: ReactNode }) => (
-      <FormSchemaProvider
-        schema={schema}
-        discriminator={{ key: 'mode', value: 'create' }}
-      >
+      <FormSchemaProvider schema={schema} discriminator={createDiscriminator}>
         {children}
       </FormSchemaProvider>
     );
@@ -170,17 +170,14 @@ describe('useIsRequiredField', () => {
         useIsRequiredField({
           schema,
           name: 'name',
-          discriminator: { key: 'mode', value: 'create' },
+          discriminator: createDiscriminator,
         }),
       { wrapper: createWrapper },
     );
     expect(createNameResult.current).toBe(true);
 
     const editWrapper = ({ children }: { children: ReactNode }) => (
-      <FormSchemaProvider
-        schema={schema}
-        discriminator={{ key: 'mode', value: 'edit' }}
-      >
+      <FormSchemaProvider schema={schema} discriminator={editDiscriminator}>
         {children}
       </FormSchemaProvider>
     );
@@ -190,7 +187,7 @@ describe('useIsRequiredField', () => {
         useIsRequiredField({
           schema,
           name: 'name',
-          discriminator: { key: 'mode', value: 'edit' },
+          discriminator: editDiscriminator,
         }),
       { wrapper: editWrapper },
     );
@@ -298,8 +295,8 @@ describe('isRequiredField', () => {
 
     // Without discriminator, can't determine which variant to check
     expect(
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      isRequiredField({ schema, name: 'name' as unknown as 'mode' }),
+      // @ts-expect-error - Testing runtime behavior with undefined schema
+      isRequiredField({ schema, name: 'name' }),
     ).toBe(false);
   });
 
@@ -378,7 +375,7 @@ describe('useExtractFieldFromSchema', () => {
         useExtractFieldFromSchema({
           schema,
           name: 'id',
-          discriminator: { key: 'mode', value: 'edit' },
+          discriminator: { key: 'mode', value: 'edit' } as const,
         }),
       { wrapper },
     );

@@ -6,7 +6,7 @@ import type {
   ValidPaths,
 } from '@zod-utils/core';
 import type { FieldValues, Path } from 'react-hook-form';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /**
  * Helper type that adds `null` to object-type fields only (excludes arrays).
@@ -152,6 +152,50 @@ export type ValidFieldPaths<
 > &
   Path<TFieldValues>;
 
+const userSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
+
+const discriminatedSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('admin'), adminLevel: z.number() }),
+  z.object({ type: z.literal('user'), subscriptionStatus: z.string() }),
+]);
+
+export const func = <
+  TSchema extends z.ZodType,
+  TPath extends ValidFieldPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFieldValues extends
+    InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params: FormFieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >,
+) => {
+  console.log(params);
+};
+
 /**
  * Type-safe field selector for React Hook Form with discriminated union support.
  *
@@ -227,3 +271,14 @@ export type FormFieldSelector<
       name: TPath;
       discriminator?: never;
     };
+
+func({
+  schema: userSchema,
+  name: 'email',
+});
+
+func({
+  schema: discriminatedSchema,
+  name: 'adminLevel',
+  discriminator: { key: 'type', value: 'admin' },
+});

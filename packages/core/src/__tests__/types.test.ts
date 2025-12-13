@@ -633,6 +633,7 @@ describe('FieldSelector', () => {
       expectTypeOf<Params>().toEqualTypeOf<{
         schema: typeof schema;
         name: 'name';
+        discriminator?: undefined;
       }>();
     });
 
