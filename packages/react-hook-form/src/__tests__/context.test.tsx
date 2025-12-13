@@ -104,6 +104,7 @@ describe('useIsRequiredField', () => {
 
   it('should return false when schema is not provided', () => {
     const { result } = renderHook(() =>
+      // @ts-expect-error - Testing runtime behavior with undefined schema
       useIsRequiredField({ schema: undefined, name: 'name' }),
     );
 

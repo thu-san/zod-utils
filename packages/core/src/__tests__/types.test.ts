@@ -2,8 +2,8 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import type {
   DiscriminatedInput,
+  FieldSelector,
   Paths,
-  SchemaParams,
   ValidPaths,
 } from '../types';
 
@@ -620,7 +620,7 @@ describe('DiscriminatedInput', () => {
   });
 });
 
-describe('SchemaParams', () => {
+describe('FieldSelector', () => {
   describe('with regular schema', () => {
     const schema = z.object({
       name: z.string(),
@@ -628,7 +628,7 @@ describe('SchemaParams', () => {
     });
 
     it('should create params without discriminator', () => {
-      type Params = SchemaParams<typeof schema, 'name'>;
+      type Params = FieldSelector<typeof schema, 'name'>;
 
       expectTypeOf<Params>().toEqualTypeOf<{
         schema: typeof schema;
@@ -637,7 +637,7 @@ describe('SchemaParams', () => {
     });
 
     it('should infer valid name from schema', () => {
-      type Params = SchemaParams<typeof schema, 'age'>;
+      type Params = FieldSelector<typeof schema, 'age'>;
 
       expectTypeOf<Params>().toExtend<{
         schema: typeof schema;
@@ -653,7 +653,7 @@ describe('SchemaParams', () => {
     ]);
 
     it('should require discriminator for discriminated union', () => {
-      type Params = SchemaParams<typeof schema, 'name', 'mode', 'create'>;
+      type Params = FieldSelector<typeof schema, 'name', 'mode', 'create'>;
 
       expectTypeOf<Params>().toExtend<{
         schema: typeof schema;

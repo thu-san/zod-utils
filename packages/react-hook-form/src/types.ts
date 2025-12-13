@@ -1,9 +1,9 @@
 import type {
+  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
   Simplify,
   ValidPaths,
-  ValidPathsOfType,
 } from '@zod-utils/core';
 import type { FieldValues, Path } from 'react-hook-form';
 import type { z } from 'zod';
@@ -78,48 +78,32 @@ export type InferredFieldValues<TSchema extends z.ZodType> = z.input<TSchema> &
   FieldValues;
 
 /**
- * Type-safe field names for a specific discriminator value.
+ * Type-safe field paths for React Hook Form with optional filtering and discriminated union support.
  *
- * Narrows field names to only those that exist for the given discriminator value
- * in a discriminated union schema.
- *
- * @example
- * ```typescript
- * const schema = z.discriminatedUnion('mode', [
- *   z.object({ mode: z.literal('create'), name: z.string() }),
- *   z.object({ mode: z.literal('edit'), id: z.number() }),
- * ]);
- *
- * type CreateFields = ValidFieldPaths<typeof schema, 'mode', 'create'>;
- * // "mode" | "name"
- *
- * type EditFields = ValidFieldPaths<typeof schema, 'mode', 'edit'>;
- * // "mode" | "id"
- * ```
- */
-export type ValidFieldPaths<
-  TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-  TFieldValues extends
-    InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
-> = ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue> &
-  Path<TFieldValues>;
-
-/**
- * Type-safe field paths filtered by value type for React Hook Form.
- *
- * Combines `ValidPathsOfType` (filters by value type) with React Hook Form's
- * `Path` type for full compatibility with form field APIs.
+ * Combines `ValidPaths` from `@zod-utils/core` with React Hook Form's `Path` type
+ * for full compatibility with form field APIs.
  *
  * @template TSchema - The Zod schema type
- * @template TValueConstraint - The value type to filter by
  * @template TDiscriminatorKey - The discriminator key (for discriminated unions)
  * @template TDiscriminatorValue - The discriminator value (for discriminated unions)
+ * @template TFilterType - The value type to filter by (default: unknown = no filtering)
+ * @template TStrict - Whether to use strict type matching (default: true)
  * @template TFieldValues - The form field values type (inferred from schema)
  *
  * @example
- * Get all string field paths for form
+ * Basic usage - all field paths
+ * ```typescript
+ * const schema = z.object({
+ *   name: z.string(),
+ *   age: z.number(),
+ * });
+ *
+ * type AllFields = ValidFieldPaths<typeof schema>;
+ * // "name" | "age"
+ * ```
+ *
+ * @example
+ * Filter by type - string fields only
  * ```typescript
  * const schema = z.object({
  *   name: z.string(),
@@ -127,21 +111,8 @@ export type ValidFieldPaths<
  *   email: z.string().optional(),
  * });
  *
- * type StringFields = ValidFieldPathsOfType<typeof schema, string>;
- * // "name" | "email" - compatible with react-hook-form Path
- * ```
- *
- * @example
- * Get all number field paths for form
- * ```typescript
- * const schema = z.object({
- *   id: z.number(),
- *   name: z.string(),
- *   count: z.number().optional(),
- * });
- *
- * type NumberFields = ValidFieldPathsOfType<typeof schema, number>;
- * // "id" | "count"
+ * type StringFields = ValidFieldPaths<typeof schema, never, never, string>;
+ * // "name" | "email"
  * ```
  *
  * @example
@@ -152,29 +123,106 @@ export type ValidFieldPaths<
  *   z.object({ mode: z.literal('edit'), id: z.number() }),
  * ]);
  *
- * type EditNumberFields = ValidFieldPathsOfType<typeof schema, number, 'mode', 'edit'>;
+ * type CreateFields = ValidFieldPaths<typeof schema, 'mode', 'create'>;
+ * // "mode" | "name"
+ *
+ * type EditNumberFields = ValidFieldPaths<typeof schema, 'mode', 'edit', number>;
  * // "id"
  * ```
  *
- * @see {@link ValidPathsOfType} for the base type without react-hook-form Path intersection
- * @see {@link ValidFieldPaths} for discriminated union field filtering
- * @since 0.5.0
+ * @see {@link ValidPaths} for the base type without react-hook-form Path intersection
  */
-export type ValidFieldPathsOfType<
+export type ValidFieldPaths<
   TSchema extends z.ZodType,
-  TValueConstraint,
-  TDiscriminatorKey extends
-    DiscriminatorKey<TSchema> = DiscriminatorKey<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
-  > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  > = never,
   TFieldValues extends
     InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
-> = ValidPathsOfType<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = ValidPaths<
   TSchema,
-  TValueConstraint,
   TDiscriminatorKey,
-  TDiscriminatorValue
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
 > &
   Path<TFieldValues>;
+
+/**
+ * Type-safe field selector for React Hook Form with discriminated union support.
+ *
+ * Returns an object type containing:
+ * - `schema` - The Zod schema
+ * - `name` - The field path (type-safe)
+ * - `discriminator` - Required for discriminated unions, contains `key` and `value`
+ *
+ * @template TSchema - The Zod schema type
+ * @template TPath - The field path
+ * @template TDiscriminatorKey - The discriminator key (for discriminated unions)
+ * @template TDiscriminatorValue - The discriminator value (for discriminated unions)
+ * @template TFilterType - The value type to filter by (default: unknown = no filtering)
+ * @template TStrict - Whether to use strict type matching (default: true)
+ *
+ * @example
+ * Basic usage with regular schema
+ * ```typescript
+ * const schema = z.object({
+ *   name: z.string(),
+ *   age: z.number(),
+ * });
+ *
+ * type NameSelector = FieldValueSelector<typeof schema, 'name'>;
+ * // { schema: typeof schema; name: 'name' }
+ * ```
+ *
+ * @example
+ * With discriminated union
+ * ```typescript
+ * const schema = z.discriminatedUnion('mode', [
+ *   z.object({ mode: z.literal('create'), name: z.string() }),
+ *   z.object({ mode: z.literal('edit'), id: z.number() }),
+ * ]);
+ *
+ * type CreateNameSelector = FieldValueSelector<typeof schema, 'name', 'mode', 'create'>;
+ * // { schema: typeof schema; name: 'name'; discriminator: { key: 'mode'; value: 'create' } }
+ * ```
+ *
+ * @see {@link FieldSelector} from `@zod-utils/core` for the base type
+ */
+export type FieldValueSelector<
+  TSchema extends z.ZodType,
+  TPath extends ValidFieldPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFieldValues extends
+    InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = TSchema extends z.ZodDiscriminatedUnion
+  ? {
+      schema: TSchema;
+      name: TPath;
+      discriminator: Discriminator<
+        TSchema,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >;
+    }
+  : {
+      schema: TSchema;
+      name: TPath;
+    };

@@ -639,17 +639,17 @@ type StringPaths = Paths<User, string>;
 
 ---
 
-### `SchemaParams<TSchema, TName, TDiscriminatorKey?, TDiscriminatorValue?, TFilterType?, TStrict?>`
+### `FieldSelector<TSchema, TName, TDiscriminatorKey?, TDiscriminatorValue?, TFilterType?, TStrict?>`
 
 Utility type for creating typed parameter objects that include schema, field name, and optional discriminator. Useful for building type-safe form field components.
 
 ```typescript
-import type { SchemaParams } from "@zod-utils/core";
+import type { FieldSelector } from "@zod-utils/core";
 import { z } from "zod";
 
 // Regular schema - no discriminator required
 const userSchema = z.object({ name: z.string(), age: z.number() });
-type UserParams = SchemaParams<typeof userSchema, "name">;
+type UserParams = FieldSelector<typeof userSchema, "name">;
 // { schema: typeof userSchema; name: "name" }
 
 // Discriminated union - requires discriminator
@@ -657,7 +657,7 @@ const formSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("create"), name: z.string() }),
   z.object({ mode: z.literal("edit"), id: z.number() }),
 ]);
-type FormParams = SchemaParams<typeof formSchema, "name", "mode", "create">;
+type FormParams = FieldSelector<typeof formSchema, "name", "mode", "create">;
 // { schema: typeof formSchema; name: "name"; discriminator: { key: "mode"; value: "create" } }
 ```
 

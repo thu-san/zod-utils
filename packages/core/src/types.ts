@@ -37,7 +37,6 @@ import type { util, z } from 'zod';
  * // Shows clear: { id: string; name: string }
  * ```
  *
- * @since 0.1.0
  */
 export type Simplify<T> = {
   [K in keyof T]: T[K];
@@ -243,7 +242,6 @@ export type CommonFields<T> = Pick<T, keyof T>;
  * // { mode: 'edit'; id: number }
  * ```
  *
- * @since 0.5.0
  */
 export type DiscriminatedInput<
   TSchema extends z.ZodType,
@@ -293,9 +291,9 @@ export type ValidPaths<
   TStrict
 >;
 
-export type SchemaParams<
+export type FieldSelector<
   TSchema extends z.ZodType,
-  TName extends ValidPaths<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue,
@@ -312,7 +310,7 @@ export type SchemaParams<
 > = TSchema extends z.ZodDiscriminatedUnion
   ? {
       schema: TSchema;
-      name: TName;
+      name: TPath;
       discriminator: Discriminator<
         TSchema,
         TDiscriminatorKey,
@@ -321,5 +319,5 @@ export type SchemaParams<
     }
   : {
       schema: TSchema;
-      name: TName;
+      name: TPath;
     };
