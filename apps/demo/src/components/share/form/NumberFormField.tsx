@@ -1,9 +1,10 @@
-import type {
-  Discriminator,
-  DiscriminatorKey,
-  DiscriminatorValue,
-  InferredFieldValues,
-  ValidFieldPathsOfType,
+import {
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type FormFieldSelector,
+  type InferredFieldValues,
+  mergeFormFieldSelectorProps,
+  type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
@@ -13,12 +14,13 @@ import { TFormField } from './TFormField';
 
 export function NumberFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPathsOfType<
+  TPath extends ValidFieldPaths<
     TSchema,
-    number,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues
+    TFieldValues,
+    TFilterType,
+    TStrict
   >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
@@ -26,82 +28,80 @@ export function NumberFormField<
     TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
->({
-  schema,
-  name,
-  autoPlaceholder,
-  placeholder,
-  description,
-  discriminator,
-  ...inputProps
-}: {
-  schema: TSchema;
-  name: TPath;
-  autoPlaceholder?: boolean;
-  placeholder?: string;
-  description?: string;
-  discriminator?: Discriminator<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  props: FormFieldSelector<
     TSchema,
+    TPath,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-} & Omit<
-  ComponentProps<typeof Input>,
-  'name' | 'placeholder' | 'type' | 'onChange'
->) {
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  > & {
+    autoPlaceholder?: boolean;
+    placeholder?: string;
+    description?: string;
+  } & Omit<
+      ComponentProps<typeof Input>,
+      'name' | 'placeholder' | 'type' | 'onChange'
+    >,
+) {
+  const { autoPlaceholder, placeholder, description, ...inputProps } = props;
+
   // Auto-generate validation description if not provided
-  const autoDescription = useValidationDescription({
-    schema,
-    name,
-    discriminator,
-  });
+  const autoDescription = useValidationDescription<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(props);
+
   const finalDescription =
     description !== undefined ? description : autoDescription;
 
-  return (
-    <TFormField<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues
-    >
-      schema={schema}
-      name={name}
-      description={finalDescription}
-      discriminator={discriminator}
-      render={({ field, label }) => (
-        <Input
-          {...inputProps}
-          type="number"
-          value={field.value ?? ''}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Convert empty string to null (works with nullable fields)
-            field.onChange(value === '' ? null : Number(value));
-          }}
-          onBlur={field.onBlur}
-          name={field.name}
-          ref={field.ref}
-          placeholder={
-            placeholder ||
-            (autoPlaceholder
-              ? `Please enter ${label.toLowerCase()}`
-              : undefined)
-          }
-        />
-      )}
-    />
-  );
+  return TFormField<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >({
+    ...props,
+    description: finalDescription,
+    render: ({ field, label }) => (
+      <Input
+        {...inputProps}
+        type="number"
+        value={field.value ?? ''}
+        onChange={(e) => {
+          const value = e.target.value;
+          // Convert empty string to null (works with nullable fields)
+          field.onChange(value === '' ? null : Number(value));
+        }}
+        onBlur={field.onBlur}
+        name={field.name}
+        ref={field.ref}
+        placeholder={
+          placeholder ||
+          (autoPlaceholder ? `Please enter ${label.toLowerCase()}` : undefined)
+        }
+      />
+    ),
+  });
 }
 
 export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
   schema: TSchema;
 }) {
   return function BoundNumberFormField<
-    TPath extends ValidFieldPathsOfType<
+    TPath extends ValidFieldPaths<
       TSchema,
-      number,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
@@ -126,17 +126,21 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
       'schema'
     >,
   ) {
-    return (
-      <NumberFormField<
-        TSchema,
-        TPath,
-        TDiscriminatorKey,
-        TDiscriminatorValue,
-        TFieldValues
-      >
-        {...factoryProps}
-        {...props}
-      />
-    );
+    const { name, discriminator, ...rest } = props;
+    const selectorProps = mergeFormFieldSelectorProps<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues
+    >(factoryProps, { name, discriminator });
+
+    return NumberFormField<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues
+    >({ ...selectorProps, ...rest });
   };
 }

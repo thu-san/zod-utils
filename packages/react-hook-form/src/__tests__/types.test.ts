@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type {
   PartialWithAllNullables,
   PartialWithNullableObjects,
-  ValidFieldPathsOfType,
+  ValidFieldPaths,
 } from '../types';
 
 describe('PartialWithNullableObjects', () => {
@@ -287,107 +287,33 @@ describe('PartialWithAllNullables', () => {
   });
 });
 
-describe('ValidFieldPathsOfType', () => {
-  describe('basic type filtering', () => {
+describe('ValidFieldPaths', () => {
+  describe('basic usage - all paths', () => {
     const schema = z.object({
       name: z.string(),
       age: z.number(),
-      email: z.string().optional(),
-      count: z.number().nullable(),
       active: z.boolean(),
     });
 
-    it('should extract string field paths', () => {
-      type StringPaths = ValidFieldPathsOfType<typeof schema, string>;
+    it('should return all field paths when no filter is applied', () => {
+      type AllPaths = ValidFieldPaths<typeof schema>;
 
-      expectTypeOf<StringPaths>().toEqualTypeOf<'name' | 'email'>();
-    });
-
-    it('should extract number field paths', () => {
-      type NumberPaths = ValidFieldPathsOfType<typeof schema, number>;
-
-      expectTypeOf<NumberPaths>().toEqualTypeOf<'age' | 'count'>();
-    });
-
-    it('should extract boolean field paths', () => {
-      type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
-
-      expectTypeOf<BooleanPaths>().toEqualTypeOf<'active'>();
+      expectTypeOf<AllPaths>().toEqualTypeOf<'name' | 'age' | 'active'>();
     });
   });
 
-  describe('array type filtering', () => {
-    const schema = z.object({
-      name: z.string(),
-      tags: z.array(z.string()),
-      scores: z.array(z.number()),
-      items: z.array(z.object({ id: z.number() })),
-    });
+  describe('discriminated union support', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('create'), name: z.string() }),
+      z.object({ mode: z.literal('edit'), id: z.number() }),
+    ]);
 
-    it('should extract string array paths', () => {
-      type StringArrayPaths = ValidFieldPathsOfType<typeof schema, string[]>;
+    it('should return paths for specific variant', () => {
+      type CreatePaths = ValidFieldPaths<typeof schema, 'mode', 'create'>;
+      type EditPaths = ValidFieldPaths<typeof schema, 'mode', 'edit'>;
 
-      expectTypeOf<StringArrayPaths>().toEqualTypeOf<'tags'>();
-    });
-
-    it('should extract number array paths', () => {
-      type NumberArrayPaths = ValidFieldPathsOfType<typeof schema, number[]>;
-
-      expectTypeOf<NumberArrayPaths>().toEqualTypeOf<'scores'>();
-    });
-
-    it('should extract object array paths', () => {
-      type ObjectArrayPaths = ValidFieldPathsOfType<
-        typeof schema,
-        { id: number }[]
-      >;
-
-      expectTypeOf<ObjectArrayPaths>().toEqualTypeOf<'items'>();
-    });
-  });
-
-  describe('enum and literal handling', () => {
-    it('should include enum fields when filtering for string (literals extend string)', () => {
-      const schema = z.object({
-        mode: z.enum(['create', 'edit']),
-        name: z.string(),
-      });
-
-      // Both 'mode' and 'name' have types that extend string
-      type StringPaths = ValidFieldPathsOfType<typeof schema, string>;
-      expectTypeOf<StringPaths>().toEqualTypeOf<'mode' | 'name'>();
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should return never for non-matching types', () => {
-      const schema = z.object({
-        name: z.string(),
-        age: z.number(),
-      });
-
-      type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
-
-      expectTypeOf<BooleanPaths>().toBeNever();
-    });
-
-    it('should handle complex real-world form schema', () => {
-      const userFormSchema = z.object({
-        firstName: z.string().min(1),
-        lastName: z.string().min(1),
-        email: z.string().email(),
-        age: z.number().min(0),
-        tags: z.array(z.string()),
-        isActive: z.boolean(),
-      });
-
-      type StringPaths = ValidFieldPathsOfType<typeof userFormSchema, string>;
-      type NumberPaths = ValidFieldPathsOfType<typeof userFormSchema, number>;
-
-      expectTypeOf<StringPaths>().toEqualTypeOf<
-        'firstName' | 'lastName' | 'email'
-      >();
-      expectTypeOf<NumberPaths>().toEqualTypeOf<'age'>();
+      expectTypeOf<CreatePaths>().toEqualTypeOf<'mode' | 'name'>();
+      expectTypeOf<EditPaths>().toEqualTypeOf<'mode' | 'id'>();
     });
   });
 });

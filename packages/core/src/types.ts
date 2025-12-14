@@ -1,4 +1,5 @@
 import type { util, z } from 'zod';
+import type { SomeType } from 'zod/v4/core';
 /**
  * Simplifies complex TypeScript types for better IDE hover tooltips and error messages.
  *
@@ -37,7 +38,6 @@ import type { util, z } from 'zod';
  * // Shows clear: { id: string; name: string }
  * ```
  *
- * @since 0.1.0
  */
 export type Simplify<T> = {
   [K in keyof T]: T[K];
@@ -96,54 +96,110 @@ export type Discriminator<
 // Path Type Utilities
 // ============================================================================
 
-type Primitive = string | number | boolean | null | undefined | symbol | bigint;
-type NonZeroDigit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+// ============================================================================================
+// ↓↓↓↓↓↓↓↓↓↓↓↓ Forked from react-hook-form types
 
-type PathsHint<T, Prefix extends string = ''> = T extends Primitive
-  ? never
-  : T extends (infer E)[]
-    ?
-        | (Prefix extends '' ? never : Prefix)
-        | `${Prefix}.0`
-        | PathsHint<E, `${Prefix}.0`>
-    : T extends object
-      ? {
-          [K in keyof T & string]:
-            | (Prefix extends '' ? K : `${Prefix}.${K}`)
-            | PathsHint<T[K], Prefix extends '' ? K : `${Prefix}.${K}`>;
-        }[keyof T & string]
-      : never;
+interface FileList {
+  readonly length: number;
+  item(index: number): File | null;
+  [index: number]: File;
+}
 
-// Matches 1-9, 10, 11, 12... (any number starting with non-zero)
-type NonZeroIndex = `${NonZeroDigit}` | `${NonZeroDigit}${number}`;
+type Primitive = string | number | boolean | bigint | symbol | undefined | null;
+type BrowserNativeObject = Date | FileList | File;
+type ArrayKey = number;
 
-type PathsLoose<T, Prefix extends string = ''> = T extends Primitive
-  ? never
-  : T extends (infer E)[]
-    ?
-        | (Prefix extends '' ? never : Prefix)
-        | `${Prefix}.${NonZeroIndex}`
-        | PathsLoose<E, `${Prefix}.${NonZeroIndex}`>
-    : T extends object
-      ? {
-          [K in keyof T & string]:
-            | (Prefix extends '' ? K : `${Prefix}.${K}`)
-            | PathsLoose<T[K], Prefix extends '' ? K : `${Prefix}.${K}`>;
-        }[keyof T & string]
-      : never;
+type IsTuple<T extends ReadonlyArray<unknown>> = number extends T['length']
+  ? false
+  : true;
 
-/**
- * Generates all valid dot-notation paths for a given type.
- * Supports nested objects and arrays with numeric indices.
- *
- * @example
- * ```typescript
- * type User = { name: string; address: { city: string } };
- * type UserPaths = Paths<User>;
- * // "name" | "address" | "address.city"
- * ```
- */
-export type Paths<T> = PathsHint<T> | PathsLoose<T>;
+type TupleKeys<T extends ReadonlyArray<unknown>> = Exclude<
+  keyof T,
+  keyof unknown[]
+>;
+
+type IsEqual<T1, T2> = T1 extends T2
+  ? (<G>() => G extends T1 ? 1 : 2) extends <G>() => G extends T2 ? 1 : 2
+    ? true
+    : false
+  : false;
+
+type AnyIsEqual<T1, T2> = T1 extends T2
+  ? IsEqual<T1, T2> extends true
+    ? true
+    : never
+  : never;
+
+type CheckFilter<V, FilterType, Strict extends boolean> = Strict extends true
+  ? [V] extends [FilterType]
+    ? true
+    : false
+  : V extends FilterType
+    ? true
+    : never; // true | never = true (any match passes)
+
+type ArrayPaths = '${number}' | `${number}`;
+
+export type PathImpl<
+  K extends string | number,
+  V,
+  TraversedTypes,
+  FilterType = unknown,
+  Strict extends boolean = true,
+> = [V] extends [Primitive | BrowserNativeObject]
+  ? CheckFilter<V, FilterType, Strict> extends true
+    ? `${K}`
+    : never
+  : true extends AnyIsEqual<TraversedTypes, V>
+    ? CheckFilter<V, FilterType, Strict> extends true
+      ? `${K}`
+      : never
+    : K extends number
+      ?
+          | (CheckFilter<V, FilterType, Strict> extends true
+              ? ArrayPaths
+              : never)
+          | `${ArrayPaths}.${PathInternal<V, TraversedTypes | V, FilterType, Strict>}`
+      :
+          | (CheckFilter<V, FilterType, Strict> extends true ? `${K}` : never)
+          | `${K}.${PathInternal<V, TraversedTypes | V, FilterType, Strict>}`;
+
+export type PathInternal<
+  T,
+  TraversedTypes = T,
+  FilterType = unknown,
+  Strict extends boolean = true,
+> = T extends ReadonlyArray<infer V>
+  ? IsTuple<T> extends true
+    ? {
+        [K in TupleKeys<T>]-?: PathImpl<
+          K & string,
+          T[K],
+          TraversedTypes,
+          FilterType,
+          Strict
+        >;
+      }[TupleKeys<T>]
+    : PathImpl<ArrayKey, V, TraversedTypes, FilterType, Strict>
+  : {
+      [K in keyof T]-?: PathImpl<
+        K & string,
+        T[K],
+        TraversedTypes,
+        FilterType,
+        Strict
+      >;
+    }[keyof T];
+
+// Public API
+export type Paths<
+  T,
+  FilterType = unknown,
+  Strict extends boolean = true,
+> = PathInternal<T, T, FilterType, Strict>;
+
+// ↑↑↑↑↑↑↑↑↑↑↑ Forked from react-hook-form types
+// ============================================================================================
 
 /**
  * Extracts fields common to all variants in a union type.
@@ -160,6 +216,26 @@ export type Paths<T> = PathsHint<T> | PathsLoose<T>;
  * ```
  */
 export type CommonFields<T> = Pick<T, keyof T>;
+
+/**
+ * Recursively unwraps Zod wrapper types to get the core schema type.
+ * Handles: ZodPipe (transform), ZodOptional, ZodNullable, ZodDefault
+ */
+export type UnwrapZodType<T> = T extends z.ZodPipe<infer In, SomeType>
+  ? UnwrapZodType<In>
+  : T extends z.ZodOptional<infer Inner>
+    ? UnwrapZodType<Inner>
+    : T extends z.ZodNullable<infer Inner>
+      ? UnwrapZodType<Inner>
+      : T extends z.ZodDefault<infer Inner>
+        ? UnwrapZodType<Inner>
+        : T;
+
+/**
+ * Checks if the core (unwrapped) type is a ZodDiscriminatedUnion.
+ */
+export type IsDiscriminatedUnion<T> =
+  UnwrapZodType<T> extends z.ZodDiscriminatedUnion ? true : false;
 
 /**
  * Extracts the input type from a discriminated union variant.
@@ -185,22 +261,31 @@ export type CommonFields<T> = Pick<T, keyof T>;
  * // { mode: 'edit'; id: number }
  * ```
  *
- * @since 0.5.0
  */
 export type DiscriminatedInput<
   TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-> = CommonFields<
-  Extract<
-    Required<z.input<TSchema>>,
-    TDiscriminatorKey extends never
-      ? z.input<TSchema>
-      : TDiscriminatorValue extends never
-        ? z.input<TSchema>
-        : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
-  >
->;
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+> = IsDiscriminatedUnion<TSchema> extends true
+  ? Simplify<
+      CommonFields<
+        Extract<
+          z.input<TSchema>,
+          [TDiscriminatorKey] extends [never]
+            ? z.input<TSchema>
+            : [TDiscriminatorValue] extends [never]
+              ? z.input<TSchema>
+              : Simplify<
+                  | Record<TDiscriminatorKey, TDiscriminatorValue>
+                  | Partial<Record<TDiscriminatorKey, TDiscriminatorValue>>
+                >
+        >
+      >
+    >
+  : z.input<TSchema>;
 
 /**
  * Generates valid dot-notation paths for fields in a discriminated union variant.
@@ -224,72 +309,88 @@ export type DiscriminatedInput<
  */
 export type ValidPaths<
   TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-> = Paths<DiscriminatedInput<TSchema, TDiscriminatorKey, TDiscriminatorValue>>;
-
-/**
- * Extracts field paths from a schema where the field value type matches a constraint.
- *
- * Filters schema keys to only those whose input type (with nullish stripped via `NonNullable`)
- * extends the given `TValueConstraint`. For discriminated unions, first narrows to the
- * specific variant before filtering.
- *
- * @template TSchema - The Zod schema type
- * @template TValueConstraint - The value type to filter by
- * @template TDiscriminatorKey - The discriminator key (for discriminated unions)
- * @template TDiscriminatorValue - The discriminator value (for discriminated unions)
- *
- * @example
- * Get all string field paths
- * ```typescript
- * const schema = z.object({
- *   name: z.string(),
- *   age: z.number(),
- *   email: z.string().optional(),
- * });
- *
- * type StringPaths = ValidPathsOfType<typeof schema, string>;
- * // "name" | "email"
- * ```
- *
- * @example
- * With discriminated union - filter by type within a variant
- * ```typescript
- * const schema = z.discriminatedUnion('mode', [
- *   z.object({ mode: z.literal('create'), name: z.string(), age: z.number() }),
- *   z.object({ mode: z.literal('edit'), id: z.number(), name: z.string() }),
- * ]);
- *
- * type EditNumberPaths = ValidPathsOfType<typeof schema, number, 'mode', 'edit'>;
- * // "id" - only number fields in 'edit' variant
- * ```
- *
- * @see {@link ValidPaths} for discriminated union path filtering
- * @since 0.5.0
- */
-export type ValidPathsOfType<
-  TSchema extends z.ZodType,
-  TValueConstraint,
-  TDiscriminatorKey extends
-    DiscriminatorKey<TSchema> = DiscriminatorKey<TSchema>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
-  > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
-  TVariant = DiscriminatedInput<
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = Paths<
+  DiscriminatedInput<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TFilterType,
+  TStrict
+>;
+
+export type InnerFieldSelector<
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
-    TDiscriminatorValue
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
   >,
-> = NonNullable<
-  Extract<
-    {
-      [K in keyof TVariant]: NonNullable<TVariant[K]> extends TValueConstraint
-        ? K
-        : never;
-    }[keyof TVariant],
-    string
-  > &
-    ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = TSchema extends z.ZodPipe<infer In>
+  ? In extends z.ZodDiscriminatedUnion
+    ? {
+        schema: TSchema;
+        name: TPath;
+        discriminator: Discriminator<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >;
+      }
+    : {
+        schema: TSchema;
+        name: TPath;
+        discriminator?: never;
+      }
+  : TSchema extends z.ZodDiscriminatedUnion
+    ? {
+        schema: TSchema;
+        name: TPath;
+        discriminator: Discriminator<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >;
+      }
+    : {
+        schema: TSchema;
+        name: TPath;
+        discriminator?: never;
+      };
+
+export type FieldSelector<
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = InnerFieldSelector<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
 >;

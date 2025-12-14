@@ -541,55 +541,41 @@ type EditInput = DiscriminatedInput<typeof schema, "mode", "edit">;
 
 ---
 
-### `ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>`
+### `ValidPaths<TSchema, TDiscriminatorKey?, TDiscriminatorValue?, TFilterType?, TStrict?>`
 
-Generates all valid dot-notation paths for a schema. For discriminated unions, narrows to the specific variant first.
+Generates valid dot-notation paths for a schema, with optional type filtering and discriminated union support.
+
+**Parameters:**
+- `TSchema` - The Zod schema type
+- `TDiscriminatorKey` - Discriminator key for discriminated unions (default: `never`)
+- `TDiscriminatorValue` - Discriminator value to filter variant (default: `never`)
+- `TFilterType` - Type to filter paths by (default: `unknown` = all paths)
+- `TStrict` - Strict mode for type matching (default: `true`)
+
+**Basic usage:**
 
 ```typescript
 import type { ValidPaths } from "@zod-utils/core";
-import { z } from "zod";
-
-const schema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("create"), name: z.string() }),
-  z.object({ mode: z.literal("edit"), id: z.number() }),
-]);
-
-type CreatePaths = ValidPaths<typeof schema, "mode", "create">;
-// "mode" | "name"
-
-type EditPaths = ValidPaths<typeof schema, "mode", "edit">;
-// "mode" | "id"
-```
-
----
-
-### `ValidPathsOfType<TSchema, TValueConstraint, TDiscriminatorKey?, TDiscriminatorValue?>`
-
-Extracts field paths from a schema where the field value type matches a constraint. Filters schema keys to only those whose input type (with nullish stripped) extends the given `TValueConstraint`.
-
-```typescript
-import type { ValidPathsOfType } from "@zod-utils/core";
 import { z } from "zod";
 
 const schema = z.object({
   name: z.string(),
   age: z.number(),
   email: z.string().optional(),
-  count: z.number().nullable(),
   active: z.boolean(),
 });
 
-// Get all string field paths
-type StringPaths = ValidPathsOfType<typeof schema, string>;
+// Get all paths (no filtering)
+type AllPaths = ValidPaths<typeof schema>;
+// "name" | "age" | "email" | "active"
+
+// Filter by type - only string fields
+type StringPaths = ValidPaths<typeof schema, never, never, string>;
+// "name"
+
+// Non-strict mode - includes optional string fields
+type StringPathsNonStrict = ValidPaths<typeof schema, never, never, string, false>;
 // "name" | "email"
-
-// Get all number field paths
-type NumberPaths = ValidPathsOfType<typeof schema, number>;
-// "age" | "count"
-
-// Get all boolean field paths
-type BooleanPaths = ValidPathsOfType<typeof schema, boolean>;
-// "active"
 ```
 
 **With discriminated unions:**
@@ -600,39 +586,131 @@ const formSchema = z.discriminatedUnion("mode", [
   z.object({ mode: z.literal("edit"), id: z.number(), title: z.string() }),
 ]);
 
-// Get number paths for 'edit' variant only
-type EditNumberPaths = ValidPathsOfType<
-  typeof formSchema,
-  number,
-  "mode",
-  "edit"
->;
-// "id"
+// Get all paths for 'create' variant
+type CreatePaths = ValidPaths<typeof formSchema, "mode", "create">;
+// "mode" | "name" | "age"
 
-// Get string paths for 'create' variant
-type CreateStringPaths = ValidPathsOfType<
-  typeof formSchema,
-  string,
-  "mode",
-  "create"
->;
-// "name"
+// Get number paths for 'edit' variant
+type EditNumberPaths = ValidPaths<typeof formSchema, "mode", "edit", number>;
+// "id"
 ```
 
-**Array and object filtering:**
+**Strict vs Non-Strict mode:**
 
 ```typescript
 const schema = z.object({
-  tags: z.array(z.string()),
-  scores: z.array(z.number()),
-  profile: z.object({ bio: z.string() }),
+  required: z.string(),
+  optional: z.string().optional(),
+  nullable: z.string().nullable(),
 });
 
-type StringArrayPaths = ValidPathsOfType<typeof schema, string[]>;
-// "tags"
+// Strict mode (default) - exact type matching
+type StrictPaths = ValidPaths<typeof schema, never, never, string>;
+// "required" - only exact string
 
-type ProfilePaths = ValidPathsOfType<typeof schema, { bio: string }>;
-// "profile"
+// Non-strict mode - includes subtypes
+type NonStrictPaths = ValidPaths<typeof schema, never, never, string, false>;
+// "required" | "optional" | "nullable"
+```
+
+---
+
+### `Paths<T, FilterType?, Strict?>`
+
+Low-level type utility for generating dot-notation paths from any type (not schema-specific).
+
+```typescript
+import type { Paths } from "@zod-utils/core";
+
+type User = {
+  name: string;
+  age: number;
+  profile: { bio: string };
+};
+
+// All paths
+type AllPaths = Paths<User>;
+// "name" | "age" | "profile" | "profile.bio"
+
+// Filtered by string
+type StringPaths = Paths<User, string>;
+// "name" | "profile.bio"
+```
+
+---
+
+### `FieldSelector<TSchema, TName, TDiscriminatorKey?, TDiscriminatorValue?, TFilterType?, TStrict?>`
+
+Utility type for creating typed parameter objects that include schema, field name, and optional discriminator. Useful for building type-safe form field components.
+
+```typescript
+import type { FieldSelector } from "@zod-utils/core";
+import { z } from "zod";
+
+// Regular schema - no discriminator required
+const userSchema = z.object({ name: z.string(), age: z.number() });
+type UserParams = FieldSelector<typeof userSchema, "name">;
+// { schema: typeof userSchema; name: "name" }
+
+// Discriminated union - requires discriminator
+const formSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string() }),
+  z.object({ mode: z.literal("edit"), id: z.number() }),
+]);
+type FormParams = FieldSelector<typeof formSchema, "name", "mode", "create">;
+// { schema: typeof formSchema; name: "name"; discriminator: { key: "mode"; value: "create" } }
+```
+
+---
+
+## Migration Guide
+
+### Migrating to v3.0.0
+
+#### `ValidPathsOfType` removed → Use `ValidPaths` with type filtering
+
+The `ValidPathsOfType` type has been removed and consolidated into `ValidPaths` with a new `TFilterType` parameter.
+
+**Before (v2.x):**
+```typescript
+import type { ValidPathsOfType } from "@zod-utils/core";
+
+// Get string field paths
+type StringPaths = ValidPathsOfType<typeof schema, string>;
+
+// With discriminated union
+type EditNumberPaths = ValidPathsOfType<typeof schema, number, "mode", "edit">;
+```
+
+**After (v3.x):**
+```typescript
+import type { ValidPaths } from "@zod-utils/core";
+
+// Get string field paths - use 4th type parameter
+type StringPaths = ValidPaths<typeof schema, never, never, string>;
+
+// With discriminated union - TFilterType is now 4th parameter
+type EditNumberPaths = ValidPaths<typeof schema, "mode", "edit", number>;
+```
+
+#### `Paths<T>` signature changed
+
+The `Paths` type now accepts optional `FilterType` and `Strict` parameters.
+
+**Before (v2.x):**
+```typescript
+type AllPaths = Paths<User>; // Still works the same
+```
+
+**After (v3.x):**
+```typescript
+type AllPaths = Paths<User>; // Works the same (backward compatible)
+
+// New: Filter by type
+type StringPaths = Paths<User, string>;
+
+// New: Non-strict mode
+type StringPaths = Paths<User, string, false>;
 ```
 
 ---

@@ -5,6 +5,7 @@ import type {
   Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  FieldSelector,
   ValidPaths,
 } from './types';
 
@@ -52,22 +53,29 @@ export type ExtractZodByPath<Schema, Path extends string> = NavigateZod<
 
 export function extractFieldFromSchema<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 >({
   schema,
   name,
   discriminator,
-}: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+}: FieldSelector<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+>): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
   let currentSchema: z.ZodType | undefined;
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -143,4 +151,62 @@ export function extendWithMeta<T extends z.ZodType, R extends z.ZodType>(
     return transformedField;
   }
   return transformedField.meta({ ...meta });
+}
+
+/**
+ * Merges factory props with component props into a FieldSelector.
+ * Encapsulates type assertion so callers don't need eslint-disable.
+ *
+ * @param factoryProps - Props from factory function (contains schema)
+ * @param componentProps - Props from component call (contains name, discriminator)
+ * @returns Properly typed FieldSelector
+ *
+ * @example
+ * ```typescript
+ * const selectorProps = mergeFieldSelectorProps(
+ *   { schema: mySchema },
+ *   { name: 'fieldName', discriminator: { key: 'mode', value: 'create' } }
+ * );
+ * ```
+ */
+export function mergeFieldSelectorProps<
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  factoryProps: { schema: TSchema },
+  componentProps: {
+    name: TPath;
+    discriminator?: Discriminator<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue
+    >;
+  },
+): FieldSelector<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return { ...factoryProps, ...componentProps } as FieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >;
 }

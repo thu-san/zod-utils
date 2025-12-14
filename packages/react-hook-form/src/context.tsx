@@ -6,6 +6,7 @@ import {
   type DiscriminatorValue,
   type ExtractZodByPath,
   extractFieldFromSchema,
+  type FieldSelector,
   getFieldChecks,
   requiresValidInput,
   type ValidPaths,
@@ -19,6 +20,8 @@ import {
   useMemo,
 } from 'react';
 import type { z } from 'zod';
+import type { SomeType } from 'zod/v4/core';
+import { flattenFieldSelector } from './utils';
 
 /**
  * Type for the FormSchemaContext with full generic support.
@@ -28,14 +31,25 @@ export type FormSchemaContextType<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-> = Context<{
-  schema: TSchema;
-  discriminator?: Discriminator<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = Context<Omit<
+  FieldSelector<
     TSchema,
+    ValidPaths<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-} | null>;
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  'name'
+> | null>;
 
 /**
  * Context value type for FormSchemaContext.
@@ -44,14 +58,25 @@ export type FormSchemaContextValue<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-> = {
-  schema: TSchema;
-  discriminator?: Discriminator<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = Omit<
+  FieldSelector<
     TSchema,
+    ValidPaths<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-} | null;
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  'name'
+> | null;
 
 /**
  * React Context for providing Zod schema to form components.
@@ -102,27 +127,63 @@ export function useFormSchema<
     TSchema,
     TDiscriminatorKey
   > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 >(
   // Parameter used for type inference only, not at runtime
-  _params?: {
-    schema: TSchema;
-    discriminator?: Discriminator<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue
-    >;
-  },
-): FormSchemaContextValue<TSchema, TDiscriminatorKey, TDiscriminatorValue> {
+  _params?: TSchema extends z.ZodPipe<infer In, SomeType>
+    ? In extends z.ZodDiscriminatedUnion
+      ? {
+          schema: TSchema;
+          discriminator: Discriminator<
+            TSchema,
+            TDiscriminatorKey,
+            TDiscriminatorValue
+          >;
+        }
+      : {
+          schema: TSchema;
+          discriminator?: undefined;
+        }
+    : TSchema extends z.ZodDiscriminatedUnion
+      ? {
+          schema: TSchema;
+          discriminator: Discriminator<
+            TSchema,
+            TDiscriminatorKey,
+            TDiscriminatorValue
+          >;
+        }
+      : {
+          schema: TSchema;
+          discriminator?: undefined;
+        },
+): FormSchemaContextValue<
+  TSchema,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+> {
   return useContext(
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    FormSchemaContext as Context<{
-      schema: TSchema;
-      discriminator?: Discriminator<
+    FormSchemaContext as Context<Omit<
+      FieldSelector<
         TSchema,
+        ValidPaths<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue,
+          TFilterType,
+          TStrict
+        >,
         TDiscriminatorKey,
-        TDiscriminatorValue
-      >;
-    } | null>,
+        TDiscriminatorValue,
+        TFilterType,
+        TStrict
+      >,
+      'name'
+    > | null>,
   );
 }
 
@@ -169,13 +230,33 @@ export function FormSchemaProvider<
   schema,
   discriminator,
   children,
-}: {
-  schema: TSchema;
-  discriminator?: Discriminator<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
+}: (TSchema extends z.ZodPipe<infer In, SomeType>
+  ? In extends z.ZodDiscriminatedUnion
+    ? {
+        schema: TSchema;
+        discriminator: Discriminator<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >;
+      }
+    : {
+        schema: TSchema;
+        discriminator?: undefined;
+      }
+  : TSchema extends z.ZodDiscriminatedUnion
+    ? {
+        schema: TSchema;
+        discriminator: Discriminator<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >;
+      }
+    : {
+        schema: TSchema;
+        discriminator?: undefined;
+      }) & {
   children: ReactNode;
 }) {
   return (
@@ -209,29 +290,41 @@ export function FormSchemaProvider<
  */
 export function useIsRequiredField<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
->({
-  schema,
-  name,
-  discriminator,
-}: {
-  schema?: TSchema;
-  name?: TPath;
-  discriminator?: Discriminator<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): boolean {
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params:
+    | FieldSelector<
+        TSchema,
+        TPath,
+        TDiscriminatorKey,
+        TDiscriminatorValue,
+        TFilterType,
+        TStrict
+      >
+    | {
+        schema?: undefined;
+        name?: undefined;
+        discriminator?: undefined;
+      },
+): boolean {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
   return useMemo(() => {
-    if (!schema || !name) {
+    if (!params.schema || !params.name) {
       return false;
     }
 
-    return isRequiredField({ schema, name, discriminator });
-  }, [schema, name, discriminator]);
+    return isRequiredField(params);
+  }, [...flattenFieldSelector(params)]);
 }
 
 /**
@@ -277,27 +370,35 @@ export function useIsRequiredField<
  */
 export function isRequiredField<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
->({
-  schema,
-  name,
-  discriminator,
-}: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): boolean {
-  const field = extractFieldFromSchema({
-    schema,
-    name,
-    discriminator,
-  });
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params: FieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+): boolean {
+  const field = extractFieldFromSchema<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(params);
 
   if (!field) {
     return false;
@@ -345,25 +446,42 @@ export function isRequiredField<
  */
 export function useExtractFieldFromSchema<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
->({
-  schema,
-  name,
-  discriminator,
-}: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params: FieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
   return useMemo(
-    () => extractFieldFromSchema({ schema, name, discriminator }),
-    [schema, name, discriminator],
+    () =>
+      extractFieldFromSchema<
+        TSchema,
+        TPath,
+        TDiscriminatorKey,
+        TDiscriminatorValue,
+        TFilterType,
+        TStrict
+      >(params),
+    [...flattenFieldSelector(params)],
   );
 }
 
@@ -391,25 +509,38 @@ export function useExtractFieldFromSchema<
  */
 export function useFieldChecks<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
->({
-  schema,
-  name,
-  discriminator,
-}: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): ZodUnionCheck[] {
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params: FieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+): ZodUnionCheck[] {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
   return useMemo(() => {
-    const field = extractFieldFromSchema({ schema, name, discriminator });
+    const field = extractFieldFromSchema<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >(params);
     if (!field) return [];
     return getFieldChecks(field);
-  }, [schema, name, discriminator]);
+  }, [...flattenFieldSelector(params)]);
 }

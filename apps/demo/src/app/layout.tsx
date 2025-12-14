@@ -53,6 +53,12 @@ export default async function RootLayout({
                   >
                     Discriminated Union
                   </Link>
+                  <Link
+                    href="/valid-paths-of-type"
+                    className="transition-colors hover:text-foreground/80 text-foreground"
+                  >
+                    ValidPathsOfType
+                  </Link>
                 </nav>
               </div>
             </div>

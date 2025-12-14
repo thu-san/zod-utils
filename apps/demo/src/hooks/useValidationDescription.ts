@@ -1,9 +1,9 @@
 'use client';
 
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  FieldSelector,
   ValidPaths,
 } from '@zod-utils/core';
 import { useFieldChecks } from '@zod-utils/react-hook-form';
@@ -49,26 +49,34 @@ import type { z } from 'zod';
  */
 export function useValidationDescription<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
->(params: {
-  schema: TSchema;
-  name: TPath;
-  discriminator?: Discriminator<
+  TPath extends ValidPaths<
     TSchema,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-}): string {
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  params: FieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+) {
   const t = useTranslations('user.validation');
 
   // Get all validation checks from the field (memoized)
-  const checks = useFieldChecks({
-    schema: params.schema,
-    name: params.name,
-    discriminator: params.discriminator,
-  });
+  const checks = useFieldChecks(params);
 
   // Filter to only max length and numeric range checks
   // Note: min_length is intentionally excluded as it indicates a "required" field,

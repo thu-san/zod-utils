@@ -1,9 +1,10 @@
-import type {
-  Discriminator,
-  DiscriminatorKey,
-  DiscriminatorValue,
-  InferredFieldValues,
-  ValidFieldPathsOfType,
+import {
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type FormFieldSelector,
+  type InferredFieldValues,
+  mergeFormFieldSelectorProps,
+  type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
@@ -12,12 +13,13 @@ import { TFormField } from './TFormField';
 
 export function CheckboxFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPathsOfType<
+  TPath extends ValidFieldPaths<
     TSchema,
-    boolean,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues
+    TFieldValues,
+    TFilterType,
+    TStrict
   >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   const TDiscriminatorValue extends DiscriminatorValue<
@@ -25,63 +27,65 @@ export function CheckboxFormField<
     TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
->({
-  schema,
-  name,
-  description,
-  discriminator,
-  ...inputProps
-}: {
-  schema: TSchema;
-  name: TPath;
-  description?: string;
-  discriminator?: Discriminator<
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  props: FormFieldSelector<
     TSchema,
+    TPath,
     TDiscriminatorKey,
-    TDiscriminatorValue
-  >;
-} & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>) {
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  > & {
+    description?: string;
+  } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>,
+) {
+  const { description, ...inputProps } = props;
+
   // Auto-generate validation description if not provided
-  const autoDescription = useValidationDescription({
-    schema,
-    name,
-    discriminator,
-  });
+  const autoDescription = useValidationDescription<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(props);
+
   const finalDescription =
     description !== undefined ? description : autoDescription;
 
-  return (
-    <TFormField<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues
-    >
-      schema={schema}
-      name={name}
-      description={finalDescription}
-      discriminator={discriminator}
-      render={({ field }) => (
-        <input
-          {...field}
-          {...inputProps}
-          type="checkbox"
-          checked={field.value ?? false}
-          value={undefined}
-        />
-      )}
-    />
-  );
+  return TFormField<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >({
+    ...props,
+    description: finalDescription,
+    render: ({ field }) => (
+      <input
+        {...inputProps}
+        type="checkbox"
+        checked={field.value ?? false}
+        onChange={(e) => field.onChange(e.target.checked)}
+        value={undefined}
+      />
+    ),
+  });
 }
 
 export function createCheckboxFormField<
   TSchema extends z.ZodType,
 >(factoryProps: { schema: TSchema }) {
   return function BoundCheckboxFormField<
-    TPath extends ValidFieldPathsOfType<
+    TPath extends ValidFieldPaths<
       TSchema,
-      boolean,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
@@ -106,17 +110,21 @@ export function createCheckboxFormField<
       'schema'
     >,
   ) {
-    return (
-      <CheckboxFormField<
-        TSchema,
-        TPath,
-        TDiscriminatorKey,
-        TDiscriminatorValue,
-        TFieldValues
-      >
-        {...factoryProps}
-        {...props}
-      />
-    );
+    const { name, discriminator, ...rest } = props;
+    const selectorProps = mergeFormFieldSelectorProps<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues
+    >(factoryProps, { name, discriminator });
+
+    return CheckboxFormField<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues
+    >({ ...selectorProps, ...rest });
   };
 }
