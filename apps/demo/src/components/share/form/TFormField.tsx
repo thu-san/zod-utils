@@ -1,9 +1,10 @@
-import type {
-  DiscriminatorKey,
-  DiscriminatorValue,
-  FormFieldSelector,
-  InferredFieldValues,
-  ValidFieldPaths,
+import {
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type FormFieldSelector,
+  type InferredFieldValues,
+  mergeFormFieldSelectorProps,
+  type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ReactElement } from 'react';
 import {
@@ -144,21 +145,16 @@ export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
       'schema'
     >,
   ) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const mergedProps = {
-      ...factoryProps,
-      ...props,
-    } as React.ComponentProps<
-      typeof TFormField<
-        TSchema,
-        TPath,
-        TDiscriminatorKey,
-        TDiscriminatorValue,
-        TFieldValues,
-        TFilterType,
-        TStrict
-      >
-    >;
+    const { name, discriminator, ...rest } = props;
+    const selectorProps = mergeFormFieldSelectorProps<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues,
+      TFilterType,
+      TStrict
+    >(factoryProps, { name, discriminator });
 
     return TFormField<
       TSchema,
@@ -168,6 +164,6 @@ export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
       TFieldValues,
       TFilterType,
       TStrict
-    >(mergedProps);
+    >({ ...selectorProps, ...rest });
   };
 }

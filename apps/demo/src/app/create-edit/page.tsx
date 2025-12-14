@@ -6,9 +6,14 @@ import {
   useZodForm,
 } from '@zod-utils/react-hook-form';
 import { useMemo, useState } from 'react';
+import { useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
-import { createInputFormField, NumberFormField } from '@/components/share/form';
+import {
+  createInputFormField,
+  createNumberFormField,
+  NumberFormField,
+} from '@/components/share/form';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,6 +31,19 @@ const userSchema = z
       mode: z.literal('create').default('create'),
       name: z.string().min(1),
       age: z.number().optional().default(18),
+      addresses: z.array(
+        z.object({
+          zip: z.number(),
+          city: z.string().min(1),
+          street: z.string().min(1),
+        }),
+      ),
+      sns: z
+        .object({
+          twitter: z.string().min(1),
+          facebook: z.string().min(1),
+        })
+        .optional(),
     }),
     z.object({
       mode: z.literal('edit').default('edit'),
@@ -41,6 +59,10 @@ const userSchema = z
 type UserFormData = z.infer<typeof userSchema>;
 
 const UserInputFormField = createInputFormField({
+  schema: userSchema,
+});
+
+const UserNumberFormField = createNumberFormField({
   schema: userSchema,
 });
 
@@ -94,6 +116,15 @@ export default function CreateEditPage() {
     () => ({ key: 'mode', value: mode }) as const,
     [mode],
   );
+
+  const {
+    fields: addressFields,
+    append: appendAddress,
+    remove: removeAddress,
+  } = useFieldArray({
+    control: form.control,
+    name: 'addresses',
+  });
 
   return (
     <FormSchemaProvider schema={userSchema} discriminator={discriminator}>
@@ -175,6 +206,94 @@ export default function CreateEditPage() {
                       value: mode,
                     }}
                   />
+                )}
+
+                {/* Addresses Field Array (only in create mode) */}
+                {mode === 'create' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Addresses</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          appendAddress({ zip: 0, city: '', street: '' })
+                        }
+                      >
+                        + Add Address
+                      </Button>
+                    </div>
+                    {addressFields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="p-3 border rounded-md space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Address {index + 1}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAddress(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        <UserNumberFormField
+                          name={`addresses.${index}.zip`}
+                          placeholder="Zip code"
+                          discriminator={{
+                            key: 'mode',
+                            value: mode,
+                          }}
+                        />
+                        <UserInputFormField
+                          name={`addresses.${index}.city`}
+                          placeholder="City"
+                          discriminator={{
+                            key: 'mode',
+                            value: mode,
+                          }}
+                        />
+                        <UserInputFormField
+                          name={`addresses.${index}.street`}
+                          placeholder="Street"
+                          discriminator={{
+                            key: 'mode',
+                            value: mode,
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* SNS Fields (only in create mode) */}
+                {mode === 'create' && (
+                  <div className="space-y-3">
+                    <span className="text-sm font-medium">
+                      Social Networks (Optional)
+                    </span>
+                    <UserInputFormField
+                      name="sns.twitter"
+                      placeholder="Twitter handle"
+                      discriminator={{
+                        key: 'mode',
+                        value: mode,
+                      }}
+                    />
+                    <UserInputFormField
+                      name="sns.facebook"
+                      placeholder="Facebook username"
+                      discriminator={{
+                        key: 'mode',
+                        value: mode,
+                      }}
+                    />
+                  </div>
                 )}
 
                 {/* Bio Field (only in edit mode) */}

@@ -138,9 +138,7 @@ type CheckFilter<V, FilterType, Strict extends boolean> = Strict extends true
     ? true
     : never; // true | never = true (any match passes)
 
-type NumberLiteralsWithoutZero = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-type NumberLiterals = 0 | NumberLiteralsWithoutZero;
-type ArrayPaths = `${NumberLiterals}` | `${NumberLiteralsWithoutZero}${number}`;
+type ArrayPaths = '${number}' | number;
 
 export type PathImpl<
   K extends string | number,

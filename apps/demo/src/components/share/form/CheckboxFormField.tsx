@@ -1,9 +1,10 @@
-import type {
-  DiscriminatorKey,
-  DiscriminatorValue,
-  FormFieldSelector,
-  InferredFieldValues,
-  ValidFieldPaths,
+import {
+  type DiscriminatorKey,
+  type DiscriminatorValue,
+  type FormFieldSelector,
+  type InferredFieldValues,
+  mergeFormFieldSelectorProps,
+  type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
 import type z from 'zod';
@@ -25,12 +26,11 @@ export function CheckboxFormField<
     TSchema,
     TDiscriminatorKey
   >,
-  TFieldValues extends
-    InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
+  TFieldValues extends InferredFieldValues<TSchema>,
   TFilterType = unknown,
   TStrict extends boolean = true,
 >(
-  allProps: FormFieldSelector<
+  props: FormFieldSelector<
     TSchema,
     TPath,
     TDiscriminatorKey,
@@ -42,46 +42,20 @@ export function CheckboxFormField<
     description?: string;
   } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>,
 ) {
-  const { schema, name, description, discriminator, ...inputProps } = allProps;
+  const { description, ...inputProps } = props;
 
   // Auto-generate validation description if not provided
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const autoDescription = useValidationDescription({
-    schema,
-    name,
-    discriminator,
-  } as unknown as Parameters<typeof useValidationDescription>[0]);
+  const autoDescription = useValidationDescription<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(props);
+
   const finalDescription =
     description !== undefined ? description : autoDescription;
-
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const formFieldProps = {
-    ...allProps,
-    description: finalDescription,
-    render: ({
-      field,
-    }: {
-      field: { value: boolean; onChange: (value: boolean) => void };
-    }) => (
-      <input
-        {...inputProps}
-        type="checkbox"
-        checked={field.value ?? false}
-        onChange={(e) => field.onChange(e.target.checked)}
-        value={undefined}
-      />
-    ),
-  } as React.ComponentProps<
-    typeof TFormField<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >
-  >;
 
   return TFormField<
     TSchema,
@@ -91,7 +65,19 @@ export function CheckboxFormField<
     TFieldValues,
     TFilterType,
     TStrict
-  >(formFieldProps);
+  >({
+    ...props,
+    description: finalDescription,
+    render: ({ field }) => (
+      <input
+        {...inputProps}
+        type="checkbox"
+        checked={field.value ?? false}
+        onChange={(e) => field.onChange(e.target.checked)}
+        value={undefined}
+      />
+    ),
+  });
 }
 
 export function createCheckboxFormField<
@@ -102,59 +88,43 @@ export function createCheckboxFormField<
       TSchema,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
+      TFieldValues
     >,
     TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorKey
     >,
-    TFieldValues extends
-      InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
-    TFilterType = unknown,
-    TStrict extends boolean = true,
+    TFieldValues extends InferredFieldValues<TSchema>,
   >(
     props: Omit<
-      Parameters<
+      React.ComponentProps<
         typeof CheckboxFormField<
           TSchema,
           TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
-          TFieldValues,
-          TFilterType,
-          TStrict
+          TFieldValues
         >
-      >[0],
+      >,
       'schema'
     >,
   ) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const mergedProps = {
-      ...factoryProps,
-      ...props,
-    } as Parameters<
-      typeof CheckboxFormField<
-        TSchema,
-        TPath,
-        TDiscriminatorKey,
-        TDiscriminatorValue,
-        TFieldValues,
-        TFilterType,
-        TStrict
-      >
-    >[0];
+    const { name, discriminator, ...rest } = props;
+    const selectorProps = mergeFormFieldSelectorProps<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFieldValues
+    >(factoryProps, { name, discriminator });
 
     return CheckboxFormField<
       TSchema,
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >(mergedProps);
+      TFieldValues
+    >({ ...selectorProps, ...rest });
   };
 }
