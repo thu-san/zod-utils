@@ -5,7 +5,7 @@ import {
   getSchemaDefaults,
   useZodForm,
 } from '@zod-utils/react-hook-form';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import z from 'zod';
 import { createInputFormField, NumberFormField } from '@/components/share/form';
@@ -90,16 +90,13 @@ export default function CreateEditPage() {
     });
   }
 
-  const discriminator = { key: 'mode', value: mode } as const;
+  const discriminator = useMemo(
+    () => ({ key: 'mode', value: mode }) as const,
+    [mode],
+  );
 
   return (
-    <FormSchemaProvider
-      schema={userSchema}
-      discriminator={
-        // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
-        discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
-      }
-    >
+    <FormSchemaProvider schema={userSchema} discriminator={discriminator}>
       <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] p-4">
         <Card className="w-full sm:max-w-md">
           <CardHeader>
@@ -147,10 +144,7 @@ export default function CreateEditPage() {
                     name="id"
                     placeholder="Enter ID"
                     description="Required in edit mode"
-                    discriminator={
-                      // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
-                      discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
-                    }
+                    discriminator={discriminator}
                   />
                 )}
 
@@ -163,10 +157,7 @@ export default function CreateEditPage() {
                       ? 'Required field'
                       : 'Optional in edit mode'
                   }
-                  discriminator={
-                    // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
-                    discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
-                  }
+                  discriminator={discriminator}
                 />
 
                 {/* Age Field (only in create mode) */}
@@ -176,10 +167,7 @@ export default function CreateEditPage() {
                     name="age"
                     placeholder="Enter age (optional)"
                     description="Optional in create mode"
-                    discriminator={
-                      // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
-                      discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
-                    }
+                    discriminator={discriminator}
                   />
                 )}
 
@@ -189,10 +177,7 @@ export default function CreateEditPage() {
                     name="bio"
                     placeholder="Enter bio (optional)"
                     description="Optional in edit mode"
-                    discriminator={
-                      // biome-ignore lint/suspicious/noExplicitAny: Conditional type unification workaround
-                      discriminator as any // eslint-disable-line @typescript-eslint/consistent-type-assertions
-                    }
+                    discriminator={discriminator}
                   />
                 )}
 
