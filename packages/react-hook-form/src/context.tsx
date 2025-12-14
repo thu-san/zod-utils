@@ -391,7 +391,14 @@ export function isRequiredField<
     TStrict
   >,
 ): boolean {
-  const field = extractFieldFromSchema(params);
+  const field = extractFieldFromSchema<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(params);
 
   if (!field) {
     return false;
@@ -465,7 +472,15 @@ export function useExtractFieldFromSchema<
 ): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
   // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
   return useMemo(
-    () => extractFieldFromSchema(params),
+    () =>
+      extractFieldFromSchema<
+        TSchema,
+        TPath,
+        TDiscriminatorKey,
+        TDiscriminatorValue,
+        TFilterType,
+        TStrict
+      >(params),
     [...flattenFieldSelector(params)],
   );
 }
@@ -517,7 +532,14 @@ export function useFieldChecks<
 ): ZodUnionCheck[] {
   // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
   return useMemo(() => {
-    const field = extractFieldFromSchema(params);
+    const field = extractFieldFromSchema<
+      TSchema,
+      TPath,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >(params);
     if (!field) return [];
     return getFieldChecks(field);
   }, [...flattenFieldSelector(params)]);
