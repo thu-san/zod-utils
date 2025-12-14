@@ -312,8 +312,7 @@ export type ValidPaths<
   TStrict
 >;
 
-type InnerFieldSelector<
-  TCheckSchema extends z.ZodType,
+export type InnerFieldSelector<
   TSchema extends z.ZodType,
   TPath extends ValidPaths<
     TSchema,
@@ -329,21 +328,37 @@ type InnerFieldSelector<
   > = never,
   TFilterType = unknown,
   TStrict extends boolean = true,
-> = TCheckSchema extends z.ZodDiscriminatedUnion
-  ? {
-      schema: TSchema;
-      name: TPath;
-      discriminator: Discriminator<
-        TSchema,
-        TDiscriminatorKey,
-        TDiscriminatorValue
-      >;
-    }
-  : {
-      schema: TSchema;
-      name: TPath;
-      discriminator?: undefined;
-    };
+> = TSchema extends z.ZodPipe<infer In>
+  ? In extends z.ZodDiscriminatedUnion
+    ? {
+        schema: TSchema;
+        name: TPath;
+        discriminator: Discriminator<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >;
+      }
+    : {
+        schema: TSchema;
+        name: TPath;
+        discriminator?: never;
+      }
+  : TSchema extends z.ZodDiscriminatedUnion
+    ? {
+        schema: TSchema;
+        name: TPath;
+        discriminator: Discriminator<
+          TSchema,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >;
+      }
+    : {
+        schema: TSchema;
+        name: TPath;
+        discriminator?: never;
+      };
 
 export type FieldSelector<
   TSchema extends z.ZodType,
@@ -361,24 +376,11 @@ export type FieldSelector<
   > = never,
   TFilterType = unknown,
   TStrict extends boolean = true,
-> = TSchema extends z.ZodPipe<infer In, SomeType>
-  ? In extends z.ZodType
-    ? InnerFieldSelector<
-        In,
-        TSchema,
-        TPath,
-        TDiscriminatorKey,
-        TDiscriminatorValue,
-        TFilterType,
-        TStrict
-      >
-    : never
-  : InnerFieldSelector<
-      TSchema,
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFilterType,
-      TStrict
-    >;
+> = InnerFieldSelector<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+>;

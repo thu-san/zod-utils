@@ -1,7 +1,7 @@
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  InnerFieldSelector,
   Simplify,
   ValidPaths,
 } from '@zod-utils/core';
@@ -256,21 +256,14 @@ export type FormFieldSelector<
     InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
   TFilterType = unknown,
   TStrict extends boolean = true,
-> = TSchema extends z.ZodDiscriminatedUnion
-  ? {
-      schema: TSchema;
-      name: TPath;
-      discriminator: Discriminator<
-        TSchema,
-        TDiscriminatorKey,
-        TDiscriminatorValue
-      >;
-    }
-  : {
-      schema: TSchema;
-      name: TPath;
-      discriminator?: never;
-    };
+> = InnerFieldSelector<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+>;
 
 func({
   schema: userSchema,

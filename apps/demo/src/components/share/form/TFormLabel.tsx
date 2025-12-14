@@ -37,7 +37,14 @@ export const useFieldLabel = <
     TStrict
   >,
 ) => {
-  const field = useExtractFieldFromSchema(params);
+  const field = useExtractFieldFromSchema<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >(params);
 
   const t = useTranslations();
   const translationKey = field?.meta()?.translationKey;

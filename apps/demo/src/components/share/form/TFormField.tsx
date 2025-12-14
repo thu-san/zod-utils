@@ -66,15 +66,20 @@ export function TFormField<
     TStrict
   >(props);
 
-  const { name, render, description } = props;
-
   return (
     <FormField
       control={control}
-      name={name}
+      name={props.name}
       render={({ field }) => (
         <FormItem>
-          <TFormLabel
+          <TFormLabel<
+            TSchema,
+            TPath,
+            TDiscriminatorKey,
+            TDiscriminatorValue,
+            TFilterType,
+            TStrict
+          >
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             {...(props as React.ComponentProps<
               typeof TFormLabel<
@@ -88,12 +93,14 @@ export function TFormField<
             >)}
           />
           <FormControl>
-            {render({
+            {props.render({
               field,
               label,
             })}
           </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
+          {props.description && (
+            <FormDescription>{props.description}</FormDescription>
+          )}
           <FormMessage />
         </FormItem>
       )}

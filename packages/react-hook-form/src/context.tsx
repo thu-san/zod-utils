@@ -290,12 +290,27 @@ export function FormSchemaProvider<
  */
 export function useIsRequiredField<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 >(
   params:
-    | FieldSelector<TSchema, TPath, TDiscriminatorKey, TDiscriminatorValue>
+    | FieldSelector<
+        TSchema,
+        TPath,
+        TDiscriminatorKey,
+        TDiscriminatorValue,
+        TFilterType,
+        TStrict
+      >
     | {
         schema?: undefined;
         name?: undefined;
