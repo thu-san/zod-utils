@@ -278,7 +278,10 @@ export type DiscriminatedInput<
             ? z.input<TSchema>
             : [TDiscriminatorValue] extends [never]
               ? z.input<TSchema>
-              : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
+              : Simplify<
+                  | Record<TDiscriminatorKey, TDiscriminatorValue>
+                  | Partial<Record<TDiscriminatorKey, TDiscriminatorValue>>
+                >
         >
       >
     >

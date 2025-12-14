@@ -871,4 +871,112 @@ describe('edge cases for discriminated unions', () => {
       expectTypeOf<APaths>().toEqualTypeOf<'type'>();
     });
   });
+
+  describe('discriminated union with default discriminator key', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create').default('create'),
+        name: z.string(),
+        profile: z.object({ bio: z.string(), avatar: z.string().optional() }),
+        tags: z.array(z.string()),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number(),
+        history: z.array(z.object({ date: z.string(), action: z.string() })),
+      }),
+    ]);
+
+    it('should include nested object paths for create variant', () => {
+      type CreatePaths = ValidPaths<typeof schema, 'mode', 'create'>;
+
+      expectTypeOf<'mode'>().toExtend<CreatePaths>();
+      expectTypeOf<'name'>().toExtend<CreatePaths>();
+      expectTypeOf<'profile'>().toExtend<CreatePaths>();
+      expectTypeOf<'profile.bio'>().toExtend<CreatePaths>();
+      expectTypeOf<'profile.avatar'>().toExtend<CreatePaths>();
+      expectTypeOf<'tags'>().toExtend<CreatePaths>();
+      expectTypeOf<`tags.${number}`>().toExtend<CreatePaths>();
+    });
+
+    it('should include nested array object paths for edit variant', () => {
+      type EditPaths = ValidPaths<typeof schema, 'mode', 'edit'>;
+
+      expectTypeOf<'mode'>().toExtend<EditPaths>();
+      expectTypeOf<'id'>().toExtend<EditPaths>();
+      expectTypeOf<'history'>().toExtend<EditPaths>();
+      expectTypeOf<`history.${number}`>().toExtend<EditPaths>();
+      expectTypeOf<`history.${number}.date`>().toExtend<EditPaths>();
+      expectTypeOf<`history.${number}.action`>().toExtend<EditPaths>();
+    });
+
+    it('should not include paths from other variant', () => {
+      type CreatePaths = ValidPaths<typeof schema, 'mode', 'create'>;
+      type EditPaths = ValidPaths<typeof schema, 'mode', 'edit'>;
+
+      // 'name' should not be in edit paths
+      expectTypeOf<'name'>().not.toExtend<EditPaths>();
+      // 'id' should not be in create paths
+      expectTypeOf<'id'>().not.toExtend<CreatePaths>();
+    });
+  });
+
+  describe('discriminated union without default discriminator key', () => {
+    const schema = z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('user'),
+        data: z.object({ name: z.string(), age: z.number() }),
+        roles: z.array(z.string()),
+      }),
+      z.object({
+        type: z.literal('admin'),
+        permissions: z.array(
+          z.object({ resource: z.string(), level: z.number() }),
+        ),
+      }),
+    ]);
+
+    it('should include nested paths for user variant', () => {
+      type UserPaths = ValidPaths<typeof schema, 'type', 'user'>;
+
+      expectTypeOf<'type'>().toExtend<UserPaths>();
+      expectTypeOf<'data'>().toExtend<UserPaths>();
+      expectTypeOf<'data.name'>().toExtend<UserPaths>();
+      expectTypeOf<'data.age'>().toExtend<UserPaths>();
+      expectTypeOf<'roles'>().toExtend<UserPaths>();
+      expectTypeOf<`roles.${number}`>().toExtend<UserPaths>();
+    });
+
+    it('should include nested array object paths for admin variant', () => {
+      type AdminPaths = ValidPaths<typeof schema, 'type', 'admin'>;
+
+      expectTypeOf<'type'>().toExtend<AdminPaths>();
+      expectTypeOf<'permissions'>().toExtend<AdminPaths>();
+      expectTypeOf<`permissions.${number}`>().toExtend<AdminPaths>();
+      expectTypeOf<`permissions.${number}.resource`>().toExtend<AdminPaths>();
+      expectTypeOf<`permissions.${number}.level`>().toExtend<AdminPaths>();
+    });
+
+    it('should filter by type within nested objects', () => {
+      type UserStringPaths = ValidPaths<typeof schema, 'type', 'user', string>;
+
+      expectTypeOf<'data.name'>().toExtend<UserStringPaths>();
+      expectTypeOf<`roles.${number}`>().toExtend<UserStringPaths>();
+      // number field should not be included
+      expectTypeOf<'data.age'>().not.toExtend<UserStringPaths>();
+    });
+
+    it('should filter by type within nested array objects', () => {
+      type AdminNumberPaths = ValidPaths<
+        typeof schema,
+        'type',
+        'admin',
+        number
+      >;
+
+      expectTypeOf<`permissions.${number}.level`>().toExtend<AdminNumberPaths>();
+      // string field should not be included
+      expectTypeOf<`permissions.${number}.resource`>().not.toExtend<AdminNumberPaths>();
+    });
+  });
 });
