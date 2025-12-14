@@ -269,10 +269,16 @@ export type DiscriminatedInput<
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 > = IsDiscriminatedUnion<TSchema> extends true
-  ? CommonFields<
-      Extract<
-        z.input<TSchema>,
-        Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
+  ? Simplify<
+      CommonFields<
+        Extract<
+          Required<z.input<TSchema>>,
+          TDiscriminatorKey extends never
+            ? z.input<TSchema>
+            : TDiscriminatorValue extends never
+              ? z.input<TSchema>
+              : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
+        >
       >
     >
   : z.input<TSchema>;

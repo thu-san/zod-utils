@@ -144,7 +144,10 @@ export default function CreateEditPage() {
                     name="id"
                     placeholder="Enter ID"
                     description="Required in edit mode"
-                    discriminator={discriminator}
+                    discriminator={{
+                      key: 'mode',
+                      value: mode,
+                    }}
                   />
                 )}
 
@@ -167,7 +170,10 @@ export default function CreateEditPage() {
                     name="age"
                     placeholder="Enter age (optional)"
                     description="Optional in create mode"
-                    discriminator={discriminator}
+                    discriminator={{
+                      key: 'mode',
+                      value: mode,
+                    }}
                   />
                 )}
 
@@ -177,7 +183,10 @@ export default function CreateEditPage() {
                     name="bio"
                     placeholder="Enter bio (optional)"
                     description="Optional in edit mode"
-                    discriminator={discriminator}
+                    discriminator={{
+                      key: 'mode',
+                      value: mode,
+                    }}
                   />
                 )}
 
