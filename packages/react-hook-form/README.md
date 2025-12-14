@@ -450,6 +450,10 @@ import {
   useExtractFieldFromSchema,
   useFieldChecks,
 
+  // Form field utilities
+  mergeFormFieldSelectorProps,
+  flattenFieldSelector,
+
   // Type utilities
   type PartialWithNullableObjects,
   type PartialWithAllNullables,
@@ -458,7 +462,7 @@ import {
   type DiscriminatorValue,
   type InferredFieldValues,
   type ValidFieldPaths,
-  type ValidFieldPathsOfType,
+  type FormFieldSelector,
 } from "@zod-utils/react-hook-form";
 ```
 
@@ -526,12 +530,12 @@ Use this when all fields need to accept `null`, not just objects/arrays.
 
 ---
 
-#### `ValidFieldPathsOfType<TSchema, TValueConstraint, TDiscriminatorKey?, TDiscriminatorValue?, TFieldValues?>`
+#### `ValidFieldPaths<TSchema, TDiscriminatorKey?, TDiscriminatorValue?, TFieldValues?, TFilterType?, TStrict?>`
 
-Extracts field paths where the value type matches a constraint. Useful for building type-safe form components that only accept paths of specific types.
+Type-safe field paths for React Hook Form with optional type filtering and discriminated union support.
 
 ```typescript
-import type { ValidFieldPathsOfType } from "@zod-utils/react-hook-form";
+import type { ValidFieldPaths } from "@zod-utils/react-hook-form";
 import { z } from "zod";
 
 const schema = z.object({
@@ -541,12 +545,16 @@ const schema = z.object({
   active: z.boolean(),
 });
 
-// Only accept number field paths
-type NumberPaths = ValidFieldPathsOfType<typeof schema, number>;
+// Get all field paths
+type AllPaths = ValidFieldPaths<typeof schema>;
+// "name" | "age" | "score" | "active"
+
+// Filter by type - only number field paths (use TFilterType parameter)
+type NumberPaths = ValidFieldPaths<typeof schema, never, never, never, number>;
 // "age" | "score"
 
 // Only accept boolean field paths
-type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
+type BooleanPaths = ValidFieldPaths<typeof schema, never, never, never, boolean>;
 // "active"
 ```
 
@@ -556,7 +564,7 @@ type BooleanPaths = ValidFieldPathsOfType<typeof schema, boolean>;
 // NumberFormField only accepts paths to number fields
 function NumberFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPathsOfType<TSchema, number>
+  TPath extends ValidFieldPaths<TSchema, never, never, never, number>
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   // name is guaranteed to be a path to a number field
   return <input type="number" name={name} />;
@@ -578,13 +586,80 @@ const formSchema = z.discriminatedUnion("mode", [
 ]);
 
 // Number paths for 'edit' variant
-type EditNumberPaths = ValidFieldPathsOfType<
+type EditNumberPaths = ValidFieldPaths<
   typeof formSchema,
-  number,
   "mode",
-  "edit"
+  "edit",
+  never,
+  number
 >;
 // "id" | "rating"
+```
+
+---
+
+#### `FormFieldSelector<TSchema, TPath, TDiscriminatorKey?, TDiscriminatorValue?, TFieldValues?, TFilterType?, TStrict?>`
+
+Type-safe field selector for React Hook Form with discriminated union support. Useful for building form field components with type-safe props.
+
+```typescript
+import type { FormFieldSelector } from "@zod-utils/react-hook-form";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string(),
+  age: z.number(),
+});
+
+// Basic usage - no discriminator needed
+type NameSelector = FormFieldSelector<typeof schema, "name">;
+// { schema: typeof schema; name: "name" }
+
+// With discriminated union
+const formSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("create"), name: z.string() }),
+  z.object({ mode: z.literal("edit"), id: z.number() }),
+]);
+
+type CreateNameSelector = FormFieldSelector<typeof formSchema, "name", "mode", "create">;
+// { schema: typeof formSchema; name: "name"; discriminator: { key: "mode"; value: "create" } }
+```
+
+---
+
+#### `mergeFormFieldSelectorProps(factoryProps, componentProps)`
+
+Merges factory props with component props into a `FormFieldSelector`. Useful for creating form field component factories.
+
+```typescript
+import { mergeFormFieldSelectorProps } from "@zod-utils/react-hook-form";
+
+// In a factory function
+function createInputFormField<TSchema extends z.ZodType>({ schema }: { schema: TSchema }) {
+  return function InputFormField({ name, discriminator }) {
+    const selectorProps = mergeFormFieldSelectorProps(
+      { schema },
+      { name, discriminator }
+    );
+    // Use selectorProps for extractFieldFromSchema, useIsRequiredField, etc.
+  };
+}
+```
+
+---
+
+#### `flattenFieldSelector(params)`
+
+Flattens a `FieldSelector` into an array of primitive values for use in React dependency arrays.
+
+```tsx
+import { flattenFieldSelector, extractFieldFromSchema } from "@zod-utils/react-hook-form";
+
+function useFieldSchema(params) {
+  return useMemo(() => {
+    return extractFieldFromSchema(params);
+  }, flattenFieldSelector(params));
+}
 ```
 
 ---
@@ -688,6 +763,42 @@ form.register("profile.firstName");
 // ❌ TypeScript error
 form.register("nonexistent.field");
 ```
+
+---
+
+## Migration Guide
+
+### Migrating to v3.0.0
+
+#### `ValidFieldPathsOfType` removed → Use `ValidFieldPaths` with type filtering
+
+The `ValidFieldPathsOfType` type has been removed and consolidated into `ValidFieldPaths` with a new `TFilterType` parameter.
+
+**Before (v2.x):**
+```typescript
+import type { ValidFieldPathsOfType } from "@zod-utils/react-hook-form";
+
+// Get number field paths
+type NumberPaths = ValidFieldPathsOfType<typeof schema, number>;
+
+// With discriminated union
+type EditNumberPaths = ValidFieldPathsOfType<typeof schema, number, "mode", "edit">;
+```
+
+**After (v3.x):**
+```typescript
+import type { ValidFieldPaths } from "@zod-utils/react-hook-form";
+
+// Get number field paths - TFilterType is now the 5th parameter
+type NumberPaths = ValidFieldPaths<typeof schema, never, never, never, number>;
+
+// With discriminated union
+type EditNumberPaths = ValidFieldPaths<typeof schema, "mode", "edit", never, number>;
+```
+
+**Parameter order change:**
+- v2.x: `ValidFieldPathsOfType<TSchema, TValueConstraint, TDiscriminatorKey, TDiscriminatorValue, TFieldValues>`
+- v3.x: `ValidFieldPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue, TFieldValues, TFilterType, TStrict>`
 
 ---
 

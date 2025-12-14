@@ -663,6 +663,58 @@ type FormParams = FieldSelector<typeof formSchema, "name", "mode", "create">;
 
 ---
 
+## Migration Guide
+
+### Migrating to v3.0.0
+
+#### `ValidPathsOfType` removed → Use `ValidPaths` with type filtering
+
+The `ValidPathsOfType` type has been removed and consolidated into `ValidPaths` with a new `TFilterType` parameter.
+
+**Before (v2.x):**
+```typescript
+import type { ValidPathsOfType } from "@zod-utils/core";
+
+// Get string field paths
+type StringPaths = ValidPathsOfType<typeof schema, string>;
+
+// With discriminated union
+type EditNumberPaths = ValidPathsOfType<typeof schema, number, "mode", "edit">;
+```
+
+**After (v3.x):**
+```typescript
+import type { ValidPaths } from "@zod-utils/core";
+
+// Get string field paths - use 4th type parameter
+type StringPaths = ValidPaths<typeof schema, never, never, string>;
+
+// With discriminated union - TFilterType is now 4th parameter
+type EditNumberPaths = ValidPaths<typeof schema, "mode", "edit", number>;
+```
+
+#### `Paths<T>` signature changed
+
+The `Paths` type now accepts optional `FilterType` and `Strict` parameters.
+
+**Before (v2.x):**
+```typescript
+type AllPaths = Paths<User>; // Still works the same
+```
+
+**After (v3.x):**
+```typescript
+type AllPaths = Paths<User>; // Works the same (backward compatible)
+
+// New: Filter by type
+type StringPaths = Paths<User, string>;
+
+// New: Non-strict mode
+type StringPaths = Paths<User, string, false>;
+```
+
+---
+
 ## License
 
 MIT
