@@ -138,7 +138,7 @@ type CheckFilter<V, FilterType, Strict extends boolean> = Strict extends true
     ? true
     : never; // true | never = true (any match passes)
 
-type ArrayPaths = '${number}' | number;
+type ArrayPaths = '${number}' | `${number}`;
 
 export type PathImpl<
   K extends string | number,
@@ -264,16 +264,19 @@ export type IsDiscriminatedUnion<T> =
  */
 export type DiscriminatedInput<
   TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
 > = IsDiscriminatedUnion<TSchema> extends true
   ? Simplify<
       CommonFields<
         Extract<
-          Required<z.input<TSchema>>,
-          TDiscriminatorKey extends never
+          z.input<TSchema>,
+          [TDiscriminatorKey] extends [never]
             ? z.input<TSchema>
-            : TDiscriminatorValue extends never
+            : [TDiscriminatorValue] extends [never]
               ? z.input<TSchema>
               : Simplify<Record<TDiscriminatorKey, TDiscriminatorValue>>
         >
