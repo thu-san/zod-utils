@@ -1,5 +1,20 @@
 # @zod-utils/react-hook-form
 
+## 4.0.0
+
+### Major Changes
+
+- 4fac71d: Rename selector utility functions with simplified API
+
+  - Rename `mergeFieldSelectorProps` to `toFieldSelector` in @zod-utils/core
+  - Rename `mergeFormFieldSelectorProps` to `toFormFieldSelector` in @zod-utils/react-hook-form
+  - New API accepts a single props object `{ schema, name, discriminator? }` instead of two separate objects
+
+### Patch Changes
+
+- Updated dependencies [4fac71d]
+  - @zod-utils/core@4.0.0
+
 ## 3.0.0
 
 ### Major Changes
