@@ -58,6 +58,17 @@ export function TFormField<
   },
 ) {
   const { control } = useFormContext<TFieldValues>();
+
+  const selectorProps = toFormFieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >(props);
+
   const label = useFieldLabel<
     TSchema,
     TPath,
@@ -65,7 +76,7 @@ export function TFormField<
     TDiscriminatorValue,
     TFilterType,
     TStrict
-  >(props);
+  >(selectorProps);
 
   return (
     <FormField
@@ -82,7 +93,7 @@ export function TFormField<
             TStrict
           >
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            {...(props as React.ComponentProps<
+            {...(selectorProps as React.ComponentProps<
               typeof TFormLabel<
                 TSchema,
                 TPath,
