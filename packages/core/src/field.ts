@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { extractDiscriminatedSchema } from './discriminatedSchema';
 import { getPrimitiveType } from './schema';
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
   FieldSelector,
@@ -154,22 +153,18 @@ export function extendWithMeta<T extends z.ZodType, R extends z.ZodType>(
 }
 
 /**
- * Merges factory props with component props into a FieldSelector.
+ * Extracts a FieldSelector from props containing schema, name, and optional discriminator.
  * Encapsulates type assertion so callers don't need eslint-disable.
  *
- * @param factoryProps - Props from factory function (contains schema)
- * @param componentProps - Props from component call (contains name, discriminator)
+ * @param props - Object containing schema, name, and optional discriminator
  * @returns Properly typed FieldSelector
  *
  * @example
  * ```typescript
- * const selectorProps = mergeFieldSelectorProps(
- *   { schema: mySchema },
- *   { name: 'fieldName', discriminator: { key: 'mode', value: 'create' } }
- * );
+ * const selectorProps = toFieldSelector<TSchema, TPath, ...>(props);
  * ```
  */
-export function mergeFieldSelectorProps<
+export function toFieldSelector<
   TSchema extends z.ZodType,
   TPath extends ValidPaths<
     TSchema,
@@ -182,17 +177,11 @@ export function mergeFieldSelectorProps<
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
   TFilterType = unknown,
   TStrict extends boolean = true,
->(
-  factoryProps: { schema: TSchema },
-  componentProps: {
-    name: TPath;
-    discriminator?: Discriminator<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue
-    >;
-  },
-): FieldSelector<
+>(props: {
+  schema: z.ZodType;
+  name: string;
+  discriminator?: { key: string; value: unknown };
+}): FieldSelector<
   TSchema,
   TPath,
   TDiscriminatorKey,
@@ -200,8 +189,9 @@ export function mergeFieldSelectorProps<
   TFilterType,
   TStrict
 > {
+  const { schema, name, discriminator } = props;
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return { ...factoryProps, ...componentProps } as FieldSelector<
+  return { schema, name, discriminator } as FieldSelector<
     TSchema,
     TPath,
     TDiscriminatorKey,

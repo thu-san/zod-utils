@@ -3,7 +3,7 @@ import {
   type DiscriminatorValue,
   type FormFieldSelector,
   type InferredFieldValues,
-  mergeFormFieldSelectorProps,
+  toFormFieldSelector,
   type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ReactElement } from 'react';
@@ -146,7 +146,7 @@ export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
     >,
   ) {
     const { name, discriminator, ...rest } = props;
-    const selectorProps = mergeFormFieldSelectorProps<
+    const selectorProps = toFormFieldSelector<
       TSchema,
       TPath,
       TDiscriminatorKey,
@@ -154,7 +154,7 @@ export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
       TFieldValues,
       TFilterType,
       TStrict
-    >(factoryProps, { name, discriminator });
+    >({ ...factoryProps, name, discriminator });
 
     return TFormField<
       TSchema,

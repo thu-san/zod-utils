@@ -3,7 +3,7 @@ import {
   type DiscriminatorValue,
   type FormFieldSelector,
   type InferredFieldValues,
-  mergeFormFieldSelectorProps,
+  toFormFieldSelector,
   type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
@@ -42,7 +42,23 @@ export function CheckboxFormField<
     description?: string;
   } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>,
 ) {
-  const { description, ...inputProps } = props;
+  const {
+    description,
+    schema: _schema,
+    name: _name,
+    discriminator: _discriminator,
+    ...inputProps
+  } = props;
+
+  const selectorProps = toFormFieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >(props);
 
   // Auto-generate validation description if not provided
   const autoDescription = useValidationDescription<
@@ -52,7 +68,7 @@ export function CheckboxFormField<
     TDiscriminatorValue,
     TFilterType,
     TStrict
-  >(props);
+  >(selectorProps);
 
   const finalDescription =
     description !== undefined ? description : autoDescription;
@@ -66,7 +82,7 @@ export function CheckboxFormField<
     TFilterType,
     TStrict
   >({
-    ...props,
+    ...selectorProps,
     description: finalDescription,
     render: ({ field }) => (
       <input
@@ -111,13 +127,13 @@ export function createCheckboxFormField<
     >,
   ) {
     const { name, discriminator, ...rest } = props;
-    const selectorProps = mergeFormFieldSelectorProps<
+    const selectorProps = toFormFieldSelector<
       TSchema,
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
-    >(factoryProps, { name, discriminator });
+    >({ ...factoryProps, name, discriminator });
 
     return CheckboxFormField<
       TSchema,
