@@ -404,6 +404,19 @@ const nameFromTransformed = extractFieldFromSchema({
 
 ---
 
+### `toFieldSelector(props)`
+
+Extracts a `FieldSelector` from props containing schema, name, and optional discriminator. Encapsulates type assertion so callers don't need eslint-disable.
+
+```typescript
+import { toFieldSelector } from "@zod-utils/core";
+
+const selectorProps = toFieldSelector({ schema, name: 'fieldName', discriminator });
+// Use selectorProps for extractFieldFromSchema, etc.
+```
+
+---
+
 ### `extendWithMeta(field, transform)`
 
 Extends a Zod field with a transformation while preserving its metadata.
@@ -711,6 +724,29 @@ type StringPaths = Paths<User, string>;
 
 // New: Non-strict mode
 type StringPaths = Paths<User, string, false>;
+```
+
+### Migrating to v4.0.0
+
+#### `mergeFieldSelectorProps` renamed → Use `toFieldSelector`
+
+The function has been renamed and simplified to accept a single props object.
+
+**Before (v3.x):**
+```typescript
+import { mergeFieldSelectorProps } from "@zod-utils/core";
+
+const selectorProps = mergeFieldSelectorProps(
+  { schema },
+  { name, discriminator }
+);
+```
+
+**After (v4.x):**
+```typescript
+import { toFieldSelector } from "@zod-utils/core";
+
+const selectorProps = toFieldSelector({ schema, name, discriminator });
 ```
 
 ---

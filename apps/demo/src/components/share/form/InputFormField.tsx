@@ -3,7 +3,7 @@ import {
   type DiscriminatorValue,
   type FormFieldSelector,
   type InferredFieldValues,
-  mergeFormFieldSelectorProps,
+  toFormFieldSelector,
   type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ComponentProps } from 'react';
@@ -47,7 +47,25 @@ export function InputFormField<
     description?: string;
   } & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'>,
 ) {
-  const { autoPlaceholder, placeholder, description, ...inputProps } = props;
+  const {
+    autoPlaceholder,
+    placeholder,
+    description,
+    schema: _schema,
+    name: _name,
+    discriminator: _discriminator,
+    ...inputProps
+  } = props;
+
+  const selectorProps = toFormFieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >(props);
 
   // Auto-generate validation description if not provided
   const autoDescription = useValidationDescription<
@@ -57,7 +75,7 @@ export function InputFormField<
     TDiscriminatorValue,
     TFilterType,
     TStrict
-  >(props);
+  >(selectorProps);
 
   const finalDescription =
     description !== undefined ? description : autoDescription;
@@ -71,7 +89,7 @@ export function InputFormField<
     TFilterType,
     TStrict
   >({
-    ...props,
+    ...selectorProps,
     description: finalDescription,
     render: ({ field, label }) => (
       <Input
@@ -121,13 +139,13 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
     >,
   ) {
     const { name, discriminator, ...rest } = props;
-    const selectorProps = mergeFormFieldSelectorProps<
+    const selectorProps = toFormFieldSelector<
       TSchema,
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
       TFieldValues
-    >(factoryProps, { name, discriminator });
+    >({ ...factoryProps, name, discriminator });
 
     return InputFormField<
       TSchema,

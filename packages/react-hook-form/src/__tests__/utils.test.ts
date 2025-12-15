@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { flattenFieldSelector, mergeFormFieldSelectorProps } from '../utils';
+import { flattenFieldSelector, toFormFieldSelector } from '../utils';
 
-describe('mergeFormFieldSelectorProps', () => {
+describe('toFormFieldSelector', () => {
   describe('with regular schema', () => {
     const schema = z.object({
       name: z.string(),
       age: z.number(),
     });
 
-    it('should merge factory props with component props', () => {
-      const result = mergeFormFieldSelectorProps(
-        { schema },
-        { name: 'name' as const },
-      );
+    it('should extract selector props from a props object', () => {
+      const result = toFormFieldSelector({
+        schema,
+        name: 'name' as const,
+      });
 
       expect(result).toEqual({
         schema,
@@ -27,13 +27,11 @@ describe('mergeFormFieldSelectorProps', () => {
         z.object({ mode: z.literal('edit'), id: z.number() }),
       ]);
 
-      const result = mergeFormFieldSelectorProps(
-        { schema: discriminatedSchema },
-        {
-          name: 'title' as const,
-          discriminator: { key: 'mode' as const, value: 'create' as const },
-        },
-      );
+      const result = toFormFieldSelector({
+        schema: discriminatedSchema,
+        name: 'title' as const,
+        discriminator: { key: 'mode' as const, value: 'create' as const },
+      });
 
       expect(result).toEqual({
         schema: discriminatedSchema,

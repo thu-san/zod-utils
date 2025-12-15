@@ -3,7 +3,7 @@ import {
   type DiscriminatorValue,
   type FormFieldSelector,
   type InferredFieldValues,
-  mergeFormFieldSelectorProps,
+  toFormFieldSelector,
   type ValidFieldPaths,
 } from '@zod-utils/react-hook-form';
 import type { ReactElement } from 'react';
@@ -58,6 +58,17 @@ export function TFormField<
   },
 ) {
   const { control } = useFormContext<TFieldValues>();
+
+  const selectorProps = toFormFieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFieldValues,
+    TFilterType,
+    TStrict
+  >(props);
+
   const label = useFieldLabel<
     TSchema,
     TPath,
@@ -65,7 +76,7 @@ export function TFormField<
     TDiscriminatorValue,
     TFilterType,
     TStrict
-  >(props);
+  >(selectorProps);
 
   return (
     <FormField
@@ -82,7 +93,7 @@ export function TFormField<
             TStrict
           >
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            {...(props as React.ComponentProps<
+            {...(selectorProps as React.ComponentProps<
               typeof TFormLabel<
                 TSchema,
                 TPath,
@@ -146,7 +157,7 @@ export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
     >,
   ) {
     const { name, discriminator, ...rest } = props;
-    const selectorProps = mergeFormFieldSelectorProps<
+    const selectorProps = toFormFieldSelector<
       TSchema,
       TPath,
       TDiscriminatorKey,
@@ -154,7 +165,7 @@ export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
       TFieldValues,
       TFilterType,
       TStrict
-    >(factoryProps, { name, discriminator });
+    >({ ...factoryProps, name, discriminator });
 
     return TFormField<
       TSchema,

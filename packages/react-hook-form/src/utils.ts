@@ -1,5 +1,4 @@
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
   FieldSelector,
@@ -13,25 +12,18 @@ import type {
 } from './types';
 
 /**
- * Merges factory props with component props into a FormFieldSelector.
+ * Extracts a FormFieldSelector from props containing schema, name, and optional discriminator.
  * Encapsulates type assertion so callers don't need eslint-disable.
  *
- * This is the React Hook Form specific version that uses ValidFieldPaths
- * (which includes RHF's Path type constraint).
- *
- * @param factoryProps - Props from factory function (contains schema)
- * @param componentProps - Props from component call (contains name, discriminator)
+ * @param props - Object containing schema, name, and optional discriminator
  * @returns Properly typed FormFieldSelector
  *
  * @example
  * ```typescript
- * const selectorProps = mergeFormFieldSelectorProps(
- *   { schema: mySchema },
- *   { name: 'fieldName', discriminator: { key: 'mode', value: 'create' } }
- * );
+ * const selectorProps = toFormFieldSelector<TSchema, TPath, ...>(props);
  * ```
  */
-export function mergeFormFieldSelectorProps<
+export function toFormFieldSelector<
   TSchema extends z.ZodType,
   TPath extends ValidFieldPaths<
     TSchema,
@@ -47,17 +39,11 @@ export function mergeFormFieldSelectorProps<
     InferredFieldValues<TSchema> = InferredFieldValues<TSchema>,
   TFilterType = unknown,
   TStrict extends boolean = true,
->(
-  factoryProps: { schema: TSchema },
-  componentProps: {
-    name: TPath;
-    discriminator?: Discriminator<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue
-    >;
-  },
-): FormFieldSelector<
+>(props: {
+  schema: z.ZodType;
+  name: string;
+  discriminator?: { key: string; value: unknown };
+}): FormFieldSelector<
   TSchema,
   TPath,
   TDiscriminatorKey,
@@ -66,8 +52,9 @@ export function mergeFormFieldSelectorProps<
   TFilterType,
   TStrict
 > {
+  const { schema, name, discriminator } = props;
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return { ...factoryProps, ...componentProps } as FormFieldSelector<
+  return { schema, name, discriminator } as FormFieldSelector<
     TSchema,
     TPath,
     TDiscriminatorKey,

@@ -3,7 +3,7 @@ import * as z from 'zod';
 import {
   extendWithMeta,
   extractFieldFromSchema,
-  mergeFieldSelectorProps,
+  toFieldSelector,
 } from '../field';
 
 describe('extractFieldFromSchema', () => {
@@ -600,18 +600,18 @@ describe('extendWithMeta', () => {
   });
 });
 
-describe('mergeFieldSelectorProps', () => {
+describe('toFieldSelector', () => {
   describe('with regular schema', () => {
     const schema = z.object({
       name: z.string(),
       age: z.number(),
     });
 
-    it('should merge factory props with component props', () => {
-      const result = mergeFieldSelectorProps(
-        { schema },
-        { name: 'name' as const },
-      );
+    it('should extract selector props from a props object', () => {
+      const result = toFieldSelector({
+        schema,
+        name: 'name' as const,
+      });
 
       expect(result).toEqual({
         schema,
@@ -620,10 +620,11 @@ describe('mergeFieldSelectorProps', () => {
     });
 
     it('should handle undefined discriminator', () => {
-      const result = mergeFieldSelectorProps(
-        { schema },
-        { name: 'age' as const, discriminator: undefined },
-      );
+      const result = toFieldSelector({
+        schema,
+        name: 'age' as const,
+        discriminator: undefined,
+      });
 
       expect(result).toEqual({
         schema,
@@ -640,13 +641,11 @@ describe('mergeFieldSelectorProps', () => {
     ]);
 
     it('should include discriminator when provided', () => {
-      const result = mergeFieldSelectorProps(
-        { schema },
-        {
-          name: 'title' as const,
-          discriminator: { key: 'mode' as const, value: 'create' as const },
-        },
-      );
+      const result = toFieldSelector({
+        schema,
+        name: 'title' as const,
+        discriminator: { key: 'mode' as const, value: 'create' as const },
+      });
 
       expect(result).toEqual({
         schema,

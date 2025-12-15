@@ -451,7 +451,7 @@ import {
   useFieldChecks,
 
   // Form field utilities
-  mergeFormFieldSelectorProps,
+  toFormFieldSelector,
   flattenFieldSelector,
 
   // Type utilities
@@ -627,21 +627,24 @@ type CreateNameSelector = FormFieldSelector<typeof formSchema, "name", "mode", "
 
 ---
 
-#### `mergeFormFieldSelectorProps(factoryProps, componentProps)`
+#### `toFormFieldSelector(props)`
 
-Merges factory props with component props into a `FormFieldSelector`. Useful for creating form field component factories.
+Extracts a `FormFieldSelector` from props containing schema, name, and optional discriminator. Encapsulates type assertion so callers don't need eslint-disable.
 
 ```typescript
-import { mergeFormFieldSelectorProps } from "@zod-utils/react-hook-form";
+import { toFormFieldSelector } from "@zod-utils/react-hook-form";
+
+// In a form field component
+function InputFormField<TSchema extends z.ZodType>({ schema, name, discriminator, ...inputProps }) {
+  const selectorProps = toFormFieldSelector({ schema, name, discriminator });
+  // Use selectorProps for extractFieldFromSchema, useIsRequiredField, etc.
+}
 
 // In a factory function
 function createInputFormField<TSchema extends z.ZodType>({ schema }: { schema: TSchema }) {
-  return function InputFormField({ name, discriminator }) {
-    const selectorProps = mergeFormFieldSelectorProps(
-      { schema },
-      { name, discriminator }
-    );
-    // Use selectorProps for extractFieldFromSchema, useIsRequiredField, etc.
+  return function BoundInputFormField({ name, discriminator, ...rest }) {
+    const selectorProps = toFormFieldSelector({ schema, name, discriminator });
+    return <InputFormField {...selectorProps} {...rest} />;
   };
 }
 ```
@@ -799,6 +802,29 @@ type EditNumberPaths = ValidFieldPaths<typeof schema, "mode", "edit", never, num
 **Parameter order change:**
 - v2.x: `ValidFieldPathsOfType<TSchema, TValueConstraint, TDiscriminatorKey, TDiscriminatorValue, TFieldValues>`
 - v3.x: `ValidFieldPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue, TFieldValues, TFilterType, TStrict>`
+
+### Migrating to v4.0.0
+
+#### `mergeFormFieldSelectorProps` renamed → Use `toFormFieldSelector`
+
+The function has been renamed and simplified to accept a single props object.
+
+**Before (v3.x):**
+```typescript
+import { mergeFormFieldSelectorProps } from "@zod-utils/react-hook-form";
+
+const selectorProps = mergeFormFieldSelectorProps(
+  { schema },
+  { name, discriminator }
+);
+```
+
+**After (v4.x):**
+```typescript
+import { toFormFieldSelector } from "@zod-utils/react-hook-form";
+
+const selectorProps = toFormFieldSelector({ schema, name, discriminator });
+```
 
 ---
 
