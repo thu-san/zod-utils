@@ -28,8 +28,8 @@ export function NumberFormField<
     TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
-  TFilterType = unknown,
-  TStrict extends boolean = true,
+  TFilterType = number,
+  TStrict extends boolean = false,
 >(
   props: FormFieldSelector<
     TSchema,
@@ -122,7 +122,9 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
       TSchema,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >,
     TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
@@ -130,6 +132,8 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
       TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
+    TFilterType = number,
+    TStrict extends boolean = false,
   >(
     props: Omit<
       React.ComponentProps<
@@ -138,7 +142,9 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
           TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
-          TFieldValues
+          TFieldValues,
+          TFilterType,
+          TStrict
         >
       >,
       'schema'
@@ -150,7 +156,9 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >({ ...factoryProps, name, discriminator });
 
     return NumberFormField<
@@ -158,7 +166,9 @@ export function createNumberFormField<TSchema extends z.ZodType>(factoryProps: {
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >({ ...selectorProps, ...rest });
   };
 }

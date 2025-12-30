@@ -30,8 +30,8 @@ export function InputFormField<
     TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
-  TFilterType = unknown,
-  TStrict extends boolean = true,
+  TFilterType = string,
+  TStrict extends boolean = false,
 >(
   props: FormFieldSelector<
     TSchema,
@@ -116,7 +116,9 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
       TSchema,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >,
     TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
@@ -124,6 +126,8 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
       TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
+    TFilterType = string,
+    TStrict extends boolean = false,
   >(
     props: Omit<
       React.ComponentProps<
@@ -132,7 +136,9 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
           TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
-          TFieldValues
+          TFieldValues,
+          TFilterType,
+          TStrict
         >
       >,
       'namespace' | 'schema'
@@ -144,7 +150,9 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >({ ...factoryProps, name, discriminator });
 
     return InputFormField<
@@ -152,7 +160,9 @@ export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >({ ...selectorProps, ...rest });
   };
 }

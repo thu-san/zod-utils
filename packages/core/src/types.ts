@@ -99,7 +99,7 @@ export type Discriminator<
 // ============================================================================================
 // ↓↓↓↓↓↓↓↓↓↓↓↓ Forked from react-hook-form types
 
-interface FileList {
+export interface FileList {
   readonly length: number;
   item(index: number): File | null;
   [index: number]: File;
@@ -130,13 +130,17 @@ type AnyIsEqual<T1, T2> = T1 extends T2
     : never
   : never;
 
-type CheckFilter<V, FilterType, Strict extends boolean> = Strict extends true
-  ? [V] extends [FilterType]
+type HasMatch<V, TFilterType> = V extends TFilterType ? true : false;
+
+type IsNullable<V> = null extends V ? true : undefined extends V ? true : false;
+
+type CheckFilter<V, TFilterType, TStrict extends boolean> = TStrict extends true
+  ? [V] extends [TFilterType]
     ? true
     : false
-  : V extends FilterType
+  : true extends HasMatch<V, TFilterType>
     ? true
-    : never; // true | never = true (any match passes)
+    : false;
 
 type ArrayPaths = '${number}' | `${number}`;
 
@@ -144,31 +148,44 @@ export type PathImpl<
   K extends string | number,
   V,
   TraversedTypes,
-  FilterType = unknown,
-  Strict extends boolean = true,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 > = [V] extends [Primitive | BrowserNativeObject]
-  ? CheckFilter<V, FilterType, Strict> extends true
-    ? `${K}`
+  ? CheckFilter<V, TFilterType, TStrict> extends true
+    ? K extends number
+      ? ArrayPaths
+      : `${K}`
     : never
   : true extends AnyIsEqual<TraversedTypes, V>
-    ? CheckFilter<V, FilterType, Strict> extends true
+    ? CheckFilter<V, TFilterType, TStrict> extends true
       ? `${K}`
       : never
     : K extends number
       ?
-          | (CheckFilter<V, FilterType, Strict> extends true
+          | (CheckFilter<V, TFilterType, TStrict> extends true
               ? ArrayPaths
               : never)
-          | `${ArrayPaths}.${PathInternal<V, TraversedTypes | V, FilterType, Strict>}`
+          | `${ArrayPaths}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`
       :
-          | (CheckFilter<V, FilterType, Strict> extends true ? `${K}` : never)
-          | `${K}.${PathInternal<V, TraversedTypes | V, FilterType, Strict>}`;
+          | (CheckFilter<V, TFilterType, TStrict> extends true ? `${K}` : never)
+          // When no filter type is specified, always allow nested paths to continue.
+          | (unknown extends TFilterType
+              ? `${K}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`
+              : // When filtering and the parent value is nullable/undefined:
+                // - in strict mode, stop path traversal at this key,
+                // - in non-strict mode, still allow nested paths to continue.
+                IsNullable<V> extends true
+                ? TStrict extends true
+                  ? never
+                  : `${K}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`
+                : // Non-nullable parent with filter type: always allow nested paths to continue.
+                  `${K}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`);
 
 export type PathInternal<
   T,
   TraversedTypes = T,
-  FilterType = unknown,
-  Strict extends boolean = true,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
 > = T extends ReadonlyArray<infer V>
   ? IsTuple<T> extends true
     ? {
@@ -176,27 +193,27 @@ export type PathInternal<
           K & string,
           T[K],
           TraversedTypes,
-          FilterType,
-          Strict
+          TFilterType,
+          TStrict
         >;
       }[TupleKeys<T>]
-    : PathImpl<ArrayKey, V, TraversedTypes, FilterType, Strict>
+    : PathImpl<ArrayKey, V, TraversedTypes, TFilterType, TStrict>
   : {
       [K in keyof T]-?: PathImpl<
         K & string,
         T[K],
         TraversedTypes,
-        FilterType,
-        Strict
+        TFilterType,
+        TStrict
       >;
     }[keyof T];
 
 // Public API
 export type Paths<
   T,
-  FilterType = unknown,
-  Strict extends boolean = true,
-> = PathInternal<T, T, FilterType, Strict>;
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = PathInternal<T, T, TFilterType, TStrict>;
 
 // ↑↑↑↑↑↑↑↑↑↑↑ Forked from react-hook-form types
 // ============================================================================================

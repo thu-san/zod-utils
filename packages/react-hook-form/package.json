@@ -24,7 +24,7 @@
     "lint:typescript": "tsc --project tsconfig.json",
     "lint": "biome check . && npm run lint:typescript",
     "lint:fix": "biome check --write .",
-    "test": "vitest run",
+    "test": "npm run lint:typescript && vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "bench": "vitest bench --run",
