@@ -168,12 +168,17 @@ export type PathImpl<
           | `${ArrayPaths}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`
       :
           | (CheckFilter<V, TFilterType, TStrict> extends true ? `${K}` : never)
+          // When no filter type is specified, always allow nested paths to continue.
           | (unknown extends TFilterType
               ? `${K}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`
+              // When filtering and the parent value is nullable/undefined:
+              // - in strict mode, stop path traversal at this key,
+              // - in non-strict mode, still allow nested paths to continue.
               : IsNullable<V> extends true
                 ? TStrict extends true
                   ? never
                   : `${K}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`
+                // Non-nullable parent with filter type: always allow nested paths to continue.
                 : `${K}.${PathInternal<V, TraversedTypes | V, TFilterType, TStrict>}`);
 
 export type PathInternal<
