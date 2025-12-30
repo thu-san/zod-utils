@@ -27,8 +27,8 @@ export function CheckboxFormField<
     TDiscriminatorKey
   >,
   TFieldValues extends InferredFieldValues<TSchema>,
-  TFilterType = unknown,
-  TStrict extends boolean = true,
+  TFilterType = boolean,
+  TStrict extends boolean = false,
 >(
   props: FormFieldSelector<
     TSchema,
@@ -104,7 +104,9 @@ export function createCheckboxFormField<
       TSchema,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >,
     TDiscriminatorKey extends DiscriminatorKey<TSchema>,
     const TDiscriminatorValue extends DiscriminatorValue<
@@ -112,6 +114,8 @@ export function createCheckboxFormField<
       TDiscriminatorKey
     >,
     TFieldValues extends InferredFieldValues<TSchema>,
+    TFilterType = boolean,
+    TStrict extends boolean = false,
   >(
     props: Omit<
       React.ComponentProps<
@@ -120,7 +124,9 @@ export function createCheckboxFormField<
           TPath,
           TDiscriminatorKey,
           TDiscriminatorValue,
-          TFieldValues
+          TFieldValues,
+          TFilterType,
+          TStrict
         >
       >,
       'schema'
@@ -132,7 +138,9 @@ export function createCheckboxFormField<
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >({ ...factoryProps, name, discriminator });
 
     return CheckboxFormField<
@@ -140,7 +148,9 @@ export function createCheckboxFormField<
       TPath,
       TDiscriminatorKey,
       TDiscriminatorValue,
-      TFieldValues
+      TFieldValues,
+      TFilterType,
+      TStrict
     >({ ...selectorProps, ...rest });
   };
 }
