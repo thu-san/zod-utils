@@ -37,34 +37,45 @@
    />
    ```
 
-2. **`TFilterType` default changed from `unknown`**
+2. **Clarification on `TFilterType` default**
 
-   The `TFilterType` generic default has changed from `unknown` to a union of primitive filterable types (`string | number | boolean`).
+   In the core type utilities (e.g. `ValidPaths`), the `TFilterType` generic **still defaults to `unknown`**. This means existing usages that relied on `TFilterType = unknown` remain valid and unchanged.
 
-   - If you depended on `TFilterType` being `unknown` (for fully untyped/opaque paths), you now need to pass `TFilterType` explicitly.
-   - To keep the old behavior, update your usages to specify `TFilterType = unknown` explicitly:
+   The recent changes only affect the default value types for the form field components (`InputFormField`, `NumberFormField`, `CheckboxFormField`), which now default to their respective primitive types (`string`, `number`, `boolean`). This does **not** alter the `TFilterType` default in `@zod-utils/core`.
+
+   If you prefer to be explicit about the `TFilterType` default when using core utilities, you can continue to specify it as `unknown`:
 
    ```ts
-   // Before – TFilterType defaulted to `unknown`
-   type Paths = ValidPaths<MySchema>;
-
-   // After – explicitly request the old default behavior
+   // Explicitly specifying TFilterType as `unknown`
    type Paths = ValidPaths<MySchema, unknown>;
    ```
 
-3. **`TStrict` default changed from `true` to `false`**
+   This clarification is intended to avoid confusion: there is no breaking change to the `TFilterType` default in the core types.
 
-   The `TStrict` generic default has changed from `true` (strict mode) to `false` (non-strict mode).
+3. **`TStrict` behavior for form field components**
 
-   - If you relied on strict mode being enabled by default, you must now opt into it explicitly.
-   - To preserve the old strict behavior, pass `TStrict = true` explicitly wherever you use this generic:
+   The core type utilities (e.g. `ValidPaths`) still default `TStrict` to `true` (strict mode), but the React form field components now opt into `TStrict = false` (non-strict mode) by default when they use these utilities.
+
+   - If you relied on strict mode being enabled by default for form field components, you must now opt into it explicitly in your component usage.
+   - To preserve the old strict behavior, pass `TStrict = true` explicitly via the appropriate generic parameter or configuration on these components.
+
+   Review your usages of form field components and related utilities to confirm that the new non-strict behavior and primitive `TFilterType` default match your expectations.
+
+4. **Generic parameter renames (`FilterType` → `TFilterType`, `Strict` → `TStrict`)**
+
+   The generic parameter names for `ValidPaths` (and related utilities) have been updated to follow the `T*` naming convention:
+
+   - `FilterType` has been renamed to `TFilterType`
+   - `Strict` has been renamed to `TStrict`
+
+   If you were specifying generic arguments by parameter name in your own types, you must update those references:
 
    ```ts
-   // Before – strict mode was the default
-   type StrictPaths = ValidPaths<MySchema>;
+   // Before – using old generic parameter names
+   type MyPaths = ValidPaths<MySchema, FilterType, Strict>;
 
-   // After – explicitly enable strict mode
-   type StrictPaths = ValidPaths<MySchema, string | number | boolean, true>;
+   // After – updated to new generic parameter names
+   type MyPaths = ValidPaths<MySchema, TFilterType, TStrict>;
    ```
 
-   Review your usages of `ValidPaths` and related utilities to confirm that the new non-strict default and primitive `TFilterType` default match your expectations.
+   This change is purely at the type parameter name level, but it is breaking for code that references the generic parameters by name.
