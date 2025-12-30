@@ -1000,12 +1000,12 @@ describe('Strict vs Non-Strict mode with multiple field types', () => {
       expectTypeOf<'arrNullable'>().not.toExtend<LooseStringPaths>();
     });
 
-    it('should NOT match strNullish with null filter', () => {
+    it('should match strNullish with null filter', () => {
       type LooseNullPaths = Paths<MixedSchema, null, false>;
       expectTypeOf<'strNullish'>().toExtend<LooseNullPaths>();
     });
 
-    it('should NOT match strNullish with undefined filter', () => {
+    it('should match strNullish with undefined filter', () => {
       type LooseUndefinedPaths = Paths<MixedSchema, undefined, false>;
       expectTypeOf<'strNullish'>().toExtend<LooseUndefinedPaths>();
     });
