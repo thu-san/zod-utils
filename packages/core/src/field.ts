@@ -4,7 +4,7 @@ import { getPrimitiveType } from './schema';
 import type {
   DiscriminatorKey,
   DiscriminatorValue,
-  FieldSelector,
+  SchemaFieldSelector,
   ValidPaths,
 } from './types';
 
@@ -63,38 +63,35 @@ export function extractFieldFromSchema<
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
   TFilterType = unknown,
   TStrict extends boolean = true,
->({
-  schema,
-  name,
-  discriminator,
-}: FieldSelector<
-  TSchema,
-  TPath,
-  TDiscriminatorKey,
-  TDiscriminatorValue,
-  TFilterType,
-  TStrict
->): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+>(
+  params: SchemaFieldSelector<
+    TSchema,
+    TPath,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
   let currentSchema: z.ZodType | undefined;
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const primitiveSchema = getPrimitiveType(schema) as TSchema;
+  const newParams = {
+    ...params,
+    schema: getPrimitiveType(params.schema),
+  };
 
-  if (primitiveSchema instanceof z.ZodDiscriminatedUnion) {
-    if (discriminator) {
-      currentSchema = extractDiscriminatedSchema({
-        schema: primitiveSchema,
-        ...discriminator,
-      });
+  if (newParams.schema instanceof z.ZodDiscriminatedUnion) {
+    if (newParams.discriminator) {
+      currentSchema = extractDiscriminatedSchema(newParams);
     }
-  } else if (primitiveSchema instanceof z.ZodObject) {
-    currentSchema = primitiveSchema;
+  } else if (newParams.schema instanceof z.ZodObject) {
+    currentSchema = newParams.schema;
   }
 
   if (!currentSchema) return undefined;
 
   // Split name into segments (e.g., "contact.email" -> ["contact", "email"])
-  const segments = String(name).split('.');
+  const segments = String(newParams.name).split('.');
 
   for (const segment of segments) {
     if (!currentSchema) return undefined;
@@ -150,53 +147,4 @@ export function extendWithMeta<T extends z.ZodType, R extends z.ZodType>(
     return transformedField;
   }
   return transformedField.meta({ ...meta });
-}
-
-/**
- * Extracts a FieldSelector from props containing schema, name, and optional discriminator.
- * Encapsulates type assertion so callers don't need eslint-disable.
- *
- * @param props - Object containing schema, name, and optional discriminator
- * @returns Properly typed FieldSelector
- *
- * @example
- * ```typescript
- * const selectorProps = toFieldSelector<TSchema, TPath, ...>(props);
- * ```
- */
-export function toFieldSelector<
-  TSchema extends z.ZodType,
-  TPath extends ValidPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-  TFilterType = unknown,
-  TStrict extends boolean = true,
->(props: {
-  schema: z.ZodType;
-  name: string;
-  discriminator?: { key: string; value: unknown };
-}): FieldSelector<
-  TSchema,
-  TPath,
-  TDiscriminatorKey,
-  TDiscriminatorValue,
-  TFilterType,
-  TStrict
-> {
-  const { schema, name, discriminator } = props;
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return { schema, name, discriminator } as FieldSelector<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >;
 }

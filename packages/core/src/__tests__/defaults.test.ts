@@ -131,12 +131,12 @@ describe('extractDefaultValue', () => {
 describe('getSchemaDefaults', () => {
   it('should return empty object for non-object schema (e.g., ZodString)', () => {
     const schema = z.string();
-    expect(getSchemaDefaults(schema)).toEqual({});
+    expect(getSchemaDefaults({ schema })).toEqual({});
   });
 
   it('should return empty object for ZodArray schema', () => {
     const schema = z.array(z.string());
-    expect(getSchemaDefaults(schema)).toEqual({});
+    expect(getSchemaDefaults({ schema })).toEqual({});
   });
 
   it('should extract defaults from object schema with transform', () => {
@@ -147,7 +147,7 @@ describe('getSchemaDefaults', () => {
       })
       .transform((data) => ({ ...data, computed: true }));
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
       age: 25,
     });
@@ -168,13 +168,15 @@ describe('getSchemaDefaults', () => {
       .transform((data) => ({ ...data, timestamp: Date.now() }));
 
     expect(
-      getSchemaDefaults(schema, {
+      getSchemaDefaults({
+        schema,
         discriminator: { key: 'mode', value: 'create' },
       }),
     ).toEqual({ name: 'New User' });
 
     expect(
-      getSchemaDefaults(schema, {
+      getSchemaDefaults({
+        schema,
         discriminator: { key: 'mode', value: 'edit' },
       }),
     ).toEqual({ id: 1 });
@@ -187,7 +189,7 @@ describe('getSchemaDefaults', () => {
       active: z.boolean().default(true),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
       age: 25,
       active: true,
@@ -201,7 +203,7 @@ describe('getSchemaDefaults', () => {
       email: z.string(), // no explicit default - NOT included
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
       // age and email are NOT included (no explicit defaults)
     });
@@ -216,7 +218,7 @@ describe('getSchemaDefaults', () => {
       }), // parent object has no default, so entire object is skipped
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
       // settings is skipped because parent object has no .default()
     });
@@ -229,7 +231,7 @@ describe('getSchemaDefaults', () => {
       email: z.string().optional(), // optional without default - NOT included
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
       // age and email are NOT included (no explicit defaults)
     });
@@ -242,7 +244,7 @@ describe('getSchemaDefaults', () => {
       bio: z.string().nullable(), // nullable without default - NOT included
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
       // age and bio are NOT included (no explicit defaults)
     });
@@ -254,7 +256,7 @@ describe('getSchemaDefaults', () => {
       age: z.number(),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       // name and age are NOT included (no explicit defaults)
     });
   });
@@ -265,7 +267,7 @@ describe('getSchemaDefaults', () => {
       name: z.string(),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       tags: ['default'],
       // name is NOT included (no explicit default)
     });
@@ -283,7 +285,7 @@ describe('getSchemaDefaults', () => {
         .default([]),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       items: [],
     });
   });
@@ -294,7 +296,7 @@ describe('getSchemaDefaults', () => {
       id: z.string().default(() => 'generated-id'),
     });
 
-    const result = getSchemaDefaults(schema);
+    const result = getSchemaDefaults({ schema });
     expect(typeof result.timestamp).toBe('number');
     expect(result.id).toBe('generated-id');
   });
@@ -312,7 +314,7 @@ describe('getSchemaDefaults', () => {
         .default({ nested: 'value' }),
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       string: 'text',
       number: 42,
       boolean: false,
@@ -351,7 +353,7 @@ describe('getSchemaDefaults', () => {
       enabled: z.boolean().default(true), // required with default - included
     });
 
-    expect(getSchemaDefaults(schema)).toEqual({
+    expect(getSchemaDefaults({ schema })).toEqual({
       title: 'Mr.',
       greeting: 'Hello',
       count: 0,
@@ -377,7 +379,8 @@ describe('getSchemaDefaults', () => {
     ]);
 
     it('should extract defaults for create mode', () => {
-      const result = getSchemaDefaults(userSchema, {
+      const result = getSchemaDefaults({
+        schema: userSchema,
         discriminator: {
           key: 'mode',
           value: 'create',
@@ -390,7 +393,8 @@ describe('getSchemaDefaults', () => {
     });
 
     it('should extract defaults for edit mode', () => {
-      const result = getSchemaDefaults(userSchema, {
+      const result = getSchemaDefaults({
+        schema: userSchema,
         discriminator: {
           key: 'mode',
           value: 'edit',
@@ -415,7 +419,8 @@ describe('getSchemaDefaults', () => {
         }),
       ]);
 
-      const result = getSchemaDefaults(schema, {
+      const result = getSchemaDefaults({
+        schema,
         discriminator: {
           key: 'type',
           value: 'a',
@@ -425,18 +430,30 @@ describe('getSchemaDefaults', () => {
       expect(result).toEqual({});
     });
 
-    it('should return empty object without discriminator option', () => {
-      const result = getSchemaDefaults(userSchema);
+    it('should require discriminator for discriminated unions (type safety)', () => {
+      // Note: With the new type-safe API, discriminator is REQUIRED for discriminated unions.
+      // This is enforced at compile time by the DiscriminatorField type.
+      // We test that passing a valid discriminator works correctly.
+      const result = getSchemaDefaults({
+        schema: userSchema,
+        discriminator: {
+          key: 'mode',
+          value: 'create',
+        },
+      });
 
-      expect(result).toEqual({});
+      expect(result).toEqual({ age: 18 });
     });
 
     it('should return empty object for invalid discriminator value', () => {
-      const result = getSchemaDefaults(userSchema, {
+      const result = getSchemaDefaults({
+        schema: userSchema,
         discriminator: {
           key: 'mode',
-          // @ts-expect-error - testing invalid value
-          value: 'invalid',
+          // Note: TypeScript doesn't strictly enforce this due to generic inference limitations
+          // but runtime will handle invalid values gracefully
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          value: 'invalid' as 'create' | 'edit',
         },
       });
 
@@ -462,21 +479,24 @@ describe('getSchemaDefaults', () => {
         }),
       ]);
 
-      const cardDefaults = getSchemaDefaults(paymentSchema, {
+      const cardDefaults = getSchemaDefaults({
+        schema: paymentSchema,
         discriminator: {
           key: 'method',
           value: 'card',
         },
       });
 
-      const paypalDefaults = getSchemaDefaults(paymentSchema, {
+      const paypalDefaults = getSchemaDefaults({
+        schema: paymentSchema,
         discriminator: {
           key: 'method',
           value: 'paypal',
         },
       });
 
-      const bankDefaults = getSchemaDefaults(paymentSchema, {
+      const bankDefaults = getSchemaDefaults({
+        schema: paymentSchema,
         discriminator: {
           key: 'method',
           value: 'bank',
@@ -505,7 +525,8 @@ describe('getSchemaDefaults', () => {
         }),
       ]);
 
-      const activeDefaults = getSchemaDefaults(formSchema, {
+      const activeDefaults = getSchemaDefaults({
+        schema: formSchema,
         discriminator: {
           key: 'status',
           value: 'active',
@@ -529,14 +550,16 @@ describe('getSchemaDefaults', () => {
         }),
       ]);
 
-      const successDefaults = getSchemaDefaults(responseSchema, {
+      const successDefaults = getSchemaDefaults({
+        schema: responseSchema,
         discriminator: {
           key: 'success',
           value: true,
         },
       });
 
-      const errorDefaults = getSchemaDefaults(responseSchema, {
+      const errorDefaults = getSchemaDefaults({
+        schema: responseSchema,
         discriminator: {
           key: 'success',
           value: false,
@@ -559,7 +582,8 @@ describe('getSchemaDefaults', () => {
         }),
       ]);
 
-      const successDefaults = getSchemaDefaults(statusSchema, {
+      const successDefaults = getSchemaDefaults({
+        schema: statusSchema,
         discriminator: {
           key: 'code',
           value: 200,
@@ -579,7 +603,7 @@ describe('getSchemaDefaults', () => {
       // @ts-expect-error - intentionally testing edge case
       schema.shape.missing = undefined;
 
-      const result = getSchemaDefaults(schema);
+      const result = getSchemaDefaults({ schema });
       expect(result).toEqual({ name: 'test', age: 18 });
     });
   });

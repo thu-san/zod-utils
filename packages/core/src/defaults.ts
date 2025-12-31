@@ -1,10 +1,15 @@
 import * as z from 'zod';
 import { extractDiscriminatedSchema } from './discriminatedSchema';
-import { canUnwrap, getPrimitiveType, tryStripNullishOnly } from './schema';
+import {
+  canUnwrap,
+  getPrimitiveType,
+  isPipeWithZodInput,
+  tryStripNullishOnly,
+} from './schema';
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  SchemaAndDiscriminatorField,
   Simplify,
 } from './types';
 
@@ -91,7 +96,7 @@ export function extractDefaultValue<T extends z.ZodType>(
     return undefined;
   }
 
-  if (field instanceof z.ZodPipe && field.def.in instanceof z.ZodType) {
+  if (isPipeWithZodInput(field)) {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return extractDefaultValue(field.def.in) as z.input<T>;
   }
@@ -176,28 +181,22 @@ export function getSchemaDefaults<
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >(
-  schema: TSchema,
-  options?: {
-    discriminator?: Discriminator<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue
-    >;
-  },
+  params: SchemaAndDiscriminatorField<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >,
 ): Simplify<Partial<z.input<TSchema>>> {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  const primitiveSchema = getPrimitiveType(schema) as TSchema;
+  const primitiveSchemaParams = {
+    ...params,
+    schema: getPrimitiveType(params.schema),
+  };
 
   let targetSchema: z.ZodObject | undefined;
-  if (primitiveSchema instanceof z.ZodDiscriminatedUnion) {
-    if (options?.discriminator) {
-      targetSchema = extractDiscriminatedSchema({
-        schema: primitiveSchema,
-        ...options.discriminator,
-      });
-    }
-  } else if (primitiveSchema instanceof z.ZodObject) {
-    targetSchema = primitiveSchema;
+  if (primitiveSchemaParams.schema instanceof z.ZodDiscriminatedUnion) {
+    targetSchema = extractDiscriminatedSchema(primitiveSchemaParams);
+  } else if (primitiveSchemaParams.schema instanceof z.ZodObject) {
+    targetSchema = primitiveSchemaParams.schema;
   }
 
   const defaults: Record<string, unknown> = {};

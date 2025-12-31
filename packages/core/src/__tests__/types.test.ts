@@ -2,9 +2,11 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import type {
   DiscriminatedInput,
-  FieldSelector,
   FileList,
+  NameField,
   Paths,
+  SchemaField,
+  SchemaFieldSelector,
   ValidPaths,
 } from '../types';
 
@@ -641,7 +643,7 @@ describe('DiscriminatedInput', () => {
   });
 });
 
-describe('FieldSelector', () => {
+describe('SchemaFieldSelector', () => {
   describe('with regular schema', () => {
     const schema = z.object({
       name: z.string(),
@@ -649,22 +651,22 @@ describe('FieldSelector', () => {
     });
 
     it('should create params without discriminator', () => {
-      type Params = FieldSelector<typeof schema, 'name'>;
+      type Params = SchemaFieldSelector<typeof schema, 'name' | 'age'>;
 
-      expectTypeOf<Params>().toEqualTypeOf<{
+      // For non-discriminated union schemas, discriminator should be prohibited (never)
+      expectTypeOf<Params>().toMatchTypeOf<{
         schema: typeof schema;
-        name: 'name';
-        discriminator?: undefined;
+        name: 'name' | 'age';
       }>();
+
+      // Verify discriminator is optional and cannot hold a meaningful value
+      expectTypeOf<Params['discriminator']>().toEqualTypeOf<undefined>();
     });
 
-    it('should infer valid name from schema', () => {
-      type Params = FieldSelector<typeof schema, 'age'>;
+    it('should have name constrained to valid paths', () => {
+      type Params = SchemaFieldSelector<typeof schema, 'name' | 'age'>;
 
-      expectTypeOf<Params>().toExtend<{
-        schema: typeof schema;
-        name: 'age';
-      }>();
+      expectTypeOf<Params['name']>().toEqualTypeOf<'name' | 'age'>();
     });
   });
 
@@ -675,16 +677,39 @@ describe('FieldSelector', () => {
     ]);
 
     it('should require discriminator for discriminated union', () => {
-      type Params = FieldSelector<typeof schema, 'name', 'mode', 'create'>;
+      type Params = SchemaFieldSelector<
+        typeof schema,
+        'mode' | 'name',
+        'mode',
+        'create'
+      >;
 
       expectTypeOf<Params>().toExtend<{
         schema: typeof schema;
-        name: 'name';
+        name: 'mode' | 'name';
         discriminator: {
           key: 'mode';
           value: 'create';
         };
       }>();
+    });
+
+    it('should narrow name paths based on discriminator', () => {
+      type CreateParams = SchemaFieldSelector<
+        typeof schema,
+        'mode' | 'name',
+        'mode',
+        'create'
+      >;
+      type EditParams = SchemaFieldSelector<
+        typeof schema,
+        'mode' | 'id',
+        'mode',
+        'edit'
+      >;
+
+      expectTypeOf<CreateParams['name']>().toEqualTypeOf<'mode' | 'name'>();
+      expectTypeOf<EditParams['name']>().toEqualTypeOf<'mode' | 'id'>();
     });
   });
 });
@@ -3004,6 +3029,136 @@ describe('Mixed nested structures', () => {
       expectTypeOf<'level1.level2Array.0.level3Optional'>().not.toExtend<LooseStringPaths>();
       // level3 under level2Optional is boolean
       expectTypeOf<'level1.level2Optional.level3'>().not.toExtend<LooseStringPaths>();
+    });
+  });
+});
+
+describe('SchemaField', () => {
+  it('should wrap schema in object with schema property', () => {
+    const schema = z.object({ name: z.string() });
+    type Props = SchemaField<typeof schema>;
+
+    expectTypeOf<Props>().toEqualTypeOf<{ schema: typeof schema }>();
+  });
+
+  it('should work with any Zod type', () => {
+    const stringSchema = z.string();
+    const arraySchema = z.array(z.number());
+
+    type StringProps = SchemaField<typeof stringSchema>;
+    type ArrayProps = SchemaField<typeof arraySchema>;
+
+    expectTypeOf<StringProps>().toEqualTypeOf<{
+      schema: typeof stringSchema;
+    }>();
+    expectTypeOf<ArrayProps>().toEqualTypeOf<{ schema: typeof arraySchema }>();
+  });
+
+  it('should work with discriminated union', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('create'), name: z.string() }),
+      z.object({ mode: z.literal('edit'), id: z.number() }),
+    ]);
+    type Props = SchemaField<typeof schema>;
+
+    expectTypeOf<Props>().toEqualTypeOf<{ schema: typeof schema }>();
+  });
+});
+
+describe('NameField', () => {
+  describe('with regular schema', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+      active: z.boolean(),
+    });
+
+    it('should have name constrained to valid paths', () => {
+      type Props = NameField<typeof schema, 'name' | 'age' | 'active'>;
+
+      expectTypeOf<Props>().toEqualTypeOf<{
+        name: 'name' | 'age' | 'active';
+      }>();
+    });
+  });
+
+  describe('with nested schema', () => {
+    const schema = z.object({
+      user: z.object({
+        name: z.string(),
+        profile: z.object({
+          bio: z.string(),
+        }),
+      }),
+    });
+
+    it('should include nested paths', () => {
+      type Props = NameField<
+        typeof schema,
+        'user' | 'user.name' | 'user.profile' | 'user.profile.bio'
+      >;
+
+      expectTypeOf<Props>().toEqualTypeOf<{
+        name: 'user' | 'user.name' | 'user.profile' | 'user.profile.bio';
+      }>();
+    });
+  });
+
+  describe('with discriminated union', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('create'), name: z.string() }),
+      z.object({ mode: z.literal('edit'), id: z.number() }),
+    ]);
+
+    it('should narrow paths based on discriminator value', () => {
+      type CreateProps = NameField<
+        typeof schema,
+        'mode' | 'name',
+        'mode',
+        'create'
+      >;
+
+      expectTypeOf<CreateProps>().toEqualTypeOf<{
+        name: 'mode' | 'name';
+      }>();
+    });
+
+    it('should narrow to edit paths', () => {
+      type EditProps = NameField<typeof schema, 'mode' | 'id', 'mode', 'edit'>;
+
+      expectTypeOf<EditProps>().toEqualTypeOf<{
+        name: 'mode' | 'id';
+      }>();
+    });
+  });
+
+  describe('with filter type', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+      count: z.number(),
+    });
+
+    it('should filter to number paths only', () => {
+      type NumberProps = NameField<
+        typeof schema,
+        'age' | 'count',
+        never,
+        never,
+        number
+      >;
+
+      expectTypeOf<NumberProps>().toEqualTypeOf<{
+        name: 'age' | 'count';
+      }>();
+    });
+
+    it('should filter to string paths only', () => {
+      type StringProps = NameField<typeof schema, 'name', never, never, string>;
+
+      expectTypeOf<StringProps>().toEqualTypeOf<{
+        name: 'name';
+      }>();
     });
   });
 });

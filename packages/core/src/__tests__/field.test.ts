@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
-import {
-  extendWithMeta,
-  extractFieldFromSchema,
-  toFieldSelector,
-} from '../field';
+import { extendWithMeta, extractFieldFromSchema } from '../field';
 
 describe('extractFieldFromSchema', () => {
   describe('ZodObject schemas', () => {
@@ -596,62 +592,6 @@ describe('extendWithMeta', () => {
       translationKey: 'user.field.age',
       description: 'User age',
       validation: { min: 0, max: 150 },
-    });
-  });
-});
-
-describe('toFieldSelector', () => {
-  describe('with regular schema', () => {
-    const schema = z.object({
-      name: z.string(),
-      age: z.number(),
-    });
-
-    it('should extract selector props from a props object', () => {
-      const result = toFieldSelector({
-        schema,
-        name: 'name' as const,
-      });
-
-      expect(result).toEqual({
-        schema,
-        name: 'name',
-      });
-    });
-
-    it('should handle undefined discriminator', () => {
-      const result = toFieldSelector({
-        schema,
-        name: 'age' as const,
-        discriminator: undefined,
-      });
-
-      expect(result).toEqual({
-        schema,
-        name: 'age',
-        discriminator: undefined,
-      });
-    });
-  });
-
-  describe('with discriminated union', () => {
-    const schema = z.discriminatedUnion('mode', [
-      z.object({ mode: z.literal('create'), title: z.string() }),
-      z.object({ mode: z.literal('edit'), id: z.number() }),
-    ]);
-
-    it('should include discriminator when provided', () => {
-      const result = toFieldSelector({
-        schema,
-        name: 'title' as const,
-        discriminator: { key: 'mode' as const, value: 'create' as const },
-      });
-
-      expect(result).toEqual({
-        schema,
-        name: 'title',
-        discriminator: { key: 'mode', value: 'create' },
-      });
     });
   });
 });

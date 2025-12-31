@@ -796,8 +796,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract create mode schema', () => {
       const result = extractDiscriminatedSchema({
         schema: userSchema,
-        key: 'mode',
-        value: 'create',
+        discriminator: { key: 'mode', value: 'create' },
       });
 
       expect(result).toBeDefined();
@@ -813,8 +812,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract edit mode schema', () => {
       const result = extractDiscriminatedSchema({
         schema: userSchema,
-        key: 'mode',
-        value: 'edit',
+        discriminator: { key: 'mode', value: 'edit' },
       });
 
       expect(result).toBeDefined();
@@ -829,9 +827,8 @@ describe('extractDiscriminatedSchema', () => {
     it('should return undefined for invalid discriminator value', () => {
       const result = extractDiscriminatedSchema({
         schema: userSchema,
-        key: 'mode',
         // @ts-expect-error - testing invalid value
-        value: 'invalid',
+        discriminator: { key: 'mode', value: 'invalid' },
       });
 
       expect(result).toBeUndefined();
@@ -860,8 +857,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract click event schema', () => {
       const result = extractDiscriminatedSchema({
         schema: eventSchema,
-        key: 'type',
-        value: 'click',
+        discriminator: { key: 'type', value: 'click' },
       });
 
       expect(result).toBeDefined();
@@ -873,8 +869,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract keypress event schema', () => {
       const result = extractDiscriminatedSchema({
         schema: eventSchema,
-        key: 'type',
-        value: 'keypress',
+        discriminator: { key: 'type', value: 'keypress' },
       });
 
       expect(result).toBeDefined();
@@ -885,8 +880,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract scroll event schema', () => {
       const result = extractDiscriminatedSchema({
         schema: eventSchema,
-        key: 'type',
-        value: 'scroll',
+        discriminator: { key: 'type', value: 'scroll' },
       });
 
       expect(result).toBeDefined();
@@ -911,8 +905,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract active status schema with defaults', () => {
       const result = extractDiscriminatedSchema({
         schema: formSchema,
-        key: 'status',
-        value: 'active',
+        discriminator: { key: 'status', value: 'active' },
       });
 
       expect(result).toBeDefined();
@@ -923,8 +916,7 @@ describe('extractDiscriminatedSchema', () => {
     it('should extract inactive status schema', () => {
       const result = extractDiscriminatedSchema({
         schema: formSchema,
-        key: 'status',
-        value: 'inactive',
+        discriminator: { key: 'status', value: 'inactive' },
       });
 
       expect(result).toBeDefined();
@@ -945,8 +937,7 @@ describe('extractDiscriminatedSchema', () => {
 
       const result = extractDiscriminatedSchema({
         schema,
-        key: 'type',
-        value: 'only',
+        discriminator: { key: 'type', value: 'only' },
       });
 
       expect(result).toBeDefined();
@@ -961,8 +952,7 @@ describe('extractDiscriminatedSchema', () => {
 
       const result = extractDiscriminatedSchema({
         schema,
-        key: 'code',
-        value: 200,
+        discriminator: { key: 'code', value: 200 },
       });
 
       expect(result).toBeDefined();
@@ -977,8 +967,7 @@ describe('extractDiscriminatedSchema', () => {
       const result = extractDiscriminatedSchema({
         schema,
         // @ts-expect-error - testing wrong field
-        key: 'wrongField',
-        value: 'a',
+        discriminator: { key: 'wrongField', value: 'a' },
       });
 
       expect(result).toBeUndefined();
@@ -999,8 +988,7 @@ describe('extractDiscriminatedSchema', () => {
       // Should skip the non-ZodObject and find the correct object option
       const result = extractDiscriminatedSchema({
         schema,
-        key: 'type',
-        value: 'a',
+        discriminator: { key: 'type', value: 'a' },
       });
 
       expect(result).toBeDefined();
@@ -1025,14 +1013,12 @@ describe('extractDiscriminatedSchema', () => {
 
       const createSchema = extractDiscriminatedSchema({
         schema,
-        key: 'mode',
-        value: 'create',
+        discriminator: { key: 'mode', value: 'create' },
       });
 
       const editSchema = extractDiscriminatedSchema({
         schema,
-        key: 'mode',
-        value: 'edit',
+        discriminator: { key: 'mode', value: 'edit' },
       });
 
       // Runtime checks
@@ -1069,8 +1055,7 @@ describe('extractDiscriminatedSchema', () => {
 
       const activeSchema = extractDiscriminatedSchema({
         schema,
-        key: 'status',
-        value: 'active',
+        discriminator: { key: 'status', value: 'active' },
       });
 
       // Type inference check
@@ -1107,8 +1092,7 @@ describe('extractDiscriminatedSchema', () => {
 
       const cardSchema = extractDiscriminatedSchema({
         schema: paymentSchema,
-        key: 'method',
-        value: 'card',
+        discriminator: { key: 'method', value: 'card' },
       });
 
       expect(cardSchema).toBeDefined();
@@ -1131,14 +1115,12 @@ describe('extractDiscriminatedSchema', () => {
 
       const successSchema = extractDiscriminatedSchema({
         schema: responseSchema,
-        key: 'success',
-        value: true,
+        discriminator: { key: 'success', value: true },
       });
 
       const errorSchema = extractDiscriminatedSchema({
         schema: responseSchema,
-        key: 'success',
-        value: false,
+        discriminator: { key: 'success', value: false },
       });
 
       expect(successSchema).toBeDefined();
@@ -1160,13 +1142,10 @@ describe('extractDiscriminatedSchema', () => {
 
       // Testing runtime behavior with incompatible type
       const result = extractDiscriminatedSchema({
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        schema: plainSchema as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        key: 'mode' as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        value: 'create' as any,
-      });
+        schema: plainSchema,
+        discriminator: { key: 'mode', value: 'create' },
+        // biome-ignore lint/suspicious/noExplicitAny: testing runtime behavior with incompatible type
+      } as any);
 
       expect(result).toBeUndefined();
     });
@@ -1176,13 +1155,10 @@ describe('extractDiscriminatedSchema', () => {
 
       // Testing runtime behavior with incompatible type
       const result = extractDiscriminatedSchema({
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        schema: regularUnion as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        key: 'type' as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        value: 'string' as any,
-      });
+        schema: regularUnion,
+        discriminator: { key: 'type', value: 'string' },
+        // biome-ignore lint/suspicious/noExplicitAny: testing runtime behavior with incompatible type
+      } as any);
 
       expect(result).toBeUndefined();
     });
@@ -1192,13 +1168,10 @@ describe('extractDiscriminatedSchema', () => {
 
       // Testing runtime behavior with incompatible type
       const result = extractDiscriminatedSchema({
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        schema: arraySchema as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        key: 'mode' as any,
-        // biome-ignore lint/suspicious/noExplicitAny: Intentionally testing with incompatible type
-        value: 'create' as any,
-      });
+        schema: arraySchema,
+        discriminator: { key: 'mode', value: 'create' },
+        // biome-ignore lint/suspicious/noExplicitAny: testing runtime behavior with incompatible type
+      } as any);
 
       expect(result).toBeUndefined();
     });
