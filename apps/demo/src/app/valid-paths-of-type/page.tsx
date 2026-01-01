@@ -1,11 +1,6 @@
 'use client';
 
-import type {
-  DiscriminatorKey,
-  DiscriminatorValue,
-  InferredFieldValues,
-  ValidFieldPaths,
-} from '@zod-utils/react-hook-form';
+import type { ValidPaths } from '@zod-utils/core';
 import { useState } from 'react';
 import z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -18,37 +13,18 @@ import {
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
-// Helper type alias for filtering paths by value type
-// This provides a cleaner API for the demo - ValidFieldPaths now includes filter type support
-
-type ValidPathsOfType<
-  TSchema extends z.ZodType,
-  TFilterType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TSchema,
-    TDiscriminatorKey
-  > = never,
-> = ValidFieldPaths<
-  TSchema,
-  TDiscriminatorKey,
-  TDiscriminatorValue,
-  InferredFieldValues<TSchema>,
-  TFilterType
->;
-
 // Demo schema with various field types and nesting levels
 const demoSchema = z.object({
   // First level - primitives
   name: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   age: z.number(),
   isActive: z.boolean(),
 
   // First level - nested object
   profile: z.object({
     bio: z.string(),
-    website: z.string().url().optional(),
+    website: z.url().optional(),
     followers: z.number(),
     verified: z.boolean(),
   }),
@@ -78,17 +54,27 @@ const demoSchema = z.object({
 });
 
 // Type-level path extraction - these are compile-time types!
-type StringPaths = ValidPathsOfType<typeof demoSchema, string | undefined>;
-type NumberPaths = ValidPathsOfType<typeof demoSchema, number>;
-type BooleanPaths = ValidPathsOfType<typeof demoSchema, boolean>;
+type StringPaths = ValidPaths<
+  typeof demoSchema,
+  never,
+  never,
+  string | undefined
+>;
+type NumberPaths = ValidPaths<typeof demoSchema, never, never, number>;
+type BooleanPaths = ValidPaths<typeof demoSchema, never, never, boolean>;
 
 // Object types for object path extraction
 type Profile = z.infer<typeof demoSchema>['profile'];
 type Address = z.infer<typeof demoSchema>['addresses'][number];
 type Notifications = z.infer<typeof demoSchema>['settings']['notifications'];
-type ProfilePaths = ValidPathsOfType<typeof demoSchema, Profile>;
-type AddressPaths = ValidPathsOfType<typeof demoSchema, Address>;
-type NotificationsPaths = ValidPathsOfType<typeof demoSchema, Notifications>;
+type ProfilePaths = ValidPaths<typeof demoSchema, never, never, Profile>;
+type AddressPaths = ValidPaths<typeof demoSchema, never, never, Address>;
+type NotificationsPaths = ValidPaths<
+  typeof demoSchema,
+  never,
+  never,
+  Notifications
+>;
 
 // ==========================================
 // DISCRIMINATED UNION SCHEMA
@@ -171,41 +157,41 @@ type PersonalEducation = {
 };
 type PersonalNotifications = { email: boolean; sms: boolean };
 
-type PersonalStringPaths = ValidPathsOfType<
+type PersonalStringPaths = ValidPaths<
   typeof discriminatedSchema,
-  string,
   'type',
-  'personal'
+  'personal',
+  string
 >;
-type PersonalNumberPaths = ValidPathsOfType<
+type PersonalNumberPaths = ValidPaths<
   typeof discriminatedSchema,
-  number,
   'type',
-  'personal'
+  'personal',
+  number
 >;
-type PersonalBooleanPaths = ValidPathsOfType<
+type PersonalBooleanPaths = ValidPaths<
   typeof discriminatedSchema,
-  boolean,
   'type',
-  'personal'
+  'personal',
+  boolean
 >;
-type PersonalEmergencyContactPaths = ValidPathsOfType<
+type PersonalEmergencyContactPaths = ValidPaths<
   typeof discriminatedSchema,
-  PersonalEmergencyContact,
   'type',
-  'personal'
+  'personal',
+  PersonalEmergencyContact
 >;
-type PersonalEducationPaths = ValidPathsOfType<
+type PersonalEducationPaths = ValidPaths<
   typeof discriminatedSchema,
-  PersonalEducation,
   'type',
-  'personal'
+  'personal',
+  PersonalEducation
 >;
-type PersonalNotificationsPaths = ValidPathsOfType<
+type PersonalNotificationsPaths = ValidPaths<
   typeof discriminatedSchema,
-  PersonalNotifications,
   'type',
-  'personal'
+  'personal',
+  PersonalNotifications
 >;
 
 // ==========================================
@@ -215,41 +201,41 @@ type BusinessHeadquarters = { address: string; city: string; country: string };
 type BusinessDepartment = { name: string; headCount: number; budget: number };
 type BusinessCertifications = { iso9001: boolean; iso27001: boolean };
 
-type BusinessStringPaths = ValidPathsOfType<
+type BusinessStringPaths = ValidPaths<
   typeof discriminatedSchema,
-  string,
   'type',
-  'business'
+  'business',
+  string
 >;
-type BusinessNumberPaths = ValidPathsOfType<
+type BusinessNumberPaths = ValidPaths<
   typeof discriminatedSchema,
-  number,
   'type',
-  'business'
+  'business',
+  number
 >;
-type BusinessBooleanPaths = ValidPathsOfType<
+type BusinessBooleanPaths = ValidPaths<
   typeof discriminatedSchema,
-  boolean,
   'type',
-  'business'
+  'business',
+  boolean
 >;
-type BusinessHeadquartersPaths = ValidPathsOfType<
+type BusinessHeadquartersPaths = ValidPaths<
   typeof discriminatedSchema,
-  BusinessHeadquarters,
   'type',
-  'business'
+  'business',
+  BusinessHeadquarters
 >;
-type BusinessDepartmentPaths = ValidPathsOfType<
+type BusinessDepartmentPaths = ValidPaths<
   typeof discriminatedSchema,
-  BusinessDepartment,
   'type',
-  'business'
+  'business',
+  BusinessDepartment
 >;
-type BusinessCertificationsPaths = ValidPathsOfType<
+type BusinessCertificationsPaths = ValidPaths<
   typeof discriminatedSchema,
-  BusinessCertifications,
   'type',
-  'business'
+  'business',
+  BusinessCertifications
 >;
 
 // Helper arrays for display
@@ -526,7 +512,7 @@ const notificationsPaths: NotificationsPaths[] = ['settings.notifications'];
  */
 function StringInput<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, string>,
+  TPath extends ValidPaths<TSchema, never, never, string>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   // In real usage, you'd use useFormContext() here
   void schema; // schema used for type inference only
@@ -546,7 +532,7 @@ function StringInput<
  */
 function NumberInput<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, number>,
+  TPath extends ValidPaths<TSchema, never, never, number>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   void schema;
   return (
@@ -565,7 +551,7 @@ function NumberInput<
  */
 function BooleanInput<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, boolean>,
+  TPath extends ValidPaths<TSchema, never, never, boolean>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   void schema;
   return (
@@ -584,7 +570,7 @@ function BooleanInput<
  */
 function ProfileSection<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, Profile>,
+  TPath extends ValidPaths<TSchema, never, never, Profile>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   void schema;
   return (
@@ -599,7 +585,7 @@ function ProfileSection<
 
 function AddressSection<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, Address>,
+  TPath extends ValidPaths<TSchema, never, never, Address>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   void schema;
   return (
@@ -614,7 +600,7 @@ function AddressSection<
 
 function NotificationsSection<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, Notifications>,
+  TPath extends ValidPaths<TSchema, never, never, Notifications>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   void schema;
   return (
@@ -668,7 +654,7 @@ function PathSection({
   );
 }
 
-export default function ValidPathsOfTypePage() {
+export default function ValidPathsPage() {
   const [activeTab, setActiveTab] = useState<'basic' | 'discriminated'>(
     'basic',
   );
@@ -677,7 +663,7 @@ export default function ValidPathsOfTypePage() {
     <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] p-4">
       <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle>ValidPathsOfType Demo</CardTitle>
+          <CardTitle>ValidPaths Demo</CardTitle>
           <CardDescription>
             Filter field paths by value type - including nested objects and
             arrays
@@ -768,7 +754,7 @@ function BasicSchemaContent() {
         <div>
           <h3 className="font-semibold text-lg">Interactive Demo</h3>
           <p className="text-sm text-muted-foreground">
-            These are actual components using ValidPathsOfType. Hover over the{' '}
+            These are actual components using ValidPaths. Hover over the{' '}
             <code>name</code> prop in your IDE to see IntelliSense!
           </p>
         </div>
@@ -825,7 +811,7 @@ function BasicSchemaContent() {
         description="All paths where the value type is string"
         paths={stringPaths}
         color="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-        typeDefinition="type StringPaths = ValidPathsOfType<typeof schema, string>"
+        typeDefinition="type StringPaths = ValidPaths<typeof schema, never, never, string>"
       />
 
       <Separator />
@@ -836,7 +822,7 @@ function BasicSchemaContent() {
         description="All paths where the value type is number"
         paths={numberPaths}
         color="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-        typeDefinition="type NumberPaths = ValidPathsOfType<typeof schema, number>"
+        typeDefinition="type NumberPaths = ValidPaths<typeof schema, never, never, number>"
       />
 
       <Separator />
@@ -847,7 +833,7 @@ function BasicSchemaContent() {
         description="All paths where the value type is boolean"
         paths={booleanPaths}
         color="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-        typeDefinition="type BooleanPaths = ValidPathsOfType<typeof schema, boolean>"
+        typeDefinition="type BooleanPaths = ValidPaths<typeof schema, never, never, boolean>"
       />
 
       <Separator />
@@ -869,7 +855,7 @@ function BasicSchemaContent() {
               </code>
               <br />
               <code className="text-xs text-muted-foreground">
-                {`type ProfilePaths = ValidPathsOfType<typeof schema, Profile>`}
+                {`type ProfilePaths = ValidPaths<typeof schema, never, never, Profile>`}
               </code>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -890,7 +876,7 @@ function BasicSchemaContent() {
               </code>
               <br />
               <code className="text-xs text-muted-foreground">
-                {`type AddressPaths = ValidPathsOfType<typeof schema, Address>`}
+                {`type AddressPaths = ValidPaths<typeof schema, never, never, Address>`}
               </code>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -911,7 +897,7 @@ function BasicSchemaContent() {
               </code>
               <br />
               <code className="text-xs text-muted-foreground">
-                {`type NotificationsPaths = ValidPathsOfType<typeof schema, Notifications>`}
+                {`type NotificationsPaths = ValidPaths<typeof schema, never, never, Notifications>`}
               </code>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -944,7 +930,7 @@ function BasicSchemaContent() {
 // TPath is auto-inferred from the 'name' prop!
 function StringInput<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, string>,
+  TPath extends ValidPaths<TSchema, never, never, string>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   void schema; // used for type inference
   const { register } = useFormContext();
@@ -964,7 +950,7 @@ function StringInput<
             <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
               {`function NumberInput<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, number>,
+  TPath extends ValidPaths<TSchema, never, never, number>,
 >({ schema, name, min, max }: {
   schema: TSchema;
   name: TPath;
@@ -993,7 +979,7 @@ function StringInput<
 // TPath is auto-inferred from the 'name' prop - no manual type params!
 function ProfileSection<
   TSchema extends z.ZodType,
-  TPath extends ValidPathsOfType<TSchema, Profile>,
+  TPath extends ValidPaths<TSchema, never, never, Profile>,
 >({ schema, name }: { schema: TSchema; name: TPath }) {
   const { control } = useFormContext();
   const profileData = useWatch({ control, name });
@@ -1019,7 +1005,7 @@ function ProfileSection<
             <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
               {`type Address = z.infer<typeof schema>['addresses'][number];
 
-function AddressCard<TPath extends ValidPathsOfType<typeof schema, Address>>({
+function AddressCard<TPath extends ValidPaths<typeof schema, never, never, Address>>({
   name,
 }: {
   name: TPath;
@@ -1048,7 +1034,7 @@ const { fields } = useFieldArray({ control, name: 'addresses' });
             </p>
             <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
               {`// Reset all boolean fields to false
-type BoolPaths = ValidPathsOfType<typeof schema, boolean>;
+type BoolPaths = ValidPaths<typeof schema, never, never, boolean>;
 const booleanFields: BoolPaths[] = [
   'isActive',
   'profile.verified',
@@ -1144,8 +1130,8 @@ function DiscriminatedSchemaContent() {
         <div>
           <h3 className="font-semibold text-lg">Interactive Demo</h3>
           <p className="text-sm text-muted-foreground">
-            Each variant has completely different fields. ValidPathsOfType
-            filters by discriminator value - try hovering in VS Code!
+            Each variant has completely different fields. ValidPaths filters by
+            discriminator value - try hovering in VS Code!
           </p>
         </div>
 
@@ -1208,8 +1194,8 @@ function DiscriminatedSchemaContent() {
         <div className="bg-muted p-3 rounded-md text-xs">
           <p className="text-muted-foreground">
             <strong>Key Insight:</strong> Personal and Business variants have
-            completely different nested structures. ValidPathsOfType ensures you
-            can only use paths that exist in the selected variant!
+            completely different nested structures. ValidPaths ensures you can
+            only use paths that exist in the selected variant!
           </p>
         </div>
       </div>
@@ -1226,21 +1212,21 @@ function DiscriminatedSchemaContent() {
           description="All string paths in personal variant"
           paths={personalStringPaths}
           color="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-          typeDefinition="ValidPathsOfType<typeof schema, string, 'type', 'personal'>"
+          typeDefinition="ValidPaths<typeof schema, 'type', 'personal', string>"
         />
         <PathSection
           title="Number Paths"
           description="All number paths in personal variant"
           paths={personalNumberPaths}
           color="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-          typeDefinition="ValidPathsOfType<typeof schema, number, 'type', 'personal'>"
+          typeDefinition="ValidPaths<typeof schema, 'type', 'personal', number>"
         />
         <PathSection
           title="Boolean Paths"
           description="All boolean paths in personal variant"
           paths={personalBooleanPaths}
           color="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-          typeDefinition="ValidPathsOfType<typeof schema, boolean, 'type', 'personal'>"
+          typeDefinition="ValidPaths<typeof schema, 'type', 'personal', boolean>"
         />
       </div>
 
@@ -1256,21 +1242,21 @@ function DiscriminatedSchemaContent() {
           description="All string paths in business variant"
           paths={businessStringPaths}
           color="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-          typeDefinition="ValidPathsOfType<typeof schema, string, 'type', 'business'>"
+          typeDefinition="ValidPaths<typeof schema, 'type', 'business', string>"
         />
         <PathSection
           title="Number Paths"
           description="All number paths in business variant"
           paths={businessNumberPaths}
           color="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-          typeDefinition="ValidPathsOfType<typeof schema, number, 'type', 'business'>"
+          typeDefinition="ValidPaths<typeof schema, 'type', 'business', number>"
         />
         <PathSection
           title="Boolean Paths"
           description="All boolean paths in business variant"
           paths={businessBooleanPaths}
           color="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-          typeDefinition="ValidPathsOfType<typeof schema, boolean, 'type', 'business'>"
+          typeDefinition="ValidPaths<typeof schema, 'type', 'business', boolean>"
         />
       </div>
 
@@ -1281,11 +1267,11 @@ function DiscriminatedSchemaContent() {
         <h3 className="font-semibold text-lg mb-3">Usage Example</h3>
         <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
           {`// Define type-safe input for personal variant only
-type PersonalStringPaths = ValidPathsOfType<
+type PersonalStringPaths = ValidPaths<
   typeof schema,
-  string,
   'type',      // discriminator key
-  'personal'   // discriminator value
+  'personal',  // discriminator value
+  string       // filter type
 >;
 
 function PersonalStringInput<TPath extends PersonalStringPaths>({

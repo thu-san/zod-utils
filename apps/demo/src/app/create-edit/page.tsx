@@ -71,7 +71,8 @@ export default function CreateEditPage() {
 
   const form = useZodForm({
     schema: userSchema,
-    defaultValues: getSchemaDefaults(userSchema, {
+    defaultValues: getSchemaDefaults({
+      schema: userSchema,
       discriminator: {
         key: 'mode',
         value: mode,
@@ -89,7 +90,8 @@ export default function CreateEditPage() {
 
     form.reset({
       mode: newMode,
-      ...getSchemaDefaults(userSchema, {
+      ...getSchemaDefaults({
+        schema: userSchema,
         discriminator: {
           key: 'mode',
           value: newMode,

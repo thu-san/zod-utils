@@ -92,29 +92,16 @@ describe('useFormSchema', () => {
 });
 
 describe('useIsRequiredField', () => {
+  it('should return false when params is undefined', () => {
+    const { result } = renderHook(() => useIsRequiredField(undefined));
+
+    expect(result.current).toBe(false);
+  });
+
   it('should return false when not in provider', () => {
     const schema = z.object({ name: z.string() });
     const { result } = renderHook(() =>
       useIsRequiredField({ schema, name: 'name' }),
-    );
-
-    expect(result.current).toBe(false);
-  });
-
-  it('should return false when schema is not provided', () => {
-    const { result } = renderHook(() =>
-      // @ts-expect-error - Testing runtime behavior with undefined schema
-      useIsRequiredField({ schema: undefined, name: 'name' }),
-    );
-
-    expect(result.current).toBe(false);
-  });
-
-  it('should return false when name is not provided', () => {
-    const schema = z.object({ name: z.string().min(1) });
-    const { result } = renderHook(() =>
-      // @ts-expect-error - intentionally testing undefined name
-      useIsRequiredField({ schema, name: undefined }),
     );
 
     expect(result.current).toBe(false);
@@ -314,6 +301,12 @@ describe('isRequiredField', () => {
 });
 
 describe('useExtractFieldFromSchema', () => {
+  it('should return undefined when params is undefined', () => {
+    const { result } = renderHook(() => useExtractFieldFromSchema(undefined));
+
+    expect(result.current).toBeUndefined();
+  });
+
   it('should extract field schema from object', () => {
     const schema = z.object({
       name: z.string().min(3).max(20),
@@ -386,6 +379,12 @@ describe('useExtractFieldFromSchema', () => {
 });
 
 describe('useFieldChecks', () => {
+  it('should return empty array when params is undefined', () => {
+    const { result } = renderHook(() => useFieldChecks(undefined));
+
+    expect(result.current).toEqual([]);
+  });
+
   it('should work without provider (takes schema directly)', () => {
     const schema = z.object({
       name: z.string().min(3).max(20),

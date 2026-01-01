@@ -1,82 +1,56 @@
+import type {
+  DiscriminatorKey,
+  DiscriminatorValue,
+  FieldSelectorProps,
+  NameAndDiscriminatorProps,
+  SchemaProps,
+} from '@zod-utils/core';
 import {
-  type DiscriminatorKey,
-  type DiscriminatorValue,
-  type FormFieldSelector,
-  type InferredFieldValues,
-  toFormFieldSelector,
-  type ValidFieldPaths,
+  extractFieldFromSchema,
+  requiresValidInput,
 } from '@zod-utils/react-hook-form';
-import type { ReactElement } from 'react';
-import {
-  type ControllerRenderProps,
-  type Path,
-  useFormContext,
-} from 'react-hook-form';
+import type { JSX, ReactElement } from 'react';
+import { type ControllerRenderProps, useFormContext } from 'react-hook-form';
 import type z from 'zod';
 import {
   FormControl,
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { TFormLabel, useFieldLabel } from './TFormLabel';
+import { useFieldLabel } from './TFormLabel';
 
 export function TFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  const TDiscriminatorValue extends DiscriminatorValue<
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
-  >,
-  TFieldValues extends InferredFieldValues<TSchema>,
+  > = never,
   TFilterType = unknown,
   TStrict extends boolean = true,
 >(
-  props: FormFieldSelector<
+  props: FieldSelectorProps<
     TSchema,
-    TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues,
     TFilterType,
     TStrict
   > & {
     render: (field: {
-      field: ControllerRenderProps<TFieldValues, Path<TFieldValues>>;
+      field: ControllerRenderProps;
       label: string;
     }) => ReactElement;
     description?: string;
   },
 ) {
-  const { control } = useFormContext<TFieldValues>();
+  const { control } = useFormContext();
 
-  const selectorProps = toFormFieldSelector<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >(props);
-
-  const label = useFieldLabel<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >(selectorProps);
+  const label = useFieldLabel(props);
+  const field = extractFieldFromSchema(props);
+  const isRequired = field ? requiresValidInput(field) : false;
 
   return (
     <FormField
@@ -84,32 +58,11 @@ export function TFormField<
       name={props.name}
       render={({ field }) => (
         <FormItem>
-          <TFormLabel<
-            TSchema,
-            TPath,
-            TDiscriminatorKey,
-            TDiscriminatorValue,
-            TFilterType,
-            TStrict
-          >
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            {...(selectorProps as React.ComponentProps<
-              typeof TFormLabel<
-                TSchema,
-                TPath,
-                TDiscriminatorKey,
-                TDiscriminatorValue,
-                TFilterType,
-                TStrict
-              >
-            >)}
-          />
-          <FormControl>
-            {props.render({
-              field,
-              label,
-            })}
-          </FormControl>
+          <FormLabel>
+            {label}
+            {isRequired && <span className="text-red-500 ml-1">*</span>}
+          </FormLabel>
+          <FormControl>{props.render({ field, label })}</FormControl>
           {props.description && (
             <FormDescription>{props.description}</FormDescription>
           )}
@@ -120,61 +73,32 @@ export function TFormField<
   );
 }
 
-export function createTFormField<TSchema extends z.ZodType>(factoryProps: {
-  schema: TSchema;
-}) {
+export function createTFormField<TSchema extends z.ZodType>(
+  factoryProps: SchemaProps<TSchema> & JSX.IntrinsicAttributes,
+) {
   return function BoundTFormField<
-    TPath extends ValidFieldPaths<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >,
-    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-    const TDiscriminatorValue extends DiscriminatorValue<
+    TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+    TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorKey
-    >,
-    TFieldValues extends InferredFieldValues<TSchema>,
+    > = never,
     TFilterType = unknown,
     TStrict extends boolean = true,
   >(
-    props: Omit<
-      React.ComponentProps<
-        typeof TFormField<
-          TSchema,
-          TPath,
-          TDiscriminatorKey,
-          TDiscriminatorValue,
-          TFieldValues,
-          TFilterType,
-          TStrict
-        >
-      >,
-      'schema'
-    >,
+    props: NameAndDiscriminatorProps<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    > & {
+      render: (field: {
+        field: ControllerRenderProps;
+        label: string;
+      }) => ReactElement;
+      description?: string;
+    },
   ) {
-    const { name, discriminator, ...rest } = props;
-    const selectorProps = toFormFieldSelector<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >({ ...factoryProps, name, discriminator });
-
-    return TFormField<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >({ ...selectorProps, ...rest });
+    return <TFormField {...factoryProps} {...props} />;
   };
 }

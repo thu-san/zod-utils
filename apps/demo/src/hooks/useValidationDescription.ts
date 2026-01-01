@@ -3,8 +3,7 @@
 import type {
   DiscriminatorKey,
   DiscriminatorValue,
-  FieldSelector,
-  ValidPaths,
+  FieldSelectorProps,
 } from '@zod-utils/core';
 import { useFieldChecks } from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
@@ -49,13 +48,6 @@ import type { z } from 'zod';
  */
 export function useValidationDescription<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
@@ -64,9 +56,8 @@ export function useValidationDescription<
   TFilterType = unknown,
   TStrict extends boolean = true,
 >(
-  params: FieldSelector<
+  params: FieldSelectorProps<
     TSchema,
-    TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFilterType,

@@ -1,9 +1,10 @@
 import { type util, z } from 'zod';
 import type { $InferUnionInput } from 'zod/v4/core';
+import { getPrimitiveType } from './schema';
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
+  SchemaAndDiscriminatorProps,
 } from './types';
 
 /**
@@ -107,7 +108,7 @@ type ExtractZodUnionMember<
  * @param params.schema - The discriminated union schema to search
  * @param params.discriminatorKey - The discriminator field name (e.g., "mode", "type")
  * @param params.discriminatorValue - The discriminator value to match (e.g., "create", "edit")
- * @returns The exact matching schema option (with precise type), or `undefined` if not found
+ * @returns The exact matching schema option (with precise type), or `undefined` if not found or schema is not a discriminated union
  *
  * @example
  * Basic discriminated union - create/edit mode
@@ -128,16 +129,14 @@ type ExtractZodUnionMember<
  * // Extract the "create" schema
  * const createSchema = extractDiscriminatedSchema({
  *   schema: userSchema,
- *   discriminatorKey: 'mode',
- *   discriminatorValue: 'create',
+ *   discriminator: { key: 'mode', value: 'create' },
  * });
  * // Result: z.object({ mode: z.literal('create'), name: z.string(), age: z.number().optional() })
  *
  * // Extract the "edit" schema
  * const editSchema = extractDiscriminatedSchema({
  *   schema: userSchema,
- *   discriminatorKey: 'mode',
- *   discriminatorValue: 'edit',
+ *   discriminator: { key: 'mode', value: 'edit' },
  * });
  * // Result: z.object({ mode: z.literal('edit'), id: z.number(), name: z.string().optional() })
  * ```
@@ -152,8 +151,7 @@ type ExtractZodUnionMember<
  *
  * const clickSchema = extractDiscriminatedSchema({
  *   schema: eventSchema,
- *   discriminatorKey: 'type',
- *   discriminatorValue: 'click',
+ *   discriminator: { key: 'type', value: 'click' },
  * });
  * // Result: z.object({ type: z.literal('click'), x: z.number(), y: z.number() })
  * ```
@@ -167,8 +165,7 @@ type ExtractZodUnionMember<
  *
  * const result = extractDiscriminatedSchema({
  *   schema,
- *   discriminatorKey: 'mode',
- *   discriminatorValue: 'invalid', // doesn't match any option
+ *   discriminator: { key: 'mode', value: 'invalid' }, // doesn't match any option
  * });
  * // Result: undefined
  * ```
@@ -183,8 +180,7 @@ type ExtractZodUnionMember<
  *
  * const createSchema = extractDiscriminatedSchema({
  *   schema,
- *   discriminatorKey: 'mode',
- *   discriminatorValue: 'create',
+ *   discriminator: { key: 'mode', value: 'create' },
  * });
  *
  * // Type is EXACTLY: z.object({ mode: z.literal('create'), name: z.string(), age: z.number() })
@@ -210,22 +206,22 @@ export const extractDiscriminatedSchema = <
     : never,
 >({
   schema,
-  key,
-  value,
-}: {
-  schema: TSchema;
-} & Discriminator<
+  discriminator,
+}: SchemaAndDiscriminatorProps<
   TSchema,
   TDiscriminatorKey,
   TDiscriminatorValue
->): ReturnType => {
-  if (!(schema instanceof z.ZodDiscriminatedUnion)) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return undefined as ReturnType;
+>): ReturnType | undefined => {
+  const primitiveSchema = getPrimitiveType(schema);
+
+  if (!(primitiveSchema instanceof z.ZodDiscriminatedUnion) || !discriminator) {
+    return undefined;
   }
 
+  const { key, value } = discriminator;
+
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return schema.options.find((option) => {
+  return primitiveSchema.options.find((option) => {
     if (option instanceof z.ZodObject) {
       const targetField = option.shape[String(key)];
       if (!targetField) return false;

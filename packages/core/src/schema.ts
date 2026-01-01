@@ -55,6 +55,20 @@ export function canUnwrap(
 }
 
 /**
+ * Type guard that checks if a Zod field is a ZodPipe with a ZodType input.
+ *
+ * Used to safely access `field.def.in` on pipe types for unwrapping transformations.
+ *
+ * @param field - The Zod field to check
+ * @returns True if field is a ZodPipe with a ZodType input
+ */
+export function isPipeWithZodInput(
+  field: z.ZodTypeAny,
+): field is z.ZodPipe<z.ZodType, z.ZodTypeAny> {
+  return field instanceof z.ZodPipe && field.def.in instanceof z.ZodType;
+}
+
+/**
  * Attempts to strip nullish types from a union and return the single remaining type.
  *
  * This function filters out `ZodNull` and `ZodUndefined` from union types. If exactly
@@ -181,6 +195,10 @@ export const getPrimitiveType = <T extends z.ZodType>(
     return getPrimitiveType(field.unwrap());
   }
 
+  if (field instanceof z.ZodDiscriminatedUnion) {
+    return field;
+  }
+
   if (field instanceof z.ZodUnion) {
     const unwrapped = tryStripNullishOnly(field);
     if (unwrapped !== false) {
@@ -191,7 +209,7 @@ export const getPrimitiveType = <T extends z.ZodType>(
     return field;
   }
 
-  if (field instanceof z.ZodPipe && field.def.in instanceof z.ZodType) {
+  if (isPipeWithZodInput(field)) {
     return getPrimitiveType(field.def.in);
   }
 
