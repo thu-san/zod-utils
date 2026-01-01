@@ -259,7 +259,7 @@ export default function UserProfileForm() {
 
   const form = useZodForm({
     schema: formSchema,
-    defaultValues: getSchemaDefaults(formSchema),
+    defaultValues: getSchemaDefaults({ schema: formSchema }),
     zodResolverOptions: {
       error: formErrorHandler,
     },

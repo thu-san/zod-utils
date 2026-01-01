@@ -1,156 +1,82 @@
-import {
-  type DiscriminatorKey,
-  type DiscriminatorValue,
-  type FormFieldSelector,
-  type InferredFieldValues,
-  toFormFieldSelector,
-  type ValidFieldPaths,
-} from '@zod-utils/react-hook-form';
-import type { ComponentProps } from 'react';
+import type {
+  DiscriminatorKey,
+  DiscriminatorValue,
+  FieldSelectorProps,
+  NameAndDiscriminatorProps,
+  SchemaProps,
+} from '@zod-utils/core';
+import type { ComponentProps, JSX } from 'react';
 import type z from 'zod';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import { TFormField } from './TFormField';
 
+type CheckboxFormFieldOwnProps = {
+  description?: string;
+} & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'> &
+  JSX.IntrinsicAttributes;
+
 export function CheckboxFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  const TDiscriminatorValue extends DiscriminatorValue<
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
-  >,
-  TFieldValues extends InferredFieldValues<TSchema>,
+  > = never,
   TFilterType = boolean,
   TStrict extends boolean = false,
 >(
-  props: FormFieldSelector<
+  props: FieldSelectorProps<
     TSchema,
-    TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues,
     TFilterType,
     TStrict
-  > & {
-    description?: string;
-  } & Omit<ComponentProps<'input'>, 'name' | 'type' | 'checked' | 'value'>,
+  > &
+    CheckboxFormFieldOwnProps,
 ) {
-  const {
-    description,
-    schema: _schema,
-    name: _name,
-    discriminator: _discriminator,
-    ...inputProps
-  } = props;
-
-  const selectorProps = toFormFieldSelector<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >(props);
-
   // Auto-generate validation description if not provided
-  const autoDescription = useValidationDescription<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >(selectorProps);
+  const autoDescription = useValidationDescription(props);
 
   const finalDescription =
-    description !== undefined ? description : autoDescription;
+    props.description !== undefined ? props.description : autoDescription;
 
-  return TFormField<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >({
-    ...selectorProps,
-    description: finalDescription,
-    render: ({ field }) => (
-      <input
-        {...inputProps}
-        type="checkbox"
-        checked={field.value ?? false}
-        onChange={(e) => field.onChange(e.target.checked)}
-        value={undefined}
-      />
-    ),
-  });
+  return (
+    <TFormField
+      {...props}
+      description={finalDescription}
+      render={({ field }) => (
+        <input
+          type="checkbox"
+          checked={field.value ?? false}
+          onChange={(e) => field.onChange(e.target.checked)}
+          value={undefined}
+        />
+      )}
+    />
+  );
 }
 
-export function createCheckboxFormField<
-  TSchema extends z.ZodType,
->(factoryProps: { schema: TSchema }) {
+export function createCheckboxFormField<TSchema extends z.ZodType>(
+  factoryProps: SchemaProps<TSchema> & JSX.IntrinsicAttributes,
+) {
   return function BoundCheckboxFormField<
-    TPath extends ValidFieldPaths<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >,
-    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-    const TDiscriminatorValue extends DiscriminatorValue<
+    TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+    TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorKey
-    >,
-    TFieldValues extends InferredFieldValues<TSchema>,
+    > = never,
     TFilterType = boolean,
     TStrict extends boolean = false,
   >(
-    props: Omit<
-      React.ComponentProps<
-        typeof CheckboxFormField<
-          TSchema,
-          TPath,
-          TDiscriminatorKey,
-          TDiscriminatorValue,
-          TFieldValues,
-          TFilterType,
-          TStrict
-        >
-      >,
-      'schema'
-    >,
+    props: NameAndDiscriminatorProps<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    > &
+      CheckboxFormFieldOwnProps,
   ) {
-    const { name, discriminator, ...rest } = props;
-    const selectorProps = toFormFieldSelector<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >({ ...factoryProps, name, discriminator });
-
-    return CheckboxFormField<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >({ ...selectorProps, ...rest });
+    return <CheckboxFormField {...factoryProps} {...props} />;
   };
 }

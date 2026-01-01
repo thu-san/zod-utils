@@ -1,168 +1,92 @@
-import {
-  type DiscriminatorKey,
-  type DiscriminatorValue,
-  type FormFieldSelector,
-  type InferredFieldValues,
-  toFormFieldSelector,
-  type ValidFieldPaths,
-} from '@zod-utils/react-hook-form';
-import type { ComponentProps } from 'react';
+import type {
+  DiscriminatorKey,
+  DiscriminatorValue,
+  FieldSelectorProps,
+  NameAndDiscriminatorProps,
+  SchemaProps,
+} from '@zod-utils/core';
+import type { ComponentProps, JSX } from 'react';
 import type z from 'zod';
 import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
 import { TFormField } from './TFormField';
 
-export type CommonFields<T> = Pick<T, keyof T>;
+type InputFormFieldOwnProps = {
+  autoPlaceholder?: boolean;
+  placeholder?: string;
+  description?: string;
+} & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'> &
+  JSX.IntrinsicAttributes;
 
 export function InputFormField<
   TSchema extends z.ZodType,
-  TPath extends ValidFieldPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  const TDiscriminatorValue extends DiscriminatorValue<
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
-  >,
-  TFieldValues extends InferredFieldValues<TSchema>,
+  > = never,
   TFilterType = string,
   TStrict extends boolean = false,
 >(
-  props: FormFieldSelector<
+  props: FieldSelectorProps<
     TSchema,
-    TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
-    TFieldValues,
     TFilterType,
     TStrict
-  > & {
-    autoPlaceholder?: boolean;
-    placeholder?: string;
-    description?: string;
-  } & Omit<ComponentProps<typeof Input>, 'name' | 'placeholder'>,
+  > &
+    InputFormFieldOwnProps,
 ) {
-  const {
-    autoPlaceholder,
-    placeholder,
-    description,
-    schema: _schema,
-    name: _name,
-    discriminator: _discriminator,
-    ...inputProps
-  } = props;
-
-  const selectorProps = toFormFieldSelector<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >(props);
-
   // Auto-generate validation description if not provided
-  const autoDescription = useValidationDescription<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >(selectorProps);
+  const autoDescription = useValidationDescription(props);
 
   const finalDescription =
-    description !== undefined ? description : autoDescription;
+    props.description !== undefined ? props.description : autoDescription;
 
-  return TFormField<
-    TSchema,
-    TPath,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFieldValues,
-    TFilterType,
-    TStrict
-  >({
-    ...selectorProps,
-    description: finalDescription,
-    render: ({ field, label }) => (
-      <Input
-        {...inputProps}
-        value={field.value ?? ''}
-        onChange={field.onChange}
-        onBlur={field.onBlur}
-        name={field.name}
-        ref={field.ref}
-        placeholder={
-          placeholder ||
-          (autoPlaceholder ? `Please enter ${label.toLowerCase()}` : undefined)
-        }
-      />
-    ),
-  });
+  return (
+    <TFormField
+      {...props}
+      description={finalDescription}
+      render={({ field, label }) => (
+        <Input
+          value={field.value ?? ''}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          name={field.name}
+          ref={field.ref}
+          placeholder={
+            props.placeholder ||
+            (props.autoPlaceholder
+              ? `Please enter ${label.toLowerCase()}`
+              : undefined)
+          }
+        />
+      )}
+    />
+  );
 }
 
-export function createInputFormField<TSchema extends z.ZodType>(factoryProps: {
-  schema: TSchema;
-}) {
+export function createInputFormField<TSchema extends z.ZodType>(
+  factoryProps: SchemaProps<TSchema> & JSX.IntrinsicAttributes,
+) {
   return function BoundInputFormField<
-    TPath extends ValidFieldPaths<
-      TSchema,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >,
-    TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-    const TDiscriminatorValue extends DiscriminatorValue<
+    TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+    TDiscriminatorValue extends DiscriminatorValue<
       TSchema,
       TDiscriminatorKey
-    >,
-    TFieldValues extends InferredFieldValues<TSchema>,
+    > = never,
     TFilterType = string,
     TStrict extends boolean = false,
   >(
-    props: Omit<
-      React.ComponentProps<
-        typeof InputFormField<
-          TSchema,
-          TPath,
-          TDiscriminatorKey,
-          TDiscriminatorValue,
-          TFieldValues,
-          TFilterType,
-          TStrict
-        >
-      >,
-      'namespace' | 'schema'
-    >,
+    props: NameAndDiscriminatorProps<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    > &
+      InputFormFieldOwnProps,
   ) {
-    const { name, discriminator, ...rest } = props;
-    const selectorProps = toFormFieldSelector<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >({ ...factoryProps, name, discriminator });
-
-    return InputFormField<
-      TSchema,
-      TPath,
-      TDiscriminatorKey,
-      TDiscriminatorValue,
-      TFieldValues,
-      TFilterType,
-      TStrict
-    >({ ...selectorProps, ...rest });
+    return <InputFormField {...factoryProps} {...props} />;
   };
 }

@@ -1,78 +1,12 @@
 import type {
-  Discriminator,
   DiscriminatorKey,
   DiscriminatorValue,
-  ValidPaths,
+  FieldSelectorProps,
+  NameAndDiscriminatorProps,
+  SchemaProps,
 } from '@zod-utils/core';
 import type { JSX } from 'react';
 import { z } from 'zod';
-
-// -------------------------------------------------------------------------
-// 1. Unwrapping Logic (Handles Pipe & Effects)
-// -------------------------------------------------------------------------
-
-/**
- * Recursively unwraps Zod wrappers to find the "source of truth" schema.
- * - Handles ZodPipeline (returns the INPUT schema: _def.in)
- * - Handles ZodEffects/Transformers (returns the INNER schema: _def.schema)
- */
-type UnwrapSchema<T> = T extends z.ZodPipe<infer In>
-  ? UnwrapSchema<In> // If pipe, dig into the input
-  : T extends { _def: { schema: infer Inner } }
-    ? UnwrapSchema<Inner> // If transform/effect, dig into the inner schema
-    : T; // Otherwise, return T
-
-// Update: Check the unwrapped version
-type IsDiscriminatedUnion<S> = UnwrapSchema<S> extends z.ZodDiscriminatedUnion
-  ? true
-  : false;
-
-// -------------------------------------------------------------------------
-// 2. Strict Type Definitions
-// -------------------------------------------------------------------------
-
-type SchemaProp<TSchema extends z.ZodType> = {
-  schema: TSchema;
-} & JSX.IntrinsicAttributes;
-
-type NameProp<
-  TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TSchema,
-    TDiscriminatorKey
-  > = never,
-> = {
-  name: ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>;
-};
-
-type DiscriminatorProp<
-  TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TSchema,
-    TDiscriminatorKey
-  > = never,
-> = IsDiscriminatedUnion<TSchema> extends true
-  ? {
-      discriminator: Discriminator<
-        TSchema,
-        TDiscriminatorKey,
-        TDiscriminatorValue
-      >;
-    }
-  : { discriminator?: never };
-
-type TestLabelNameProp<
-  TSchema extends z.ZodType,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
-  TDiscriminatorValue extends DiscriminatorValue<
-    TSchema,
-    TDiscriminatorKey
-  > = never,
-> = SchemaProp<TSchema> &
-  NameProp<TSchema, TDiscriminatorKey, TDiscriminatorValue> &
-  DiscriminatorProp<TSchema, TDiscriminatorKey, TDiscriminatorValue>;
 
 // -------------------------------------------------------------------------
 // 3. The Component
@@ -85,13 +19,19 @@ function TestLabel<
     TSchema,
     TDiscriminatorKey
   > = never,
->(props: TestLabelNameProp<TSchema, TDiscriminatorKey, TDiscriminatorValue>) {
-  return (
-    <div>
-      Label: {String(props.name)} <br />
-      Discriminator: {JSON.stringify(props.discriminator ?? 'None')}
-    </div>
-  );
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+>(
+  props: FieldSelectorProps<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+) {
+  console.log(props);
+  return null;
 }
 
 // -------------------------------------------------------------------------
@@ -99,7 +39,7 @@ function TestLabel<
 // -------------------------------------------------------------------------
 
 export function FactoryFunc<TSchema extends z.ZodType>(
-  props: SchemaProp<TSchema>,
+  props: SchemaProps<TSchema> & JSX.IntrinsicAttributes,
 ) {
   return <
     TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
@@ -107,9 +47,16 @@ export function FactoryFunc<TSchema extends z.ZodType>(
       TSchema,
       TDiscriminatorKey
     > = never,
+    TFilterType = unknown,
+    TStrict extends boolean = true,
   >(
-    childProps: NameProp<TSchema, TDiscriminatorKey, TDiscriminatorValue> &
-      DiscriminatorProp<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+    childProps: NameAndDiscriminatorProps<
+      TSchema,
+      TDiscriminatorKey,
+      TDiscriminatorValue,
+      TFilterType,
+      TStrict
+    >,
   ) => {
     return <TestLabel {...props} {...childProps} />;
   };

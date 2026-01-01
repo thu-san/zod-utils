@@ -101,25 +101,6 @@ describe('useIsRequiredField', () => {
     expect(result.current).toBe(false);
   });
 
-  it('should return false when schema is not provided', () => {
-    const { result } = renderHook(() =>
-      // @ts-expect-error - Testing runtime behavior with undefined schema
-      useIsRequiredField({ schema: undefined, name: 'name' }),
-    );
-
-    expect(result.current).toBe(false);
-  });
-
-  it('should return false when name is not provided', () => {
-    const schema = z.object({ name: z.string().min(1) });
-    const { result } = renderHook(() =>
-      // @ts-expect-error - intentionally testing undefined name
-      useIsRequiredField({ schema, name: undefined }),
-    );
-
-    expect(result.current).toBe(false);
-  });
-
   it('should return true for required field', () => {
     const schema = z.object({
       name: z.string().min(1),

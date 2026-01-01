@@ -2,11 +2,11 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import type {
   DiscriminatedInput,
+  FieldSelectorProps,
   FileList,
   NameAndDiscriminatorProps,
   NameProps,
   Paths,
-  SchemaFieldSelector,
   SchemaProps,
   ValidPaths,
 } from '../types';
@@ -644,7 +644,7 @@ describe('DiscriminatedInput', () => {
   });
 });
 
-describe('SchemaFieldSelector', () => {
+describe('FieldSelectorProps', () => {
   describe('with regular schema', () => {
     const schema = z.object({
       name: z.string(),
@@ -652,7 +652,7 @@ describe('SchemaFieldSelector', () => {
     });
 
     it('should create params without discriminator', () => {
-      type Params = SchemaFieldSelector<typeof schema, 'name' | 'age'>;
+      type Params = FieldSelectorProps<typeof schema>;
 
       // For non-discriminated union schemas, discriminator should be prohibited (never)
       expectTypeOf<Params>().toMatchTypeOf<{
@@ -665,7 +665,7 @@ describe('SchemaFieldSelector', () => {
     });
 
     it('should have name constrained to valid paths', () => {
-      type Params = SchemaFieldSelector<typeof schema, 'name' | 'age'>;
+      type Params = FieldSelectorProps<typeof schema>;
 
       expectTypeOf<Params['name']>().toEqualTypeOf<'name' | 'age'>();
     });
@@ -678,12 +678,7 @@ describe('SchemaFieldSelector', () => {
     ]);
 
     it('should require discriminator for discriminated union', () => {
-      type Params = SchemaFieldSelector<
-        typeof schema,
-        'mode' | 'name',
-        'mode',
-        'create'
-      >;
+      type Params = FieldSelectorProps<typeof schema, 'mode', 'create'>;
 
       expectTypeOf<Params>().toExtend<{
         schema: typeof schema;
@@ -696,18 +691,8 @@ describe('SchemaFieldSelector', () => {
     });
 
     it('should narrow name paths based on discriminator', () => {
-      type CreateParams = SchemaFieldSelector<
-        typeof schema,
-        'mode' | 'name',
-        'mode',
-        'create'
-      >;
-      type EditParams = SchemaFieldSelector<
-        typeof schema,
-        'mode' | 'id',
-        'mode',
-        'edit'
-      >;
+      type CreateParams = FieldSelectorProps<typeof schema, 'mode', 'create'>;
+      type EditParams = FieldSelectorProps<typeof schema, 'mode', 'edit'>;
 
       expectTypeOf<CreateParams['name']>().toEqualTypeOf<'mode' | 'name'>();
       expectTypeOf<EditParams['name']>().toEqualTypeOf<'mode' | 'id'>();
@@ -723,7 +708,7 @@ describe('NameAndDiscriminatorProps', () => {
     });
 
     it('should create params without discriminator', () => {
-      type Params = NameAndDiscriminatorProps<typeof schema, 'name' | 'age'>;
+      type Params = NameAndDiscriminatorProps<typeof schema>;
 
       // For non-discriminated union schemas, discriminator should be prohibited (never)
       expectTypeOf<Params>().toMatchTypeOf<{
@@ -735,7 +720,7 @@ describe('NameAndDiscriminatorProps', () => {
     });
 
     it('should not include schema', () => {
-      type Params = NameAndDiscriminatorProps<typeof schema, 'name'>;
+      type Params = NameAndDiscriminatorProps<typeof schema>;
 
       // Should NOT have schema property
       expectTypeOf<Params>().not.toMatchTypeOf<{ schema: typeof schema }>();
@@ -749,12 +734,7 @@ describe('NameAndDiscriminatorProps', () => {
     ]);
 
     it('should require discriminator for discriminated union', () => {
-      type Params = NameAndDiscriminatorProps<
-        typeof schema,
-        'mode' | 'name',
-        'mode',
-        'create'
-      >;
+      type Params = NameAndDiscriminatorProps<typeof schema, 'mode', 'create'>;
 
       expectTypeOf<Params>().toExtend<{
         name: 'mode' | 'name';
@@ -768,13 +748,11 @@ describe('NameAndDiscriminatorProps', () => {
     it('should narrow name paths based on discriminator', () => {
       type CreateParams = NameAndDiscriminatorProps<
         typeof schema,
-        'mode' | 'name',
         'mode',
         'create'
       >;
       type EditParams = NameAndDiscriminatorProps<
         typeof schema,
-        'mode' | 'id',
         'mode',
         'edit'
       >;
@@ -784,12 +762,7 @@ describe('NameAndDiscriminatorProps', () => {
     });
 
     it('should not include schema', () => {
-      type Params = NameAndDiscriminatorProps<
-        typeof schema,
-        'mode' | 'name',
-        'mode',
-        'create'
-      >;
+      type Params = NameAndDiscriminatorProps<typeof schema, 'mode', 'create'>;
 
       // Should NOT have schema property
       expectTypeOf<Params>().not.toMatchTypeOf<{ schema: typeof schema }>();
@@ -3157,7 +3130,7 @@ describe('NameProps', () => {
     });
 
     it('should have name constrained to valid paths', () => {
-      type Props = NameProps<typeof schema, 'name' | 'age' | 'active'>;
+      type Props = NameProps<typeof schema>;
 
       expectTypeOf<Props>().toEqualTypeOf<{
         name: 'name' | 'age' | 'active';
@@ -3176,10 +3149,7 @@ describe('NameProps', () => {
     });
 
     it('should include nested paths', () => {
-      type Props = NameProps<
-        typeof schema,
-        'user' | 'user.name' | 'user.profile' | 'user.profile.bio'
-      >;
+      type Props = NameProps<typeof schema>;
 
       expectTypeOf<Props>().toEqualTypeOf<{
         name: 'user' | 'user.name' | 'user.profile' | 'user.profile.bio';
@@ -3194,12 +3164,7 @@ describe('NameProps', () => {
     ]);
 
     it('should narrow paths based on discriminator value', () => {
-      type CreateProps = NameProps<
-        typeof schema,
-        'mode' | 'name',
-        'mode',
-        'create'
-      >;
+      type CreateProps = NameProps<typeof schema, 'mode', 'create'>;
 
       expectTypeOf<CreateProps>().toEqualTypeOf<{
         name: 'mode' | 'name';
@@ -3207,7 +3172,7 @@ describe('NameProps', () => {
     });
 
     it('should narrow to edit paths', () => {
-      type EditProps = NameProps<typeof schema, 'mode' | 'id', 'mode', 'edit'>;
+      type EditProps = NameProps<typeof schema, 'mode', 'edit'>;
 
       expectTypeOf<EditProps>().toEqualTypeOf<{
         name: 'mode' | 'id';
@@ -3223,13 +3188,8 @@ describe('NameProps', () => {
     });
 
     it('should filter to number paths only', () => {
-      type NumberProps = NameProps<
-        typeof schema,
-        'age' | 'count',
-        never,
-        never,
-        number
-      >;
+      // TFilterType is 4th argument: NameProps<TSchema, TDiscriminatorKey, TDiscriminatorValue, TFilterType, TStrict>
+      type NumberProps = NameProps<typeof schema, never, never, number>;
 
       expectTypeOf<NumberProps>().toEqualTypeOf<{
         name: 'age' | 'count';
@@ -3237,7 +3197,7 @@ describe('NameProps', () => {
     });
 
     it('should filter to string paths only', () => {
-      type StringProps = NameProps<typeof schema, 'name', never, never, string>;
+      type StringProps = NameProps<typeof schema, never, never, string>;
 
       expectTypeOf<StringProps>().toEqualTypeOf<{
         name: 'name';

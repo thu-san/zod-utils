@@ -4,8 +4,7 @@ import { getPrimitiveType } from './schema';
 import type {
   DiscriminatorKey,
   DiscriminatorValue,
-  SchemaFieldSelector,
-  ValidPaths,
+  FieldSelectorProps,
 } from './types';
 
 // Split 'a.b.c' into ['a', 'b', 'c']
@@ -52,27 +51,23 @@ export type ExtractZodByPath<Schema, Path extends string> = NavigateZod<
 
 export function extractFieldFromSchema<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >,
-  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
-  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+    TDiscriminatorKey
+  > = never,
   TFilterType = unknown,
   TStrict extends boolean = true,
+  TName extends string = string,
 >(
-  params: SchemaFieldSelector<
+  params: FieldSelectorProps<
     TSchema,
-    TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFilterType,
     TStrict
-  >,
-): (ExtractZodByPath<TSchema, TPath> & z.ZodType) | undefined {
+  > & { name: TName },
+): (ExtractZodByPath<TSchema, TName> & z.ZodType) | undefined {
   let currentSchema: z.ZodType | undefined;
 
   const newParams = {
@@ -114,7 +109,7 @@ export function extractFieldFromSchema<
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return currentSchema as
-    | (ExtractZodByPath<TSchema, TPath> & z.ZodType)
+    | (ExtractZodByPath<TSchema, TName> & z.ZodType)
     | undefined;
 }
 

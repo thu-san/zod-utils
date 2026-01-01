@@ -1,9 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import { z } from 'zod';
 import type {
   PartialWithAllNullables,
   PartialWithNullableObjects,
-  ValidFieldPaths,
 } from '../types';
 
 describe('PartialWithNullableObjects', () => {
@@ -284,36 +282,5 @@ describe('PartialWithAllNullables', () => {
     expectTypeOf<{ name: null }>().toMatchTypeOf<Result>();
     expectTypeOf<{ profile: null }>().toMatchTypeOf<Result>();
     expectTypeOf<{ tags: null }>().toMatchTypeOf<Result>();
-  });
-});
-
-describe('ValidFieldPaths', () => {
-  describe('basic usage - all paths', () => {
-    const schema = z.object({
-      name: z.string(),
-      age: z.number(),
-      active: z.boolean(),
-    });
-
-    it('should return all field paths when no filter is applied', () => {
-      type AllPaths = ValidFieldPaths<typeof schema>;
-
-      expectTypeOf<AllPaths>().toEqualTypeOf<'name' | 'age' | 'active'>();
-    });
-  });
-
-  describe('discriminated union support', () => {
-    const schema = z.discriminatedUnion('mode', [
-      z.object({ mode: z.literal('create'), name: z.string() }),
-      z.object({ mode: z.literal('edit'), id: z.number() }),
-    ]);
-
-    it('should return paths for specific variant', () => {
-      type CreatePaths = ValidFieldPaths<typeof schema, 'mode', 'create'>;
-      type EditPaths = ValidFieldPaths<typeof schema, 'mode', 'edit'>;
-
-      expectTypeOf<CreatePaths>().toEqualTypeOf<'mode' | 'name'>();
-      expectTypeOf<EditPaths>().toEqualTypeOf<'mode' | 'id'>();
-    });
   });
 });

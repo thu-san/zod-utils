@@ -460,13 +460,6 @@ export type SchemaAndDiscriminatorProps<
  */
 export type NameProps<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
@@ -475,7 +468,13 @@ export type NameProps<
   TFilterType = unknown,
   TStrict extends boolean = true,
 > = {
-  name: TPath;
+  name: ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >;
 };
 
 /**
@@ -510,13 +509,6 @@ export type NameProps<
  */
 export type NameAndDiscriminatorProps<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
@@ -526,7 +518,6 @@ export type NameAndDiscriminatorProps<
   TStrict extends boolean = true,
 > = NameProps<
   TSchema,
-  TPath,
   TDiscriminatorKey,
   TDiscriminatorValue,
   TFilterType,
@@ -555,7 +546,7 @@ export type NameAndDiscriminatorProps<
  * ```typescript
  * const schema = z.object({ name: z.string(), age: z.number() });
  *
- * type Props = SchemaFieldSelector<typeof schema>;
+ * type Props = FieldSelectorProps<typeof schema>;
  * // { schema: typeof schema; name: 'name' | 'age'; discriminator?: never }
  * ```
  *
@@ -567,7 +558,7 @@ export type NameAndDiscriminatorProps<
  *   z.object({ mode: z.literal('edit'), id: z.number() }),
  * ]);
  *
- * type CreateProps = SchemaFieldSelector<typeof schema, 'mode', 'create'>;
+ * type CreateProps = FieldSelectorProps<typeof schema, 'mode', 'create'>;
  * // { schema: typeof schema; name: 'mode' | 'name'; discriminator: { key: 'mode'; value: 'create' } }
  * ```
  *
@@ -576,19 +567,12 @@ export type NameAndDiscriminatorProps<
  * ```typescript
  * const schema = z.object({ name: z.string(), age: z.number(), count: z.number() });
  *
- * type NumberFieldProps = SchemaFieldSelector<typeof schema, never, never, number>;
+ * type NumberFieldProps = FieldSelectorProps<typeof schema, never, never, number>;
  * // { schema: typeof schema; name: 'age' | 'count'; discriminator?: never }
  * ```
  */
-export type SchemaFieldSelector<
+export type FieldSelectorProps<
   TSchema extends z.ZodType,
-  TPath extends ValidPaths<
-    TSchema,
-    TDiscriminatorKey,
-    TDiscriminatorValue,
-    TFilterType,
-    TStrict
-  >,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
@@ -599,7 +583,6 @@ export type SchemaFieldSelector<
 > = SchemaProps<TSchema> &
   NameAndDiscriminatorProps<
     TSchema,
-    TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFilterType,

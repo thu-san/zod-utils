@@ -314,8 +314,8 @@ describe('extractFieldFromSchema', () => {
       const schema = z.array(z.string());
       const result = extractFieldFromSchema({
         schema,
-        // @ts-expect-error - Testing invalid path on non-object schema
-        name: 'anyField',
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        name: 'anyField' as never, // Invalid path on non-object schema
       });
 
       expect(result).toBeUndefined();
@@ -340,8 +340,8 @@ describe('extractFieldFromSchema', () => {
       });
       const result = extractFieldFromSchema({
         schema,
-        // @ts-expect-error - Testing path through non-navigable type
-        name: 'count.something',
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        name: 'count.something' as never, // Path through non-navigable type
       });
 
       expect(result).toBeUndefined();
@@ -502,8 +502,8 @@ describe('extractFieldFromSchema', () => {
 
       const result = extractFieldFromSchema({
         schema,
-        // @ts-expect-error - Testing runtime behavior with invalid path
-        name: 'user.nonexistent.field',
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        name: 'user.nonexistent.field' as never, // Invalid nested path
       });
 
       expect(result).toBeUndefined();
