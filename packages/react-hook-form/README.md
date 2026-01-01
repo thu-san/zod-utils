@@ -455,9 +455,14 @@ import {
   // Type utilities
   type PartialWithNullableObjects,
   type PartialWithAllNullables,
-  type Discriminator,
+  type DiscriminatorProps,
   type DiscriminatorKey,
   type DiscriminatorValue,
+  type SchemaProps,
+  type SchemaAndDiscriminatorProps,
+  type NameProps,
+  type NameAndDiscriminatorProps,
+  type FieldSelectorProps,
 } from "@zod-utils/react-hook-form";
 ```
 
