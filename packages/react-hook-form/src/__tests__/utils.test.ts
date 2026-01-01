@@ -8,6 +8,12 @@ describe('flattenFieldSelector', () => {
     age: z.number(),
   });
 
+  it('should return empty array for undefined params', () => {
+    const result = flattenFieldSelector(undefined);
+
+    expect(result).toEqual([]);
+  });
+
   it('should flatten selector without discriminator', () => {
     const result = flattenFieldSelector({
       schema,
