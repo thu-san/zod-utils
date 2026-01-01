@@ -3,10 +3,11 @@ import { z } from 'zod';
 import type {
   DiscriminatedInput,
   FileList,
-  NameField,
+  NameAndDiscriminatorProps,
+  NameProps,
   Paths,
-  SchemaField,
   SchemaFieldSelector,
+  SchemaProps,
   ValidPaths,
 } from '../types';
 
@@ -710,6 +711,88 @@ describe('SchemaFieldSelector', () => {
 
       expectTypeOf<CreateParams['name']>().toEqualTypeOf<'mode' | 'name'>();
       expectTypeOf<EditParams['name']>().toEqualTypeOf<'mode' | 'id'>();
+    });
+  });
+});
+
+describe('NameAndDiscriminatorProps', () => {
+  describe('with regular schema', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+
+    it('should create params without discriminator', () => {
+      type Params = NameAndDiscriminatorProps<typeof schema, 'name' | 'age'>;
+
+      // For non-discriminated union schemas, discriminator should be prohibited (never)
+      expectTypeOf<Params>().toMatchTypeOf<{
+        name: 'name' | 'age';
+      }>();
+
+      // Verify discriminator is optional and cannot hold a meaningful value
+      expectTypeOf<Params['discriminator']>().toEqualTypeOf<undefined>();
+    });
+
+    it('should not include schema', () => {
+      type Params = NameAndDiscriminatorProps<typeof schema, 'name'>;
+
+      // Should NOT have schema property
+      expectTypeOf<Params>().not.toMatchTypeOf<{ schema: typeof schema }>();
+    });
+  });
+
+  describe('with discriminated union', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({ mode: z.literal('create'), name: z.string() }),
+      z.object({ mode: z.literal('edit'), id: z.number() }),
+    ]);
+
+    it('should require discriminator for discriminated union', () => {
+      type Params = NameAndDiscriminatorProps<
+        typeof schema,
+        'mode' | 'name',
+        'mode',
+        'create'
+      >;
+
+      expectTypeOf<Params>().toExtend<{
+        name: 'mode' | 'name';
+        discriminator: {
+          key: 'mode';
+          value: 'create';
+        };
+      }>();
+    });
+
+    it('should narrow name paths based on discriminator', () => {
+      type CreateParams = NameAndDiscriminatorProps<
+        typeof schema,
+        'mode' | 'name',
+        'mode',
+        'create'
+      >;
+      type EditParams = NameAndDiscriminatorProps<
+        typeof schema,
+        'mode' | 'id',
+        'mode',
+        'edit'
+      >;
+
+      expectTypeOf<CreateParams['name']>().toEqualTypeOf<'mode' | 'name'>();
+      expectTypeOf<EditParams['name']>().toEqualTypeOf<'mode' | 'id'>();
+    });
+
+    it('should not include schema', () => {
+      type Params = NameAndDiscriminatorProps<
+        typeof schema,
+        'mode' | 'name',
+        'mode',
+        'create'
+      >;
+
+      // Should NOT have schema property
+      expectTypeOf<Params>().not.toMatchTypeOf<{ schema: typeof schema }>();
     });
   });
 });
@@ -3033,10 +3116,10 @@ describe('Mixed nested structures', () => {
   });
 });
 
-describe('SchemaField', () => {
+describe('SchemaProps', () => {
   it('should wrap schema in object with schema property', () => {
     const schema = z.object({ name: z.string() });
-    type Props = SchemaField<typeof schema>;
+    type Props = SchemaProps<typeof schema>;
 
     expectTypeOf<Props>().toEqualTypeOf<{ schema: typeof schema }>();
   });
@@ -3045,8 +3128,8 @@ describe('SchemaField', () => {
     const stringSchema = z.string();
     const arraySchema = z.array(z.number());
 
-    type StringProps = SchemaField<typeof stringSchema>;
-    type ArrayProps = SchemaField<typeof arraySchema>;
+    type StringProps = SchemaProps<typeof stringSchema>;
+    type ArrayProps = SchemaProps<typeof arraySchema>;
 
     expectTypeOf<StringProps>().toEqualTypeOf<{
       schema: typeof stringSchema;
@@ -3059,13 +3142,13 @@ describe('SchemaField', () => {
       z.object({ mode: z.literal('create'), name: z.string() }),
       z.object({ mode: z.literal('edit'), id: z.number() }),
     ]);
-    type Props = SchemaField<typeof schema>;
+    type Props = SchemaProps<typeof schema>;
 
     expectTypeOf<Props>().toEqualTypeOf<{ schema: typeof schema }>();
   });
 });
 
-describe('NameField', () => {
+describe('NameProps', () => {
   describe('with regular schema', () => {
     const schema = z.object({
       name: z.string(),
@@ -3074,7 +3157,7 @@ describe('NameField', () => {
     });
 
     it('should have name constrained to valid paths', () => {
-      type Props = NameField<typeof schema, 'name' | 'age' | 'active'>;
+      type Props = NameProps<typeof schema, 'name' | 'age' | 'active'>;
 
       expectTypeOf<Props>().toEqualTypeOf<{
         name: 'name' | 'age' | 'active';
@@ -3093,7 +3176,7 @@ describe('NameField', () => {
     });
 
     it('should include nested paths', () => {
-      type Props = NameField<
+      type Props = NameProps<
         typeof schema,
         'user' | 'user.name' | 'user.profile' | 'user.profile.bio'
       >;
@@ -3111,7 +3194,7 @@ describe('NameField', () => {
     ]);
 
     it('should narrow paths based on discriminator value', () => {
-      type CreateProps = NameField<
+      type CreateProps = NameProps<
         typeof schema,
         'mode' | 'name',
         'mode',
@@ -3124,7 +3207,7 @@ describe('NameField', () => {
     });
 
     it('should narrow to edit paths', () => {
-      type EditProps = NameField<typeof schema, 'mode' | 'id', 'mode', 'edit'>;
+      type EditProps = NameProps<typeof schema, 'mode' | 'id', 'mode', 'edit'>;
 
       expectTypeOf<EditProps>().toEqualTypeOf<{
         name: 'mode' | 'id';
@@ -3140,7 +3223,7 @@ describe('NameField', () => {
     });
 
     it('should filter to number paths only', () => {
-      type NumberProps = NameField<
+      type NumberProps = NameProps<
         typeof schema,
         'age' | 'count',
         never,
@@ -3154,7 +3237,7 @@ describe('NameField', () => {
     });
 
     it('should filter to string paths only', () => {
-      type StringProps = NameField<typeof schema, 'name', never, never, string>;
+      type StringProps = NameProps<typeof schema, 'name', never, never, string>;
 
       expectTypeOf<StringProps>().toEqualTypeOf<{
         name: 'name';

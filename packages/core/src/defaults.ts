@@ -9,7 +9,7 @@ import {
 import type {
   DiscriminatorKey,
   DiscriminatorValue,
-  SchemaAndDiscriminatorField,
+  SchemaAndDiscriminatorProps,
   Simplify,
 } from './types';
 
@@ -181,7 +181,7 @@ export function getSchemaDefaults<
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
 >(
-  params: SchemaAndDiscriminatorField<
+  params: SchemaAndDiscriminatorProps<
     TSchema,
     TDiscriminatorKey,
     TDiscriminatorValue

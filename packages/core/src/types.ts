@@ -112,16 +112,16 @@ export type IsDiscriminatedUnion<T> =
  * @example
  * ```typescript
  * // Use as props intersection:
- * type Props<TSchema> = { schema: TSchema; name: string } & DiscriminatorField<TSchema, TKey, TValue>;
+ * type Props<TSchema> = { schema: TSchema; name: string } & DiscriminatorProps<TSchema, TKey, TValue>;
  *
  * // For discriminated unions - discriminator is required
  * // For regular objects - discriminator is prohibited
  *
  * // To extract the { key, value } object:
- * DiscriminatorField<Schema, Key, Value>['discriminator']
+ * DiscriminatorProps<Schema, Key, Value>['discriminator']
  * ```
  */
-export type DiscriminatorField<
+export type DiscriminatorProps<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
@@ -371,9 +371,9 @@ export type ValidPaths<
  * Factory function accepting schema
  * ```typescript
  * function createFormField<TSchema extends z.ZodType>(
- *   props: SchemaField<TSchema>
+ *   props: SchemaProps<TSchema>
  * ) {
- *   return (childProps: NameField<TSchema>) => {
+ *   return (childProps: NameProps<TSchema>) => {
  *     // Use props.schema and childProps.name
  *   };
  * }
@@ -383,17 +383,17 @@ export type ValidPaths<
  * Component props with schema
  * ```typescript
  * type MyComponentProps<TSchema extends z.ZodType> =
- *   SchemaField<TSchema> & { label: string };
+ *   SchemaProps<TSchema> & { label: string };
  * ```
  */
-export type SchemaField<TSchema extends z.ZodType> = {
+export type SchemaProps<TSchema extends z.ZodType> = {
   schema: TSchema;
 };
 
 /**
  * Type for props containing a schema and optional discriminator.
  *
- * Combines SchemaField and DiscriminatorField for functions that need
+ * Combines SchemaProps and DiscriminatorProps for functions that need
  * schema + discriminator but don't take a field name path.
  *
  * @template TSchema - The Zod schema type
@@ -408,21 +408,21 @@ export type SchemaField<TSchema extends z.ZodType> = {
  *   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
  *   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
  * >(
- *   params: SchemaAndDiscriminatorField<TSchema, TDiscriminatorKey, TDiscriminatorValue>
+ *   params: SchemaAndDiscriminatorProps<TSchema, TDiscriminatorKey, TDiscriminatorValue>
  * ) {
  *   // Use params.schema and params.discriminator
  * }
  * ```
  */
-export type SchemaAndDiscriminatorField<
+export type SchemaAndDiscriminatorProps<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
   TDiscriminatorValue extends DiscriminatorValue<
     TSchema,
     TDiscriminatorKey
   > = never,
-> = SchemaField<TSchema> &
-  DiscriminatorField<TSchema, TDiscriminatorKey, TDiscriminatorValue>;
+> = SchemaProps<TSchema> &
+  DiscriminatorProps<TSchema, TDiscriminatorKey, TDiscriminatorValue>;
 
 /**
  * Type for props containing a field name path.
@@ -442,7 +442,7 @@ export type SchemaAndDiscriminatorField<
  * ```typescript
  * const schema = z.object({ name: z.string(), age: z.number() });
  *
- * type Props = NameField<typeof schema, 'name'>;
+ * type Props = NameProps<typeof schema, 'name'>;
  * // { name: 'name' }
  * ```
  *
@@ -454,11 +454,11 @@ export type SchemaAndDiscriminatorField<
  *   z.object({ mode: z.literal('edit'), id: z.number() }),
  * ]);
  *
- * type CreateProps = NameField<typeof schema, 'name', 'mode', 'create'>;
+ * type CreateProps = NameProps<typeof schema, 'name', 'mode', 'create'>;
  * // { name: 'name' }
  * ```
  */
-export type NameField<
+export type NameProps<
   TSchema extends z.ZodType,
   TPath extends ValidPaths<
     TSchema,
@@ -479,13 +479,69 @@ export type NameField<
 };
 
 /**
+ * Type for props containing a field name path and discriminator.
+ *
+ * Combines `NameProps` and `DiscriminatorProps` for functions that need
+ * a field path with discriminator support but don't take a schema directly
+ * (e.g., factory-returned components where schema is already bound).
+ *
+ * @template TSchema - The Zod schema type
+ * @template TPath - The path type (must extend ValidPaths)
+ * @template TDiscriminatorKey - The discriminator key for discriminated unions
+ * @template TDiscriminatorValue - The discriminator value for discriminated unions
+ * @template TFilterType - Optional type filter for paths
+ * @template TStrict - Whether to use strict path matching
+ *
+ * @example
+ * Factory-returned component props
+ * ```typescript
+ * function createFormField<TSchema extends z.ZodType>(factoryProps: SchemaProps<TSchema>) {
+ *   return function BoundFormField<
+ *     TPath extends ValidPaths<TSchema, TDiscriminatorKey, TDiscriminatorValue>,
+ *     TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+ *     TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey> = never,
+ *   >(
+ *     props: NameAndDiscriminatorProps<TSchema, TPath, TDiscriminatorKey, TDiscriminatorValue>
+ *   ) {
+ *     // props has { name, discriminator? } - schema comes from factoryProps
+ *   };
+ * }
+ * ```
+ */
+export type NameAndDiscriminatorProps<
+  TSchema extends z.ZodType,
+  TPath extends ValidPaths<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue,
+    TFilterType,
+    TStrict
+  >,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+  TFilterType = unknown,
+  TStrict extends boolean = true,
+> = NameProps<
+  TSchema,
+  TPath,
+  TDiscriminatorKey,
+  TDiscriminatorValue,
+  TFilterType,
+  TStrict
+> &
+  DiscriminatorProps<TSchema, TDiscriminatorKey, TDiscriminatorValue>;
+
+/**
  * Complete field selector type combining schema, name path, and discriminator.
  *
  * This is the main type for selecting fields from a Zod schema with full
  * discriminated union support. Combines:
- * - `SchemaField<TSchema>` - the schema prop
- * - `NameField<...>` - the name path prop
- * - `DiscriminatorField<...>` - conditional discriminator (required for unions, prohibited otherwise)
+ * - `SchemaProps<TSchema>` - the schema prop
+ * - `NameProps<...>` - the name path prop
+ * - `DiscriminatorProps<...>` - conditional discriminator (required for unions, prohibited otherwise)
  *
  * @template TSchema - The Zod schema type
  * @template TDiscriminatorKey - The discriminator key for discriminated unions
@@ -540,13 +596,12 @@ export type SchemaFieldSelector<
   > = never,
   TFilterType = unknown,
   TStrict extends boolean = true,
-> = SchemaField<TSchema> &
-  NameField<
+> = SchemaProps<TSchema> &
+  NameAndDiscriminatorProps<
     TSchema,
     TPath,
     TDiscriminatorKey,
     TDiscriminatorValue,
     TFilterType,
     TStrict
-  > &
-  DiscriminatorField<TSchema, TDiscriminatorKey, TDiscriminatorValue>;
+  >;

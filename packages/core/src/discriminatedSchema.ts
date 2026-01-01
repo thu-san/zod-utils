@@ -4,7 +4,7 @@ import { getPrimitiveType } from './schema';
 import type {
   DiscriminatorKey,
   DiscriminatorValue,
-  SchemaAndDiscriminatorField,
+  SchemaAndDiscriminatorProps,
 } from './types';
 
 /**
@@ -207,7 +207,7 @@ export const extractDiscriminatedSchema = <
 >({
   schema,
   discriminator,
-}: SchemaAndDiscriminatorField<
+}: SchemaAndDiscriminatorProps<
   TSchema,
   TDiscriminatorKey,
   TDiscriminatorValue
