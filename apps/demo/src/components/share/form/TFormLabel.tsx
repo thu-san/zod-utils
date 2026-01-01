@@ -6,8 +6,6 @@ import type {
   SchemaProps,
 } from '@zod-utils/core';
 import {
-  extractFieldFromSchema,
-  requiresValidInput,
   useExtractFieldFromSchema,
   useIsRequiredField,
 } from '@zod-utils/react-hook-form';
@@ -63,11 +61,7 @@ export function TFormLabel<
     >,
 ) {
   const label = useFieldLabel(props);
-
-  const field = extractFieldFromSchema(props);
-  const isRequired = field ? requiresValidInput(field) : false;
-
-  const isRequiredOld = useIsRequiredField(props);
+  const isRequired = useIsRequiredField(props);
 
   return (
     <FormLabel {...props}>
