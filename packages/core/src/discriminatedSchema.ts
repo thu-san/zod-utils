@@ -108,7 +108,7 @@ type ExtractZodUnionMember<
  * @param params.schema - The discriminated union schema to search
  * @param params.discriminatorKey - The discriminator field name (e.g., "mode", "type")
  * @param params.discriminatorValue - The discriminator value to match (e.g., "create", "edit")
- * @returns The exact matching schema option (with precise type), or `undefined` if not found
+ * @returns The exact matching schema option (with precise type), or `undefined` if not found or schema is not a discriminated union
  *
  * @example
  * Basic discriminated union - create/edit mode
@@ -211,12 +211,11 @@ export const extractDiscriminatedSchema = <
   TSchema,
   TDiscriminatorKey,
   TDiscriminatorValue
->): ReturnType => {
+>): ReturnType | undefined => {
   const primitiveSchema = getPrimitiveType(schema);
 
   if (!(primitiveSchema instanceof z.ZodDiscriminatedUnion) || !discriminator) {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return undefined as ReturnType;
+    return undefined;
   }
 
   const { key, value } = discriminator;
