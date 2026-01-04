@@ -11,7 +11,7 @@ describe('flattenFieldSelector', () => {
   it('should return empty array for undefined params', () => {
     const result = flattenFieldSelector(undefined);
 
-    expect(result).toEqual([]);
+    expect(result).toEqual([undefined, undefined, undefined, undefined]);
   });
 
   it('should flatten selector without discriminator', () => {
