@@ -1,5 +1,16 @@
 # @zod-utils/react-hook-form
 
+## 6.0.1
+
+### Patch Changes
+
+- 9a8bcb6: Fix unstable useMemo dependency array in flattenFieldSelector
+
+  Object.values() with spread operators produced arrays of varying sizes depending on which properties existed, causing React useMemo hooks to incorrectly detect dependency changes. Now returns a fixed 4-element array with explicit properties for stable memoization.
+
+- Updated dependencies [9a8bcb6]
+  - @zod-utils/core@6.0.1
+
 ## 6.0.0
 
 ### Major Changes
