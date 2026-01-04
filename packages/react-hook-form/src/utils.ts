@@ -21,10 +21,10 @@ export function flattenFieldSelector(params?: {
   name?: string;
   discriminator?: { key: unknown; value: unknown };
 }) {
-  const { discriminator, ...rest } = params || {};
-
   return [
-    ...Object.values(rest),
-    ...(discriminator ? Object.values(discriminator) : []),
+    params?.schema,
+    params?.name,
+    params?.discriminator?.key,
+    params?.discriminator?.value,
   ];
 }
