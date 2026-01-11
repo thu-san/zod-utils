@@ -1,5 +1,21 @@
 # @zod-utils/react-hook-form
 
+## 6.1.0
+
+### Minor Changes
+
+- 7c7ba82: Add recursive default extraction from nested objects
+
+  getSchemaDefaults and extractDefaultValue now recursively extract defaults
+  from nested ZodObject fields, even when the parent object doesn't have an
+  explicit .default() wrapper. Explicit .default() on objects still takes
+  precedence over recursive extraction.
+
+### Patch Changes
+
+- Updated dependencies [7c7ba82]
+  - @zod-utils/core@6.1.0
+
 ## 6.0.1
 
 ### Patch Changes
