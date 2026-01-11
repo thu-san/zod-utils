@@ -64,6 +64,16 @@ describe('extractDefaultValue', () => {
     expect(extractDefaultValue(schema)).toBeUndefined();
   });
 
+  it('should skip falsy shape values (defensive guard)', () => {
+    const schema = z.object({
+      valid: z.string().default('test'),
+    });
+    // Manually add a falsy value to shape to test defensive guard
+    // This uses Object.assign to bypass type checking for the test
+    Object.assign(schema.shape, { invalid: undefined });
+    expect(extractDefaultValue(schema)).toEqual({ valid: 'test' });
+  });
+
   it('should extract partial nested defaults', () => {
     const schema = z.object({
       nested: z.object({

@@ -14,7 +14,28 @@ Check what's been changed:
 - Run `git diff` for unstaged changes
 - Summarize the changes and their scope
 
-## 2. Documentation Updates
+## 2. Code Consistency Checks
+
+**IMPORTANT:** These checks prevent common oversights. Do NOT skip them.
+
+### Renaming/Refactoring
+When any function, type, or variable is renamed:
+- **Search for ALL occurrences** of the old name using Grep (including JSDoc examples, comments, README files)
+- Verify JSDoc `@example` blocks use the correct/current API names
+- Check that code examples in comments match the actual implementation
+
+### Import Style Consistency
+Before adding new imports:
+- Check how existing files in the same package import the same module
+- Use the same import style (e.g., `import type { z } from 'zod'` vs `import type z from 'zod'`)
+- Run: `grep -r "import.*from 'module-name'" packages/*/src/*.ts` to see existing patterns
+
+### Export Verification
+When adding new exports:
+- Verify they are properly exported from the package's `index.ts`
+- Check the built `.d.ts` file to confirm exports are included
+
+## 3. Documentation Updates
 
 Review and update documentation as needed:
 - Check if package READMEs need updates (`packages/*/README.md`)
@@ -23,7 +44,7 @@ Review and update documentation as needed:
 - Ensure all new features/changes are documented
 - Verify code examples are accurate and up-to-date
 
-## 3. Test Coverage
+## 4. Test Coverage
 
 Ensure 100% test coverage is maintained:
 - Identify any new/modified code that needs tests
@@ -32,28 +53,28 @@ Ensure 100% test coverage is maintained:
 - Run `npm run test:coverage` to verify 100% coverage across all packages
 - Fix any coverage gaps immediately
 
-## 4. Build All Packages
+## 5. Build All Packages
 
 Build all packages to ensure everything compiles:
 - Run `npm run build` to build all packages
 - Check for any TypeScript errors
 - Verify build outputs are generated correctly
 
-## 5. Run All Tests
+## 6. Run All Tests
 
 Execute comprehensive test suite:
 - Run `npm test` to run all tests across workspaces
 - Ensure all tests pass
 - Check test output for any warnings or issues
 
-## 6. Linting & Type Checking
+## 7. Linting & Type Checking
 
 Run all code quality checks:
 - Run `npm run lint` (Biome + ESLint + TypeScript)
 - Fix any linting errors or warnings
 - Ensure TypeScript strict mode compliance
 
-## 7. Bundle Size Check
+## 8. Bundle Size Check
 
 Verify bundle sizes are within limits:
 - Run `npm run size`
@@ -61,28 +82,48 @@ Verify bundle sizes are within limits:
 - Ensure react-hook-form package ≤ 10 KB
 - Flag any size increases for review
 
-## 8. Optional: Performance Benchmarks
+## 9. Optional: Performance Benchmarks
 
 If code changes affect performance:
 - Run `npm run bench` to check for regressions
 - Compare with baseline if significant changes were made
 
-## 9. Changeset
+## 10. Changeset
 
-Prepare changeset for version bumping:
+Create a changeset file for version bumping:
 
-- Determine version bump type based on changes:
-  - `patch`: Bug fixes, documentation updates, internal refactors
-  - `minor`: New features, new exports, backward-compatible additions
-  - `major`: Breaking changes (API changes, removed exports)
-- **IMPORTANT:** Both `@zod-utils/core` and `@zod-utils/react-hook-form` should have the same version - always bump both packages together
-- Provide changeset description for the user to add via `npx changeset`
-- Format: Brief summary of what changed and why it matters to users
-- Example descriptions:
-  - `Add transform support to getSchemaDefaults and extractFieldFromSchema`
-  - `Handle edge case when schema is neither ZodObject nor ZodDiscriminatedUnion`
+1. **Determine version bump type** based on changes:
+   - `patch`: Bug fixes, documentation updates, internal refactors
+   - `minor`: New features, new exports, backward-compatible additions
+   - `major`: Breaking changes (API changes, removed exports)
 
-## 10. Final Verification
+2. **IMPORTANT:** Both `@zod-utils/core` and `@zod-utils/react-hook-form` must have the same version - **always include both packages in the changeset**, even if only one package has changes.
+
+3. **Create the changeset file** directly (since `npx changeset` is interactive):
+   - Generate a random filename: `.changeset/<random-word>-<random-word>-<random-word>.md`
+   - Use the Write tool to create the file with this format:
+   ```markdown
+   ---
+   "@zod-utils/core": <patch|minor|major>
+   "@zod-utils/react-hook-form": <patch|minor|major>
+   ---
+
+   <Brief summary of what changed and why it matters to users>
+   ```
+
+4. **Example changeset file** (`.changeset/friendly-pandas-smile.md`):
+   ```markdown
+   ---
+   "@zod-utils/core": minor
+   "@zod-utils/react-hook-form": minor
+   ---
+
+   Add transform support to getSchemaDefaults and extractFieldFromSchema
+   ```
+
+5. **Commit the changeset file** along with other changes
+
+## 11. Final Verification
 
 Before completing:
 - Confirm all checks passed ✅
@@ -93,7 +134,7 @@ Before completing:
 - Confirm changeset description provided ✅
 - List any issues found that need attention
 
-## 11. Summary
+## 12. Summary
 
 Provide a concise summary:
 - What changed

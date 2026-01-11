@@ -1,303 +1,252 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import type {
-  DeepPartialWithAllNullables,
-  DeepPartialWithNullableObjects,
+import z from 'zod';
+import {
+  type PartialFields,
+  type PartialWithAllNullables,
+  type PartialWithNullableObjects,
+  partialFields,
 } from '../types';
 
-describe('DeepPartialWithNullableObjects', () => {
-  it('should make properties optional with different nullable behavior for primitives vs objects', () => {
+describe('PartialWithNullableObjects (non-recursive)', () => {
+  it('should make primitives optional but NOT nullable', () => {
     type Input = {
       name: string;
       age: number;
       active: boolean;
     };
 
-    type Result = DeepPartialWithNullableObjects<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // All are primitives: optional but NOT nullable
-    expectTypeOf<Result>().toExtend<{
-      name?: string | undefined;
-      age?: number | undefined;
-      active?: boolean | undefined;
-    }>();
+    // All primitives can be omitted or set to undefined
+    const valid1: Result = {};
+    const valid2: Result = { name: 'test' };
+    const valid3: Result = { name: undefined };
+    const valid4: Result = { age: undefined };
 
-    // Should accept objects with missing properties
-    expectTypeOf<Record<string, never>>().toExtend<Result>();
-    expectTypeOf<{ name: 'test' }>().toExtend<Result>();
+    // Primitives should NOT accept null
+    // @ts-expect-error - primitive fields don't accept null
+    const invalid1: Result = { name: null };
 
-    // Primitives accept undefined but NOT null
-    expectTypeOf<{ name: undefined }>().toExtend<Result>();
-    expectTypeOf<{ age: undefined }>().toExtend<Result>();
-    expectTypeOf<{ active: undefined }>().toExtend<Result>();
+    void valid1;
+    void valid2;
+    void valid3;
+    void valid4;
+    void invalid1;
   });
 
-  it('should preserve existing optional properties', () => {
-    type Input = {
-      required: string;
-      optional?: number;
-    };
-
-    type Result = DeepPartialWithNullableObjects<Input>;
-
-    // Both are primitives: optional but not nullable
-    expectTypeOf<Result>().toExtend<{
-      required?: string | undefined;
-      optional?: number | undefined;
-    }>();
-  });
-
-  it('should handle already nullable properties', () => {
-    type Input = {
-      nullableString: string | null;
-      nullableNumber: number | null;
-    };
-
-    type Result = DeepPartialWithNullableObjects<Input>;
-
-    // Union types with null don't extend object, so treated as primitives
-    // Preserves the null in the union, just adds optional and undefined
-    expectTypeOf<Result>().toExtend<{
-      nullableString?: string | null | undefined;
-      nullableNumber?: number | null | undefined;
-    }>();
-  });
-
-  it('should handle nested objects recursively', () => {
-    type Input = {
-      user: {
-        name: string;
-        email: string;
-      };
-    };
-
-    type Result = DeepPartialWithNullableObjects<Input>;
-
-    // Nested object becomes optional and nullable
-    // AND its properties are recursively transformed (now optional)
-    expectTypeOf<Result>().toExtend<{
-      user?:
-        | {
-            name?: string;
-            email?: string;
-          }
-        | null
-        | undefined;
-    }>();
-
-    // Should accept missing nested object
-    expectTypeOf<Record<string, never>>().toExtend<Result>();
-    expectTypeOf<{ user: null }>().toExtend<Result>();
-    expectTypeOf<{ user: undefined }>().toExtend<Result>();
-
-    // Should accept nested object with missing properties (recursive)
-    expectTypeOf<{ user: { name: 'test' } }>().toExtend<Result>();
-    // biome-ignore lint/complexity/noBannedTypes: for testing
-    expectTypeOf<{ user: {} }>().toExtend<Result>();
-  });
-
-  it('should handle arrays', () => {
+  it('should make arrays optional but NOT nullable', () => {
     type Input = {
       tags: string[];
       scores: number[];
     };
 
-    type Result = DeepPartialWithNullableObjects<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // Arrays: optional but NOT nullable
-    expectTypeOf<Result>().toExtend<{
-      tags?: string[] | undefined;
-      scores?: number[] | undefined;
-    }>();
+    // Arrays can be omitted or set to undefined
+    const valid1: Result = {};
+    const valid2: Result = { tags: ['a', 'b'] };
+    const valid3: Result = { tags: undefined };
 
-    // Arrays accept undefined but NOT null
-    expectTypeOf<{ tags: undefined }>().toExtend<Result>();
-    expectTypeOf<{ scores: undefined }>().toExtend<Result>();
+    // Arrays should NOT accept null
+    // @ts-expect-error - array fields don't accept null
+    const invalid1: Result = { tags: null };
+
+    void valid1;
+    void valid2;
+    void valid3;
+    void invalid1;
   });
 
-  it('should handle union types', () => {
+  it('should make objects optional and nullable but NOT recurse into nested fields', () => {
     type Input = {
-      status: 'active' | 'inactive';
-      value: string | number;
+      profile: {
+        bio: string;
+        age: number;
+      };
     };
 
-    type Result = DeepPartialWithNullableObjects<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // Union types of primitives don't extend object: optional but NOT nullable
-    expectTypeOf<Result>().toExtend<{
-      status?: 'active' | 'inactive' | undefined;
-      value?: string | number | undefined;
-    }>();
+    // Object can be omitted, null, or complete
+    const valid1: Result = {};
+    const valid2: Result = { profile: null };
+    const valid3: Result = { profile: undefined };
+    const valid4: Result = { profile: { bio: 'hello', age: 25 } };
+
+    // Nested object with missing field should NOT be allowed
+    // @ts-expect-error - nested object fields are strict
+    const invalid1: Result = { profile: { bio: 'hello' } };
+
+    void valid1;
+    void valid2;
+    void valid3;
+    void valid4;
+    void invalid1;
   });
 
-  it('should handle Date and other built-in types', () => {
+  it('should handle Date and built-in objects as nullable', () => {
     type Input = {
       createdAt: Date;
       pattern: RegExp;
     };
 
-    type Result = DeepPartialWithNullableObjects<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    expectTypeOf<Result>().toExtend<{
-      createdAt?: Date | null | undefined;
-      pattern?: RegExp | null | undefined;
-    }>();
+    // Built-in objects can be null
+    const valid1: Result = { createdAt: null };
+    const valid2: Result = { pattern: null };
+    const valid3: Result = { createdAt: new Date() };
+
+    void valid1;
+    void valid2;
+    void valid3;
   });
 
-  it('should handle empty objects', () => {
-    // biome-ignore lint/complexity/noBannedTypes: Testing empty object type
-    type Input = {};
-
-    type Result = DeepPartialWithNullableObjects<Input>;
-
-    // biome-ignore lint/complexity/noBannedTypes: Testing empty object type
-    expectTypeOf<Result>().toEqualTypeOf<{}>();
-  });
-
-  it('should NOT allow null for primitives and arrays, but allow for objects', () => {
+  it('should handle PartialFields branded objects with recursive transformation', () => {
     type Input = {
-      name: string;
-      tags: string[];
-      age: number;
-      profile: { bio: string };
+      // Regular object - stays strict
+      agent: { name: string; fee: number };
+      // PartialFields marked - gets recursive partial
+      detail: PartialFields<{ hotel: string; nights: number }>;
     };
 
-    type Result = DeepPartialWithNullableObjects<Input>;
+    type Result = PartialWithNullableObjects<Input>;
 
-    // Primitive fields should NOT accept null
-    // @ts-expect-error - primitive fields don't accept null
-    const invalid1: Result = { name: null };
+    // Regular object requires all fields when provided
+    // @ts-expect-error - agent nested fields are strict
+    const invalid1: Result = { agent: { name: 'John' } };
 
-    // @ts-expect-error - primitive fields don't accept null
-    const invalid2: Result = { age: null };
+    // PartialFields object allows partial nested
+    const valid1: Result = { detail: { hotel: 'Hilton' } };
+    const valid2: Result = { detail: {} };
+    const valid3: Result = { detail: null };
 
-    // Array fields should NOT accept null
-    // @ts-expect-error - array fields don't accept null
-    const invalid3: Result = { tags: null };
+    // Both can be null or omitted
+    const valid4: Result = { agent: null, detail: null };
 
-    // Object fields CAN accept null
-    const valid: Result = { profile: null };
-
-    // Suppress unused variable warnings
     void invalid1;
-    void invalid2;
-    void invalid3;
-    void valid;
-  });
-
-  it('should work with complex real-world example', () => {
-    type UserForm = {
-      firstName: string;
-      lastName: string;
-      email: string;
-      age: number;
-      address: {
-        street: string;
-        city: string;
-        zipCode: string;
-      };
-      hobbies: string[];
-      isActive: boolean;
-    };
-
-    type FormInput = DeepPartialWithNullableObjects<UserForm>;
-
-    // Primitives: optional but NOT nullable
-    // Arrays: optional but NOT nullable
-    // Objects: optional, nullable, AND recursively transformed
-    expectTypeOf<FormInput>().toExtend<{
-      firstName?: string | undefined;
-      lastName?: string | undefined;
-      email?: string | undefined;
-      age?: number | undefined;
-      address?:
-        | {
-            street?: string;
-            city?: string;
-            zipCode?: string;
-          }
-        | null
-        | undefined;
-      hobbies?: string[] | undefined;
-      isActive?: boolean | undefined;
-    }>();
-
-    // Should accept partial forms during editing
-    expectTypeOf<{
-      firstName: 'John';
-    }>().toExtend<FormInput>();
-
-    // Primitives and arrays accept undefined but NOT null
-    // Objects accept both
-    expectTypeOf<{
-      firstName: undefined;
-      email: undefined;
-      age: undefined;
-      isActive: undefined;
-      hobbies: undefined;
-      address: null;
-    }>().toExtend<FormInput>();
-
-    // Nested object properties are also optional (recursive transformation)
-    expectTypeOf<{
-      address: { street: 'Main St' };
-    }>().toExtend<FormInput>();
+    void valid1;
+    void valid2;
+    void valid3;
+    void valid4;
   });
 });
 
-describe('DeepPartialWithAllNullables', () => {
+describe('PartialWithAllNullables (non-recursive)', () => {
   it('should make all fields optional and nullable', () => {
     type Input = {
       name: string;
       age: number;
-      active: boolean;
       tags: string[];
     };
 
-    type Result = DeepPartialWithAllNullables<Input>;
+    type Result = PartialWithAllNullables<Input>;
 
-    // All fields: optional AND nullable
-    expectTypeOf<Result>().toExtend<{
-      name?: string | null | undefined;
-      age?: number | null | undefined;
-      active?: boolean | null | undefined;
-      tags?: string[] | null | undefined;
-    }>();
+    // All fields can be null
+    const valid1: Result = { name: null };
+    const valid2: Result = { age: null };
+    const valid3: Result = { tags: null };
+    const valid4: Result = { name: 'test', age: null, tags: null };
 
-    // All fields accept both null and undefined
-    expectTypeOf<{ name: null }>().toExtend<Result>();
-    expectTypeOf<{ name: undefined }>().toExtend<Result>();
-    expectTypeOf<{ age: null }>().toExtend<Result>();
-    expectTypeOf<{ age: undefined }>().toExtend<Result>();
-    expectTypeOf<{ tags: null }>().toExtend<Result>();
-    expectTypeOf<{ tags: undefined }>().toExtend<Result>();
+    void valid1;
+    void valid2;
+    void valid3;
+    void valid4;
   });
 
-  it('should handle complex types with recursive transformation', () => {
+  it('should make objects nullable but NOT recurse into nested fields', () => {
     type Input = {
-      name: string;
-      profile: { bio: string; age: number };
-      tags: string[];
+      profile: {
+        bio: string;
+        age: number;
+      };
     };
 
-    type Result = DeepPartialWithAllNullables<Input>;
+    type Result = PartialWithAllNullables<Input>;
 
-    // All fields nullable and optional
-    // Nested objects are recursively transformed
-    expectTypeOf<Result>().toExtend<{
-      name?: string | null | undefined;
-      profile?: { bio?: string | null; age?: number | null } | null | undefined;
-      tags?: string[] | null | undefined;
+    // Object can be null or complete
+    const valid1: Result = { profile: null };
+    const valid2: Result = { profile: { bio: 'hello', age: 25 } };
+
+    // Nested object with missing field should NOT be allowed
+    // @ts-expect-error - nested object fields are strict
+    const invalid1: Result = { profile: { bio: 'hello' } };
+
+    void valid1;
+    void valid2;
+    void invalid1;
+  });
+
+  it('should handle PartialFields branded objects with recursive transformation', () => {
+    type Input = {
+      // Regular object - stays strict
+      agent: { name: string; fee: number };
+      // PartialFields marked - gets recursive nullable partial
+      detail: PartialFields<{ hotel: string; nights: number }>;
+    };
+
+    type Result = PartialWithAllNullables<Input>;
+
+    // Regular object requires all fields when provided
+    // @ts-expect-error - agent nested fields are strict
+    const invalid1: Result = { agent: { name: 'John' } };
+
+    // PartialFields object allows partial and null nested
+    const valid1: Result = { detail: { hotel: 'Hilton' } };
+    const valid2: Result = { detail: { hotel: null } };
+    const valid3: Result = { detail: {} };
+
+    void invalid1;
+    void valid1;
+    void valid2;
+    void valid3;
+  });
+});
+
+describe('partialFields helper', () => {
+  it('should return the same schema with PartialFields branded output type', () => {
+    const schema = z.object({
+      hotel: z.string(),
+      nights: z.number(),
+    });
+
+    const branded = partialFields(schema);
+
+    // Should parse the same
+    const result = branded.parse({ hotel: 'Hilton', nights: 3 });
+    expectTypeOf(result).toEqualTypeOf<
+      PartialFields<{ hotel: string; nights: number }>
+    >();
+  });
+
+  it('should work in a real schema composition', () => {
+    const detailSchema = partialFields(
+      z.object({
+        hotel: z.string(),
+        nights: z.number(),
+      }),
+    );
+
+    const schema = z.object({
+      price: z.number(),
+      detail: detailSchema,
+      agent: z.object({
+        name: z.string(),
+        fee: z.number(),
+      }),
+    });
+
+    type SchemaOutput = z.infer<typeof schema>;
+
+    // detail should have PartialFields brand
+    expectTypeOf<SchemaOutput['detail']>().toExtend<
+      PartialFields<{ hotel: string; nights: number }>
+    >();
+
+    // agent should NOT have PartialFields brand
+    expectTypeOf<SchemaOutput['agent']>().toEqualTypeOf<{
+      name: string;
+      fee: number;
     }>();
-
-    // All accept null
-    expectTypeOf<{ name: null }>().toExtend<Result>();
-    expectTypeOf<{ profile: null }>().toExtend<Result>();
-    expectTypeOf<{ tags: null }>().toExtend<Result>();
-
-    // Nested object properties are also optional and nullable (recursive)
-    expectTypeOf<{ profile: { bio: 'hello' } }>().toExtend<Result>();
-    expectTypeOf<{ profile: { bio: null } }>().toExtend<Result>();
-    // biome-ignore lint/complexity/noBannedTypes: for testing
-    expectTypeOf<{ profile: {} }>().toExtend<Result>();
   });
 });
