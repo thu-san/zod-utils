@@ -215,12 +215,12 @@ This eliminates the common TypeScript friction where React Hook Form expects nul
 Use `.nonempty()` or `.min(1)` to make strings/arrays truly required.
 
 ### Default Extraction Behavior
-`getSchemaDefaults()` only extracts fields with **explicit** `.default()`:
+`getSchemaDefaults()` extracts fields with **explicit** `.default()`, including recursively from nested objects:
 - `z.string().default('hello')` ✅ extracted
-- `z.object({ nested: z.string().default('hello') })` ❌ NOT extracted (parent has no `.default()`)
-- `z.object({ nested: z.string().default('hello') }).default({})` ✅ extracted as `{}`
+- `z.object({ nested: z.string().default('hello') })` ✅ extracted as `{ nested: 'hello' }`
+- `z.object({ nested: z.string().default('hello') }).default({})` ✅ extracted as `{}` (explicit default takes precedence)
 
-Nested defaults are NOT extracted unless the parent object also has an explicit `.default()`.
+Nested defaults ARE extracted recursively. If a nested object has fields with defaults, those will be included even without `.default()` on the parent.
 
 ### Form Component Architecture (Demo App)
 
