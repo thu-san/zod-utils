@@ -101,6 +101,28 @@ export function extractDefaultValue<T extends z.ZodType>(
     return extractDefaultValue(field.def.in) as z.input<T>;
   }
 
+  // Recursively extract defaults from nested objects
+  if (field instanceof z.ZodObject) {
+    const nestedDefaults: Record<string, unknown> = {};
+    let hasAnyDefault = false;
+
+    for (const key in field.shape) {
+      const nestedField = field.shape[key];
+      if (!nestedField) continue;
+
+      const nestedDefault = extractDefaultValue(nestedField);
+      if (nestedDefault !== undefined) {
+        nestedDefaults[key] = nestedDefault;
+        hasAnyDefault = true;
+      }
+    }
+
+    if (hasAnyDefault) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return nestedDefaults as z.input<T>;
+    }
+  }
+
   return undefined;
 }
 

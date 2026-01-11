@@ -41,7 +41,7 @@ npm install @zod-utils/core zod
       - [Basic Example](#basic-example)
       - [With Optional and Nullable Fields](#with-optional-and-nullable-fields)
       - [With Function Defaults](#with-function-defaults)
-      - [Nested Objects - Important Behavior](#nested-objects---important-behavior)
+      - [Nested Objects](#nested-objects)
       - [With Discriminated Unions](#with-discriminated-unions)
       - [With Schema Transforms](#with-schema-transforms)
     - [`requiresValidInput(field)`](#requiresvalidinputfield)
@@ -206,35 +206,44 @@ const defaults = getSchemaDefaults(schema);
 // Functions are called at extraction time
 ```
 
-#### Nested Objects - Important Behavior
+#### Nested Objects
 
 ```typescript
-// Nested defaults are NOT extracted unless parent has .default()
+// Nested defaults are extracted recursively
 const schema = z.object({
   name: z.string().default("John"),
   settings: z.object({
-    theme: z.string().default("light"), // Has default
-    notifications: z.boolean().default(true), // Has default
-  }), // Parent has NO .default() - entire object skipped!
+    theme: z.string().default("light"),
+    notifications: z.boolean().default(true),
+  }),
 });
 
 getSchemaDefaults(schema);
-// { name: 'John' }
-// settings is NOT included because parent object has no .default()
+// { name: 'John', settings: { theme: 'light', notifications: true } }
 
-// To include nested defaults, add .default() to parent:
-const schemaWithNestedDefaults = z.object({
-  name: z.string().default("John"),
-  settings: z
-    .object({
-      theme: z.string().default("light"),
-      notifications: z.boolean().default(true),
-    })
-    .default({ theme: "light", notifications: true }), // Parent has .default()
+// Works with deeply nested objects too
+const deepSchema = z.object({
+  user: z.object({
+    profile: z.object({
+      displayName: z.string().default("Anonymous"),
+    }),
+  }),
 });
 
-getSchemaDefaults(schemaWithNestedDefaults);
-// { name: 'John', settings: { theme: 'light', notifications: true } }
+getSchemaDefaults(deepSchema);
+// { user: { profile: { displayName: 'Anonymous' } } }
+
+// Explicit .default() on parent takes precedence
+const explicitSchema = z.object({
+  settings: z
+    .object({
+      theme: z.string().default("from-nested"),
+    })
+    .default({ theme: "explicit-value" }),
+});
+
+getSchemaDefaults(explicitSchema);
+// { settings: { theme: 'explicit-value' } } - explicit default wins
 ```
 
 #### With Discriminated Unions

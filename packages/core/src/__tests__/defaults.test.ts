@@ -43,6 +43,102 @@ describe('extractDefaultValue', () => {
     expect(extractDefaultValue(schema)).toEqual({ foo: 'bar' });
   });
 
+  it('should recursively extract defaults from nested objects', () => {
+    const schema = z.object({
+      name: z.string().default('John'),
+      nested: z.object({
+        foo: z.string().default('bar'),
+      }),
+    });
+    expect(extractDefaultValue(schema)).toEqual({
+      name: 'John',
+      nested: { foo: 'bar' },
+    });
+  });
+
+  it('should return undefined for object with no defaults', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+    expect(extractDefaultValue(schema)).toBeUndefined();
+  });
+
+  it('should extract partial nested defaults', () => {
+    const schema = z.object({
+      nested: z.object({
+        withDefault: z.string().default('value'),
+        withoutDefault: z.number(),
+      }),
+    });
+    expect(extractDefaultValue(schema)).toEqual({
+      nested: { withDefault: 'value' },
+    });
+  });
+
+  it('should prefer explicit object default over recursive extraction', () => {
+    // When object has its own .default(), use that instead of recursing
+    const schema = z
+      .object({
+        nested: z.string().default('from-nested-field'),
+      })
+      .default({ nested: 'explicit-value' });
+
+    expect(extractDefaultValue(schema)).toEqual({ nested: 'explicit-value' });
+  });
+
+  it('should extract nested defaults from object with transform', () => {
+    const schema = z
+      .object({
+        name: z.string().default('John'),
+        age: z.number().default(25),
+      })
+      .transform((data) => ({ ...data, fullName: data.name }));
+
+    expect(extractDefaultValue(schema)).toEqual({
+      name: 'John',
+      age: 25,
+    });
+  });
+
+  it('should extract nested defaults when nested object has transform', () => {
+    const schema = z.object({
+      settings: z
+        .object({
+          theme: z.string().default('dark'),
+        })
+        .transform((s) => ({ ...s, applied: true })),
+    });
+
+    expect(extractDefaultValue(schema)).toEqual({
+      settings: { theme: 'dark' },
+    });
+  });
+
+  it('should extract deeply nested defaults with transforms at multiple levels', () => {
+    const schema = z
+      .object({
+        user: z
+          .object({
+            profile: z
+              .object({
+                bio: z.string().default('Hello'),
+              })
+              .transform((p) => ({ ...p, length: p.bio.length })),
+          })
+          .transform((u) => ({ ...u, hasProfile: true })),
+      })
+      .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+    expect(extractDefaultValue(schema)).toEqual({
+      user: {
+        profile: {
+          bio: 'Hello',
+        },
+      },
+    });
+  });
+
   it('should extract array defaults', () => {
     const schema = z.array(z.string()).default(['a', 'b']);
     expect(extractDefaultValue(schema)).toEqual(['a', 'b']);
@@ -215,12 +311,114 @@ describe('getSchemaDefaults', () => {
       settings: z.object({
         theme: z.string(), // no default
         notifications: z.boolean(), // no default
-      }), // parent object has no default, so entire object is skipped
+      }), // nested object has no field defaults, so it's not included
     });
 
     expect(getSchemaDefaults({ schema })).toEqual({
       name: 'John',
-      // settings is skipped because parent object has no .default()
+      // settings is skipped because no nested fields have defaults
+    });
+  });
+
+  it('should recursively extract defaults from nested objects', () => {
+    const schema = z.object({
+      name: z.string().default('John'),
+      settings: z.object({
+        theme: z.string().default('dark'),
+        notifications: z.boolean().default(true),
+      }),
+    });
+
+    expect(getSchemaDefaults({ schema })).toEqual({
+      name: 'John',
+      settings: {
+        theme: 'dark',
+        notifications: true,
+      },
+    });
+  });
+
+  it('should recursively extract defaults from deeply nested objects', () => {
+    const schema = z.object({
+      user: z.object({
+        profile: z.object({
+          settings: z.object({
+            theme: z.string().default('light'),
+          }),
+        }),
+      }),
+    });
+
+    expect(getSchemaDefaults({ schema })).toEqual({
+      user: {
+        profile: {
+          settings: {
+            theme: 'light',
+          },
+        },
+      },
+    });
+  });
+
+  it('should handle partial defaults in nested objects', () => {
+    const schema = z.object({
+      name: z.string().default('John'),
+      settings: z.object({
+        theme: z.string().default('dark'),
+        fontSize: z.number(), // no default
+      }),
+    });
+
+    expect(getSchemaDefaults({ schema })).toEqual({
+      name: 'John',
+      settings: {
+        theme: 'dark',
+        // fontSize not included - no default
+      },
+    });
+  });
+
+  it('should extract nested defaults when nested object has transform', () => {
+    const schema = z.object({
+      name: z.string().default('John'),
+      settings: z
+        .object({
+          theme: z.string().default('dark'),
+          notifications: z.boolean().default(true),
+        })
+        .transform((s) => ({ ...s, applied: true })),
+    });
+
+    expect(getSchemaDefaults({ schema })).toEqual({
+      name: 'John',
+      settings: {
+        theme: 'dark',
+        notifications: true,
+      },
+    });
+  });
+
+  it('should extract deeply nested defaults with transforms', () => {
+    const schema = z
+      .object({
+        user: z
+          .object({
+            profile: z
+              .object({
+                displayName: z.string().default('Anonymous'),
+              })
+              .transform((p) => ({ ...p, formatted: true })),
+          })
+          .transform((u) => ({ ...u, loaded: true })),
+      })
+      .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+    expect(getSchemaDefaults({ schema })).toEqual({
+      user: {
+        profile: {
+          displayName: 'Anonymous',
+        },
+      },
     });
   });
 
