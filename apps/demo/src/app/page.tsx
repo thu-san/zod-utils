@@ -1,6 +1,6 @@
 'use client';
 
-import type { DeepPartialWithNullableObjects } from '@zod-utils/react-hook-form';
+import type { PartialWithNullableObjects } from '@zod-utils/react-hook-form';
 import {
   FormSchemaProvider,
   getSchemaDefaults,
@@ -261,7 +261,7 @@ const UserCheckboxFormField = createCheckboxFormField({
  */
 function WatchedValuesDemo() {
   // Use the transformed type for correct typing with useFormContext
-  type FormInput = DeepPartialWithNullableObjects<z.input<typeof formSchema>>;
+  type FormInput = PartialWithNullableObjects<z.input<typeof formSchema>>;
 
   const { control } = useFormContext<FormInput>();
 
@@ -340,7 +340,7 @@ function WatchedValuesDemo() {
       </p>
       <p className="text-[10px] mt-2 opacity-70">
         All fields correctly typed as <code>T | undefined</code>. Nested objects
-        use DeepPartialWithNullableObjects; array items use RHF's PathValue.
+        use PartialWithNullableObjects; array items use RHF's PathValue.
       </p>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { Simplify } from '@zod-utils/core';
+import type { z } from 'zod';
 
 /**
  * Built-in types that should not be recursively transformed.
@@ -16,82 +17,147 @@ type BuiltInObject =
   | Error;
 
 /**
- * Recursively transforms object types for form inputs.
+ * Brand symbol for marking objects that should receive recursive partial transformation.
+ * @internal
+ */
+declare const FormInputBrand: unique symbol;
+
+/**
+ * Branded type to mark objects that should have their direct fields made partial.
+ * Use with {@link partialFields} helper to mark specific schema objects.
  *
+ * @example
+ * ```typescript
+ * // Objects marked with PartialFields will have their direct fields made optional
+ * type MarkedObject = PartialFields<{ name: string; age: number }>;
+ * ```
+ */
+export type PartialFields<T> = T & { readonly [FormInputBrand]: true };
+
+/**
+ * Helper function to mark a Zod schema so its direct fields become partial.
+ *
+ * By default, nested objects in form inputs keep their fields strict (only the object
+ * itself becomes nullable). Use this helper to opt-in specific objects to have their
+ * direct fields also become optional.
+ *
+ * **Note:** This only affects the direct fields of the marked object. Nested objects
+ * within it will still stay strict unless they are also wrapped with `partialFields()`.
+ *
+ * **Use cases:**
+ * - Form input fields that users fill in manually (should be partial)
+ * - Objects from selectors/dropdowns should NOT use this (keep strict)
+ *
+ * @example
+ * ```typescript
+ * import { partialFields } from '@zod-utils/react-hook-form';
+ *
+ * const schema = z.object({
+ *   price: z.number(),
+ *   // User fills in these fields - opt-in to partial
+ *   detail: partialFields(z.object({
+ *     hotel: z.string(),
+ *     nights: z.number(),
+ *   })),
+ *   // Selected from dropdown - stays strict
+ *   agent: z.object({
+ *     name: z.string(),
+ *     fee: z.number(),
+ *   }),
+ * });
+ *
+ * // Result with PartialWithNullableObjects:
+ * // detail.hotel  → string | undefined (partial - user input)
+ * // detail.nights → number | undefined (partial - user input)
+ * // agent.name    → string (strict! - from selector)
+ * // agent.fee     → number (strict! - from selector)
+ * ```
+ */
+export function partialFields<T extends z.ZodType>(
+  schema: T,
+): z.ZodType<PartialFields<z.infer<T>>, PartialFields<z.input<T>>> {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return schema as z.ZodType<
+    PartialFields<z.infer<T>>,
+    PartialFields<z.input<T>>
+  >;
+}
+
+/**
+ * Transforms object types for form inputs with selective recursion.
+ *
+ * **Default behavior (non-recursive):**
  * - **Primitives** (string, number, boolean): optional → `type | undefined`
  * - **Arrays**: optional → `type[] | undefined`
  * - **Built-in objects** (Date, RegExp, etc.): optional and nullable → `type | null | undefined`
- * - **Plain objects**: optional, nullable, and recursively transformed → `DeepType | null | undefined`
+ * - **Plain objects**: optional and nullable, but nested fields stay **strict** → `{ strictField: type } | null | undefined`
  *
- * This ensures `useWatch` returns correct types at any nesting depth,
- * since form fields are `undefined` until values are set.
+ * **Opt-in recursive behavior:**
+ * - Objects marked with {@link partialFields} will have their nested fields recursively transformed
+ *
+ * This ensures objects from selectors/dropdowns keep strict types for their fields,
+ * while form input fields can be partially filled.
  *
  * @example
  * ```typescript
- * type User = { name: string; tags: string[]; profile: { bio: string } };
- * type FormInput = DeepPartialWithNullableObjects<User>;
- * // Evaluates to: { name?: string; tags?: string[]; profile?: { bio?: string } | null; }
- * ```
+ * import { partialFields } from '@zod-utils/react-hook-form';
+ * import { z } from 'zod';
  *
- * @example
- * Type inference with useZodForm
- * ```typescript
- * const schema = z.object({ name: z.string(), age: z.number() });
- * const form = useZodForm({ schema }); // ✅ Works without defaultValues
- * const name = form.watch('name'); // ✅ Correctly typed as string | undefined
- * ```
+ * const schema = z.object({
+ *   price: z.number(),
+ *   detail: partialFields(z.object({ hotel: z.string(), nights: z.number() })),
+ *   agent: z.object({ name: z.string(), fee: z.number() }),
+ * });
  *
- * @example
- * Nested fields are also correctly typed
- * ```typescript
- * const schema = z.object({ profile: z.object({ bio: z.string() }) });
- * const form = useZodForm({ schema });
- * const bio = form.watch('profile.bio'); // ✅ Correctly typed as string | undefined
+ * type FormInput = PartialWithNullableObjects<z.infer<typeof schema>>;
+ * // {
+ * //   price?: number;
+ * //   detail?: { hotel?: string; nights?: number } | null;  // Recursive!
+ * //   agent?: { name: string; fee: number } | null;          // Strict nested!
+ * // }
  * ```
  */
-export type DeepPartialWithNullableObjects<T> = {
+export type PartialWithNullableObjects<T> = {
   [K in keyof T]?: T[K] extends readonly unknown[]
     ? T[K] // Arrays: just optional (via ?), no null, no recursion
     : T[K] extends BuiltInObject
       ? T[K] | null // Built-in objects: optional + nullable, no recursion
-      : T[K] extends object
-        ? Simplify<DeepPartialWithNullableObjects<T[K]>> | null // Plain objects: recurse + null + optional (via ?)
-        : T[K]; // Primitives: just optional (via ?)
+      : T[K] extends PartialFields<infer U>
+        ? Simplify<PartialWithNullableObjects<U>> | null // FormInput marked: recurse + null + optional
+        : T[K] extends object
+          ? T[K] | null // Plain objects: optional + nullable, NO recursion (strict nested)
+          : T[K]; // Primitives: just optional (via ?)
 };
 
 /**
- * @deprecated Use {@link DeepPartialWithNullableObjects} instead.
- * This alias is kept for backward compatibility.
- */
-export type PartialWithNullableObjects<T> = DeepPartialWithNullableObjects<T>;
-
-/**
- * Recursively makes all fields optional and nullable.
+ * Transforms all fields to be optional and nullable, with selective recursion.
  *
+ * Similar to {@link PartialWithNullableObjects} but also adds `| null` to primitives and arrays.
+ *
+ * **Default behavior (non-recursive):**
  * - **Primitives**: optional and nullable → `type | null | undefined`
  * - **Arrays**: optional and nullable → `type[] | null | undefined`
- * - **Built-in objects** (Date, RegExp, etc.): optional and nullable → `type | null | undefined`
- * - **Plain objects**: optional, nullable, and recursively transformed → `DeepType | null | undefined`
+ * - **Plain objects**: optional and nullable, but nested fields stay **strict**
+ *
+ * **Opt-in recursive behavior:**
+ * - Objects marked with {@link partialFields} will have their nested fields recursively transformed
  *
  * @example
  * ```typescript
  * type User = { name: string; age: number; profile: { bio: string } };
- * type FormInput = DeepPartialWithAllNullables<User>;
- * // { name?: string | null; age?: number | null; profile?: { bio?: string | null } | null; }
+ * type FormInput = PartialWithAllNullables<User>;
+ * // { name?: string | null; age?: number | null; profile?: { bio: string } | null; }
+ * // Note: profile.bio stays strict (string, not string | null | undefined)
  * ```
  */
-export type DeepPartialWithAllNullables<T> = {
+export type PartialWithAllNullables<T> = {
   [K in keyof T]?: T[K] extends readonly unknown[]
     ? T[K] | null // Arrays: optional + nullable, no recursion
     : T[K] extends BuiltInObject
       ? T[K] | null // Built-in objects: optional + nullable, no recursion
-      : T[K] extends object
-        ? Simplify<DeepPartialWithAllNullables<T[K]>> | null // Plain objects: recurse + null + optional
-        : T[K] | null; // Primitives: optional + nullable
+      : T[K] extends PartialFields<infer U>
+        ? Simplify<PartialWithAllNullables<U>> | null // FormInput marked: recurse + null + optional
+        : T[K] extends object
+          ? T[K] | null // Plain objects: optional + nullable, NO recursion (strict nested)
+          : T[K] | null; // Primitives: optional + nullable
 };
-
-/**
- * @deprecated Use {@link DeepPartialWithAllNullables} instead.
- * This alias is kept for backward compatibility.
- */
-export type PartialWithAllNullables<T> = DeepPartialWithAllNullables<T>;

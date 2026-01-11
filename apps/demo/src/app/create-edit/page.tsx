@@ -5,6 +5,7 @@ import {
   getSchemaDefaults,
   useZodForm,
 } from '@zod-utils/react-hook-form';
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useFieldArray } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -138,7 +139,35 @@ export default function CreateEditPage() {
               Using <code className="text-xs">z.discriminatedUnion()</code> for
               type-safe mode switching
             </CardDescription>
-            <div className="mt-4 p-3 bg-muted rounded-md text-sm space-y-2">
+
+            {/* Navigation */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/approach-transform">Transform Approach</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/approach-nullable">Nullable Approach</Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/">Main Demo</Link>
+              </Button>
+            </div>
+
+            <div className="mt-4 p-3 bg-green-500/10 rounded-md text-sm space-y-2">
+              <p className="font-semibold text-green-700 dark:text-green-400">
+                Recommended: @zod-utils/react-hook-form
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                <li>
+                  Clean schemas: <code>z.string().min(1)</code>
+                </li>
+                <li>Auto type transformation for forms</li>
+                <li>getSchemaDefaults() for discriminated unions</li>
+                <li>Best DX for 2+ forms</li>
+              </ul>
+            </div>
+
+            <div className="mt-2 p-3 bg-muted rounded-md text-sm space-y-2">
               <p className="font-semibold">About this form:</p>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                 <li>

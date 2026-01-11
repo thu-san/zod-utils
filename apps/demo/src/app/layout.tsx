@@ -40,7 +40,7 @@ export default async function RootLayout({
                 <Link href="/" className="mr-6 flex items-center space-x-2">
                   <span className="font-bold">Zod Utils Demo</span>
                 </Link>
-                <nav className="flex items-center gap-6 text-sm">
+                <nav className="flex items-center gap-4 text-sm">
                   <Link
                     href="/"
                     className="transition-colors hover:text-foreground/80 text-foreground"
@@ -51,7 +51,19 @@ export default async function RootLayout({
                     href="/create-edit"
                     className="transition-colors hover:text-foreground/80 text-foreground"
                   >
-                    Discriminated Union
+                    Package
+                  </Link>
+                  <Link
+                    href="/approach-transform"
+                    className="transition-colors hover:text-foreground/80 text-foreground"
+                  >
+                    Transform
+                  </Link>
+                  <Link
+                    href="/approach-nullable"
+                    className="transition-colors hover:text-foreground/80 text-muted-foreground"
+                  >
+                    Nullable
                   </Link>
                   <Link
                     href="/valid-paths-of-type"

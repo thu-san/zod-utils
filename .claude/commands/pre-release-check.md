@@ -69,18 +69,38 @@ If code changes affect performance:
 
 ## 9. Changeset
 
-Prepare changeset for version bumping:
+Create a changeset file for version bumping:
 
-- Determine version bump type based on changes:
-  - `patch`: Bug fixes, documentation updates, internal refactors
-  - `minor`: New features, new exports, backward-compatible additions
-  - `major`: Breaking changes (API changes, removed exports)
-- **IMPORTANT:** Both `@zod-utils/core` and `@zod-utils/react-hook-form` should have the same version - always bump both packages together
-- Provide changeset description for the user to add via `npx changeset`
-- Format: Brief summary of what changed and why it matters to users
-- Example descriptions:
-  - `Add transform support to getSchemaDefaults and extractFieldFromSchema`
-  - `Handle edge case when schema is neither ZodObject nor ZodDiscriminatedUnion`
+1. **Determine version bump type** based on changes:
+   - `patch`: Bug fixes, documentation updates, internal refactors
+   - `minor`: New features, new exports, backward-compatible additions
+   - `major`: Breaking changes (API changes, removed exports)
+
+2. **IMPORTANT:** Both `@zod-utils/core` and `@zod-utils/react-hook-form` must have the same version - **always include both packages in the changeset**, even if only one package has changes.
+
+3. **Create the changeset file** directly (since `npx changeset` is interactive):
+   - Generate a random filename: `.changeset/<random-word>-<random-word>-<random-word>.md`
+   - Use the Write tool to create the file with this format:
+   ```markdown
+   ---
+   "@zod-utils/core": <patch|minor|major>
+   "@zod-utils/react-hook-form": <patch|minor|major>
+   ---
+
+   <Brief summary of what changed and why it matters to users>
+   ```
+
+4. **Example changeset file** (`.changeset/friendly-pandas-smile.md`):
+   ```markdown
+   ---
+   "@zod-utils/core": minor
+   "@zod-utils/react-hook-form": minor
+   ---
+
+   Add transform support to getSchemaDefaults and extractFieldFromSchema
+   ```
+
+5. **Commit the changeset file** along with other changes
 
 ## 10. Final Verification
 
