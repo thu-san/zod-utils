@@ -241,7 +241,7 @@ You can override the default input type transformation if needed:
 ```typescript
 import {
   useZodForm,
-  PartialWithAllNullables,
+  DeepPartialWithAllNullables,
 } from "@zod-utils/react-hook-form";
 import { z } from "zod";
 
@@ -251,10 +251,10 @@ const schema = z.object({
   age: z.number(),
 });
 
-// Option 1: Use PartialWithAllNullables to make ALL fields accept null
+// Option 1: Use DeepPartialWithAllNullables to make ALL fields accept null
 const form = useZodForm<
   z.infer<typeof schema>,
-  PartialWithAllNullables<z.infer<typeof schema>>
+  DeepPartialWithAllNullables<z.infer<typeof schema>>
 >({
   schema,
   defaultValues: { username: null, email: null, age: null },
@@ -453,8 +453,11 @@ import {
   flattenFieldSelector,
 
   // Type utilities
-  type PartialWithNullableObjects,
-  type PartialWithAllNullables,
+  type DeepPartialWithNullableObjects,
+  type DeepPartialWithAllNullables,
+  // Deprecated aliases (kept for backward compatibility)
+  type PartialWithNullableObjects, // Use DeepPartialWithNullableObjects
+  type PartialWithAllNullables, // Use DeepPartialWithAllNullables
   type DiscriminatorProps,
   type DiscriminatorKey,
   type DiscriminatorValue,
@@ -470,63 +473,78 @@ See [@zod-utils/core documentation](../core/README.md) for details on schema uti
 
 ### Type Utilities
 
-#### `PartialWithNullableObjects<T>`
+#### `DeepPartialWithNullableObjects<T>`
 
-Transforms properties based on their type. Primitive and array fields become optional-only (not nullable), while object fields become optional and nullable.
+Recursively transforms properties based on their type. Primitive and array fields become optional-only (not nullable), while object fields become optional, nullable, and **recursively transformed**.
 
 **Transformation rules:**
 
 - **Primitives** (string, number, boolean): optional → `type | undefined`
 - **Arrays**: optional → `type[] | undefined`
-- **Objects**: optional and nullable → `type | null | undefined`
+- **Built-in objects** (Date, RegExp, etc.): optional and nullable → `type | null | undefined`
+- **Plain objects**: optional, nullable, and **recursively transformed** → `DeepType | null | undefined`
 
 ```typescript
-import type { PartialWithNullableObjects } from "@zod-utils/react-hook-form";
+import type { DeepPartialWithNullableObjects } from "@zod-utils/react-hook-form";
 
 type User = {
   name: string;
   age: number;
   tags: string[];
-  profile: { bio: string };
+  profile: { bio: string; settings: { theme: string } };
 };
 
-type FormInput = PartialWithNullableObjects<User>;
+type FormInput = DeepPartialWithNullableObjects<User>;
 // {
-//   name?: string;                  // Primitive: optional, not nullable
-//   age?: number;                   // Primitive: optional, not nullable
-//   tags?: string[];                // Array: optional, not nullable
-//   profile?: { bio: string } | null; // Object: optional AND nullable
+//   name?: string;                        // Primitive: optional, not nullable
+//   age?: number;                         // Primitive: optional, not nullable
+//   tags?: string[];                      // Array: optional, not nullable
+//   profile?: {                           // Object: optional, nullable, AND recursive
+//     bio?: string;                       // Nested primitive: also optional
+//     settings?: { theme?: string } | null; // Nested object: also recursive
+//   } | null;
 // }
 ```
 
-This type is used internally by `useZodForm` to allow form fields to accept undefined (and null for objects only) during editing while maintaining proper validation types.
+This ensures `useWatch` returns correct types (`T | undefined`) at any nesting depth, since form fields are `undefined` until values are set:
 
-#### `PartialWithAllNullables<T>`
+```typescript
+const form = useZodForm({ schema });
+const bio = form.watch("profile.bio"); // Correctly typed as `string | undefined`
+```
 
-Makes all fields optional and nullable, regardless of type.
+> **Note:** `PartialWithNullableObjects<T>` is a deprecated alias for `DeepPartialWithNullableObjects<T>`, kept for backward compatibility.
+
+#### `DeepPartialWithAllNullables<T>`
+
+Recursively makes all fields optional and nullable, regardless of type.
 
 **Transformation rules:**
 
-- **All fields**: optional and nullable → `type | null | undefined`
+- **Primitives**: optional and nullable → `type | null | undefined`
+- **Arrays**: optional and nullable → `type[] | null | undefined`
+- **Plain objects**: optional, nullable, and **recursively transformed** → `DeepType | null | undefined`
 
 ```typescript
-import type { PartialWithAllNullables } from "@zod-utils/react-hook-form";
+import type { DeepPartialWithAllNullables } from "@zod-utils/react-hook-form";
 
 type User = {
   name: string;
   age: number;
-  tags: string[];
+  profile: { bio: string };
 };
 
-type FormInput = PartialWithAllNullables<User>;
+type FormInput = DeepPartialWithAllNullables<User>;
 // {
-//   name?: string | null;       // All fields: optional AND nullable
-//   age?: number | null;        // All fields: optional AND nullable
-//   tags?: string[] | null;     // All fields: optional AND nullable
+//   name?: string | null;                    // All fields: optional AND nullable
+//   age?: number | null;                     // All fields: optional AND nullable
+//   profile?: { bio?: string | null } | null; // Nested fields also nullable
 // }
 ```
 
 Use this when all fields need to accept `null`, not just objects/arrays.
+
+> **Note:** `PartialWithAllNullables<T>` is a deprecated alias for `DeepPartialWithAllNullables<T>`, kept for backward compatibility.
 
 ---
 
