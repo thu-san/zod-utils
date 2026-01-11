@@ -1,5 +1,6 @@
 'use client';
 
+import type { DeepPartialWithNullableObjects } from '@zod-utils/react-hook-form';
 import {
   FormSchemaProvider,
   getSchemaDefaults,
@@ -7,6 +8,7 @@ import {
 } from '@zod-utils/react-hook-form';
 import { useTranslations } from 'next-intl';
 import { type CSSProperties, useId } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import z from 'zod';
 import {
@@ -252,6 +254,97 @@ const UserNumberFormField = createNumberFormField({
 const UserCheckboxFormField = createCheckboxFormField({
   schema: formSchema,
 });
+
+/**
+ * Demo component showing useFormContext and useWatch with correct types.
+ * Must be rendered inside Form (FormProvider) to have access to form context.
+ */
+function WatchedValuesDemo() {
+  // Use the transformed type for correct typing with useFormContext
+  type FormInput = DeepPartialWithNullableObjects<z.input<typeof formSchema>>;
+
+  const { control } = useFormContext<FormInput>();
+
+  // Top-level primitive field - correctly typed as `string | undefined`
+  const stringRequired = useWatch({ control, name: 'stringRequired' });
+
+  // Top-level number field - correctly typed as `number | undefined`
+  const numberRequired = useWatch({ control, name: 'numberRequired' });
+
+  // Nested object field - correctly typed as `string | undefined` (recursive!)
+  const objectRequiredStreet = useWatch({
+    control,
+    name: 'objectRequired.street',
+  });
+
+  // Nested object field - correctly typed as `string | undefined` (recursive!)
+  const objectRequiredCity = useWatch({ control, name: 'objectRequired.city' });
+
+  // Array item access - correctly typed as `string | undefined`
+  // (RHF's PathValue adds undefined for indexed access since array[0] might not exist)
+  const arrayItemName = useWatch({
+    control,
+    name: 'arrayOfObjectsRequiredWithDefault.0.name',
+  });
+
+  // Another array item field
+  const arrayItemValue = useWatch({
+    control,
+    name: 'arrayOfObjectsRequiredWithDefault.0.value',
+  });
+
+  return (
+    <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-md space-y-1">
+      <p className="font-semibold text-foreground mb-2">
+        useWatch Demo (with useFormContext)
+      </p>
+      <p>
+        <code>stringRequired</code>:{' '}
+        <span className="text-foreground">
+          {stringRequired === undefined ? 'undefined' : `"${stringRequired}"`}
+        </span>
+      </p>
+      <p>
+        <code>numberRequired</code>:{' '}
+        <span className="text-foreground">
+          {numberRequired === undefined ? 'undefined' : numberRequired}
+        </span>
+      </p>
+      <p>
+        <code>objectRequired.street</code>:{' '}
+        <span className="text-foreground">
+          {objectRequiredStreet === undefined
+            ? 'undefined'
+            : `"${objectRequiredStreet}"`}
+        </span>
+      </p>
+      <p>
+        <code>objectRequired.city</code>:{' '}
+        <span className="text-foreground">
+          {objectRequiredCity === undefined
+            ? 'undefined'
+            : `"${objectRequiredCity}"`}
+        </span>
+      </p>
+      <p>
+        <code>arrayOfObjects[0].name</code>:{' '}
+        <span className="text-foreground">
+          {arrayItemName === undefined ? 'undefined' : `"${arrayItemName}"`}
+        </span>
+      </p>
+      <p>
+        <code>arrayOfObjects[0].value</code>:{' '}
+        <span className="text-foreground">
+          {arrayItemValue === undefined ? 'undefined' : `"${arrayItemValue}"`}
+        </span>
+      </p>
+      <p className="text-[10px] mt-2 opacity-70">
+        All fields correctly typed as <code>T | undefined</code>. Nested objects
+        use DeepPartialWithNullableObjects; array items use RHF's PathValue.
+      </p>
+    </div>
+  );
+}
 
 export default function UserProfileForm() {
   const formId = useId();
@@ -627,6 +720,11 @@ export default function UserProfileForm() {
                       />
                     </div>
                   </div>
+
+                  <Separator />
+
+                  {/* useWatch Demo */}
+                  <WatchedValuesDemo />
 
                   <Separator />
 
