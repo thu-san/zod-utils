@@ -2,8 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { type FieldValues, type UseFormProps, useForm } from 'react-hook-form';
 import type { z } from 'zod';
 import type {
-  PartialWithAllNullables,
-  PartialWithNullableObjects,
+  DeepPartialWithAllNullables,
+  DeepPartialWithNullableObjects,
 } from './types';
 
 /**
@@ -11,7 +11,7 @@ import type {
  *
  * This hook eliminates the TypeScript friction between React Hook Form's nullable field values
  * and Zod's strict output types. It uses a two-type schema pattern where:
- * - **Input type** (`PartialWithNullableObjects<TOutput>`): Form fields accept `null | undefined` during editing
+ * - **Input type** (`DeepPartialWithNullableObjects<TOutput>`): Form fields accept `null | undefined` during editing
  * - **Output type** (`TOutput`): Validated data matches exact schema type (no `null | undefined`)
  *
  * **Key Benefits:**
@@ -22,7 +22,7 @@ import type {
  *
  * @template TInput - The Zod schema input type (accepts nullable/undefined values during form editing)
  * @template TOutput - The Zod schema output type (extends FieldValues)
- * @template TFormInput - The form input type (defaults to PartialWithNullableObjects<TInput>)
+ * @template TFormInput - The form input type (defaults to DeepPartialWithNullableObjects<TInput>)
  * @template TDefaultValues - The type of default values (inferred from usage for better type safety)
  *
  * @param options - Configuration object
@@ -167,7 +167,7 @@ import type {
  * }
  * ```
  *
- * @see {@link PartialWithNullableObjects} for the type transformation utility
+ * @see {@link DeepPartialWithNullableObjects} for the type transformation utility
  * @see https://react-hook-form.com/docs/useform for React Hook Form documentation
  * @see https://zod.dev for Zod schema documentation
  * @since 0.1.0
@@ -176,7 +176,7 @@ export const useZodForm = <
   TInput extends FieldValues,
   TOutput extends FieldValues,
   TFormInput extends
-    PartialWithAllNullables<TInput> = PartialWithNullableObjects<TInput>,
+    DeepPartialWithAllNullables<TInput> = DeepPartialWithNullableObjects<TInput>,
   TDefaultValues extends Partial<TFormInput> | undefined = undefined,
 >({
   schema,
