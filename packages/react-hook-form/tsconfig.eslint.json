@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@zod-utils/core": ["../core/src/index.ts"]
+    },
+    "noEmit": true
+  }
+}

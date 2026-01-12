@@ -47,21 +47,24 @@ export function InputFormField<
     <TFormField
       {...props}
       description={finalDescription}
-      render={({ field, label }) => (
-        <Input
-          value={field.value ?? ''}
-          onChange={field.onChange}
-          onBlur={field.onBlur}
-          name={field.name}
-          ref={field.ref}
-          placeholder={
-            props.placeholder ||
-            (props.autoPlaceholder
-              ? `Please enter ${label.toLowerCase()}`
-              : undefined)
-          }
-        />
-      )}
+      render={({ field, label }) => {
+        const value = String(field.value ?? '');
+        return (
+          <Input
+            value={value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            name={field.name}
+            ref={field.ref}
+            placeholder={
+              props.placeholder ||
+              (props.autoPlaceholder
+                ? `Please enter ${label.toLowerCase()}`
+                : undefined)
+            }
+          />
+        );
+      }}
     />
   );
 }

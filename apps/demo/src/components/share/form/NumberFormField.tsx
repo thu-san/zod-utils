@@ -6,6 +6,7 @@ import type {
   SchemaProps,
 } from '@zod-utils/core';
 import type { ComponentProps, JSX } from 'react';
+import { NumericFormat, type NumericFormatProps } from 'react-number-format';
 import type z from 'zod';
 import { Input } from '@/components/ui/input';
 import { useValidationDescription } from '@/hooks/useValidationDescription';
@@ -16,8 +17,8 @@ type NumberFormFieldOwnProps = {
   placeholder?: string;
   description?: string;
 } & Omit<
-  ComponentProps<typeof Input>,
-  'name' | 'placeholder' | 'type' | 'onChange'
+  NumericFormatProps<ComponentProps<typeof Input>>,
+  'name' | 'placeholder' | 'onValueChange' | 'customInput' | 'getInputRef'
 > &
   JSX.IntrinsicAttributes;
 
@@ -50,26 +51,32 @@ export function NumberFormField<
     <TFormField
       {...props}
       description={finalDescription}
-      render={({ field, label }) => (
-        <Input
-          type="number"
-          value={field.value ?? ''}
-          onChange={(e) => {
-            const value = e.target.value;
-            // Convert empty string to null (works with nullable fields)
-            field.onChange(value === '' ? null : Number(value));
-          }}
-          onBlur={field.onBlur}
-          name={field.name}
-          ref={field.ref}
-          placeholder={
-            props.placeholder ||
-            (props.autoPlaceholder
-              ? `Please enter ${label.toLowerCase()}`
-              : undefined)
-          }
-        />
-      )}
+      render={({ field, label }) => {
+        // Convert any to acceptable NumericFormat value type
+        const numericValue: number | string | null | undefined =
+          typeof field.value === 'number' || typeof field.value === 'string'
+            ? field.value
+            : undefined;
+        return (
+          <NumericFormat
+            customInput={Input}
+            value={numericValue ?? ''}
+            onValueChange={(values) => {
+              // floatValue is undefined when input is empty, convert to null
+              field.onChange(values.floatValue ?? null);
+            }}
+            onBlur={field.onBlur}
+            name={field.name}
+            getInputRef={field.ref}
+            placeholder={
+              props.placeholder ||
+              (props.autoPlaceholder
+                ? `Please enter ${label.toLowerCase()}`
+                : undefined)
+            }
+          />
+        );
+      }}
     />
   );
 }

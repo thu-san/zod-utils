@@ -1,6 +1,13 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Resolve to source so tests work without building core first
+      '@zod-utils/core': path.resolve(__dirname, '../core/src/index.ts'),
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

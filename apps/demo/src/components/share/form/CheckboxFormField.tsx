@@ -44,14 +44,17 @@ export function CheckboxFormField<
     <TFormField
       {...props}
       description={finalDescription}
-      render={({ field }) => (
-        <input
-          type="checkbox"
-          checked={field.value ?? false}
-          onChange={(e) => field.onChange(e.target.checked)}
-          value={undefined}
-        />
-      )}
+      render={({ field }) => {
+        const checked = Boolean(field.value);
+        return (
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => field.onChange(e.target.checked)}
+            value={undefined}
+          />
+        );
+      }}
     />
   );
 }

@@ -14,6 +14,16 @@ import type {
 } from './types';
 
 /**
+ * Type-safe helper to iterate over ZodObject shape entries.
+ * @internal
+ */
+function getShapeEntries(
+  schema: z.ZodObject,
+): Array<[string, z.ZodType | undefined]> {
+  return Object.entries(schema.shape);
+}
+
+/**
  * Extracts the default value from a Zod field, recursively unwrapping optional, nullable, and union layers.
  *
  * This function traverses through wrapper types (like `ZodOptional`, `ZodNullable`, `ZodUnion`) to find
@@ -106,8 +116,7 @@ export function extractDefaultValue<T extends z.ZodType>(
     const nestedDefaults: Record<string, unknown> = {};
     let hasAnyDefault = false;
 
-    for (const key in field.shape) {
-      const nestedField = field.shape[key];
+    for (const [key, nestedField] of getShapeEntries(field)) {
       if (!nestedField) continue;
 
       const nestedDefault = extractDefaultValue(nestedField);
@@ -224,8 +233,7 @@ export function getSchemaDefaults<
   const defaults: Record<string, unknown> = {};
 
   if (targetSchema) {
-    for (const key in targetSchema.shape) {
-      const field = targetSchema.shape[key];
+    for (const [key, field] of getShapeEntries(targetSchema)) {
       if (!field) continue;
 
       const defaultValue = extractDefaultValue(field);
