@@ -25,7 +25,7 @@ export default [
         sourceType: 'module',
         project: [
           './packages/core/tsconfig.json',
-          './packages/react-hook-form/tsconfig.json',
+          './packages/react-hook-form/tsconfig.eslint.json',
           './apps/demo/tsconfig.json',
         ],
         tsconfigRootDir: import.meta.dirname,
