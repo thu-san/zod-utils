@@ -8,6 +8,17 @@ import type {
 } from './types';
 
 /**
+ * Type-safe helper to get a field from ZodObject shape by key.
+ * @internal
+ */
+function getShapeField(
+  schema: z.ZodObject,
+  key: string,
+): z.ZodType | undefined {
+  return Object.entries(schema.shape).find(([k]) => k === key)?.[1];
+}
+
+/**
  * Recursively extracts the exact schema type from a discriminated union based on the discriminator value.
  *
  * This advanced TypeScript utility type walks through a union's options tuple at compile-time,
@@ -223,7 +234,7 @@ export const extractDiscriminatedSchema = <
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return primitiveSchema.options.find((option) => {
     if (option instanceof z.ZodObject) {
-      const targetField = option.shape[String(key)];
+      const targetField = getShapeField(option, String(key));
       if (!targetField) return false;
 
       const parseResult = targetField.safeParse(value);

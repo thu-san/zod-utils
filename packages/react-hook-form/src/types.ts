@@ -32,7 +32,39 @@ declare const FormInputBrand: unique symbol;
  * type MarkedObject = PartialFields<{ name: string; age: number }>;
  * ```
  */
-export type PartialFields<T> = T & { readonly [FormInputBrand]: true };
+export type PartialFields<T> = T & {
+  readonly [FormInputBrand]?: typeof FormInputBrand;
+};
+
+/**
+ * Helper type to safely get the brand property from a type.
+ * Returns `unknown` for non-branded types, `typeof FormInputBrand | undefined` for branded types.
+ * @internal
+ */
+type GetPartialFieldsBrand<T> = (T & {
+  [FormInputBrand]?: unknown;
+})[typeof FormInputBrand];
+
+/**
+ * Helper type to check if a type has the PartialFields brand.
+ * Uses bidirectional extends check to distinguish branded from non-branded types.
+ * @internal
+ */
+type IsPartialFieldsBranded<T> = GetPartialFieldsBrand<T> extends
+  | typeof FormInputBrand
+  | undefined
+  ? typeof FormInputBrand extends GetPartialFieldsBrand<T>
+    ? true
+    : false
+  : false;
+
+/**
+ * Helper type to extract the inner type from a PartialFields branded type.
+ * @internal
+ */
+type ExtractPartialFieldsInner<T> = T extends PartialFields<infer U>
+  ? U
+  : never;
 
 /**
  * Helper function to mark a Zod schema so its direct fields become partial.
@@ -122,8 +154,10 @@ export type PartialWithNullableObjects<T> = {
     ? T[K] // Arrays: just optional (via ?), no null, no recursion
     : T[K] extends BuiltInObject
       ? T[K] | null // Built-in objects: optional + nullable, no recursion
-      : T[K] extends PartialFields<infer U>
-        ? Simplify<PartialWithNullableObjects<U>> | null // FormInput marked: recurse + null + optional
+      : IsPartialFieldsBranded<T[K]> extends true
+        ? Simplify<
+            PartialWithNullableObjects<ExtractPartialFieldsInner<T[K]>>
+          > | null // FormInput marked: recurse + null + optional
         : T[K] extends object
           ? T[K] | null // Plain objects: optional + nullable, NO recursion (strict nested)
           : T[K]; // Primitives: just optional (via ?)
@@ -155,8 +189,10 @@ export type PartialWithAllNullables<T> = {
     ? T[K] | null // Arrays: optional + nullable, no recursion
     : T[K] extends BuiltInObject
       ? T[K] | null // Built-in objects: optional + nullable, no recursion
-      : T[K] extends PartialFields<infer U>
-        ? Simplify<PartialWithAllNullables<U>> | null // FormInput marked: recurse + null + optional
+      : IsPartialFieldsBranded<T[K]> extends true
+        ? Simplify<
+            PartialWithAllNullables<ExtractPartialFieldsInner<T[K]>>
+          > | null // FormInput marked: recurse + null + optional
         : T[K] extends object
           ? T[K] | null // Plain objects: optional + nullable, NO recursion (strict nested)
           : T[K] | null; // Primitives: optional + nullable

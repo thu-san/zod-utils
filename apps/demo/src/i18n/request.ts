@@ -20,10 +20,11 @@ declare module 'next-intl' {
 export default getRequestConfig(async () => {
   const locale = 'en';
 
-  // Load all namespace files and merge them
-  const user = (await import(`../lang/${locale}/user.json`)).default;
+  // Load all namespace files - using static import for type safety
+  const userModule = await import('../lang/en/user.json');
+  const user = userModule.default;
 
-  const messages = {
+  const messages: NamespaceMessages = {
     user,
   };
 

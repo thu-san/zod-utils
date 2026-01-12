@@ -12,6 +12,8 @@ export default [
       '**/*.config.mts',
       '**/*.config.js',
       '**/*.config.mjs',
+      '**/benchmarks/**',
+      '**/vitest.setup.ts',
     ],
   },
   {
@@ -21,6 +23,12 @@ export default [
       parserOptions: {
         ecmaVersion: 2020,
         sourceType: 'module',
+        project: [
+          './packages/core/tsconfig.json',
+          './packages/react-hook-form/tsconfig.json',
+          './apps/demo/tsconfig.json',
+        ],
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
@@ -33,6 +41,8 @@ export default [
           assertionStyle: 'never',
         },
       ],
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
     },
   },
 ];

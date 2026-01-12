@@ -7,6 +7,17 @@ import type {
   FieldSelectorProps,
 } from './types';
 
+/**
+ * Type-safe helper to get a field from ZodObject shape by key.
+ * @internal
+ */
+function getShapeField(
+  schema: z.ZodObject,
+  key: string,
+): z.ZodType | undefined {
+  return Object.entries(schema.shape).find(([k]) => k === key)?.[1];
+}
+
 // Split 'a.b.c' into ['a', 'b', 'c']
 type Split<S extends string> = S extends `${infer Head}.${infer Tail}`
   ? [Head, ...Split<Tail>]
@@ -94,7 +105,7 @@ export function extractFieldFromSchema<
     const unwrapped: z.ZodType = getPrimitiveType(currentSchema);
 
     if (unwrapped instanceof z.ZodObject) {
-      currentSchema = unwrapped.shape[segment];
+      currentSchema = getShapeField(unwrapped, segment);
     } else if (unwrapped instanceof z.ZodArray) {
       // Arrays are keyed by integers only
       if (/^\d+$/.test(segment) && unwrapped.element instanceof z.ZodType) {
