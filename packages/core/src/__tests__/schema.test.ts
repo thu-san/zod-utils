@@ -692,14 +692,18 @@ describe('getFieldChecks', () => {
       ]);
     });
 
-    it('should return empty array for union with multiple non-nullish types', () => {
+    it('should collect checks from all union options', () => {
       const schema = z.union([z.string().min(3), z.number()]);
-      expect(getFieldChecks(schema)).toEqual([]);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+      ]);
     });
 
-    it('should ignore constraints in second union option', () => {
+    it('should collect checks from second union option', () => {
       const schema = z.union([z.string(), z.number().min(10)]);
-      expect(getFieldChecks(schema)).toEqual([]);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 10 },
+      ]);
     });
   });
 

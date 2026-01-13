@@ -1,26 +1,47 @@
-import { z } from 'zod';
-import type {
-  $ZodCheckBigIntFormatDef,
-  $ZodCheckEndsWithDef,
-  $ZodCheckGreaterThanDef,
-  $ZodCheckIncludesDef,
-  $ZodCheckLengthEqualsDef,
-  $ZodCheckLessThanDef,
-  $ZodCheckLowerCaseDef,
-  $ZodCheckMaxLengthDef,
-  $ZodCheckMaxSizeDef,
-  $ZodCheckMimeTypeDef,
-  $ZodCheckMinLengthDef,
-  $ZodCheckMinSizeDef,
-  $ZodCheckMultipleOfDef,
-  $ZodCheckNumberFormatDef,
-  $ZodCheckOverwriteDef,
-  $ZodCheckPropertyDef,
-  $ZodCheckRegexDef,
-  $ZodCheckSizeEqualsDef,
-  $ZodCheckStartsWithDef,
-  $ZodCheckStringFormatDef,
-  $ZodCheckUpperCaseDef,
+import { ZodStringFormat, z } from 'zod';
+import {
+  $ZodCheckBigIntFormat,
+  type $ZodCheckBigIntFormatDef,
+  $ZodCheckEndsWith,
+  type $ZodCheckEndsWithDef,
+  $ZodCheckGreaterThan,
+  type $ZodCheckGreaterThanDef,
+  $ZodCheckIncludes,
+  type $ZodCheckIncludesDef,
+  $ZodCheckLengthEquals,
+  type $ZodCheckLengthEqualsDef,
+  $ZodCheckLessThan,
+  type $ZodCheckLessThanDef,
+  $ZodCheckLowerCase,
+  type $ZodCheckLowerCaseDef,
+  $ZodCheckMaxLength,
+  type $ZodCheckMaxLengthDef,
+  $ZodCheckMaxSize,
+  type $ZodCheckMaxSizeDef,
+  $ZodCheckMimeType,
+  type $ZodCheckMimeTypeDef,
+  $ZodCheckMinLength,
+  type $ZodCheckMinLengthDef,
+  $ZodCheckMinSize,
+  type $ZodCheckMinSizeDef,
+  $ZodCheckMultipleOf,
+  type $ZodCheckMultipleOfDef,
+  $ZodCheckNumberFormat,
+  type $ZodCheckNumberFormatDef,
+  $ZodCheckOverwrite,
+  type $ZodCheckOverwriteDef,
+  $ZodCheckProperty,
+  type $ZodCheckPropertyDef,
+  $ZodCheckRegex,
+  type $ZodCheckRegexDef,
+  $ZodCheckSizeEquals,
+  type $ZodCheckSizeEqualsDef,
+  $ZodCheckStartsWith,
+  type $ZodCheckStartsWithDef,
+  $ZodCheckStringFormat,
+  type $ZodCheckStringFormatDef,
+  $ZodCheckUpperCase,
+  type $ZodCheckUpperCaseDef,
 } from 'zod/v4/core';
 
 /**
@@ -504,7 +525,57 @@ export function getFieldChecks<T extends z.ZodTypeAny>(
   field: T,
 ): Array<ZodUnionCheck> {
   const primitiveType = getPrimitiveType(field);
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return (primitiveType.def.checks?.map((check) => check._zod.def) ||
-    []) as Array<ZodUnionCheck>;
+
+  // Handle unions by collecting checks from all options
+  if (primitiveType instanceof z.ZodUnion) {
+    const allChecks: Array<ZodUnionCheck> = [];
+    for (const option of primitiveType.def.options) {
+      if (!(option instanceof z.ZodType)) continue;
+      const optionChecks = getFieldChecks(option);
+      allChecks.push(...optionChecks);
+    }
+    return allChecks;
+  }
+
+  const allChecks: Array<ZodUnionCheck> = [];
+
+  // Handle format types (ZodURL, ZodEmail, ZodUUID, etc.)
+  // These store format info in def.format instead of def.checks
+  if (primitiveType instanceof ZodStringFormat) {
+    const formatCheck = primitiveType.def;
+    allChecks.push(formatCheck);
+  }
+
+  // Add any additional checks (like .max(), .min(), etc.)
+  if (primitiveType.def.checks) {
+    for (const check of primitiveType.def.checks) {
+      if (
+        check instanceof $ZodCheckLessThan ||
+        check instanceof $ZodCheckGreaterThan ||
+        check instanceof $ZodCheckMultipleOf ||
+        check instanceof $ZodCheckNumberFormat ||
+        check instanceof $ZodCheckBigIntFormat ||
+        check instanceof $ZodCheckMaxSize ||
+        check instanceof $ZodCheckMinSize ||
+        check instanceof $ZodCheckSizeEquals ||
+        check instanceof $ZodCheckMaxLength ||
+        check instanceof $ZodCheckMinLength ||
+        check instanceof $ZodCheckLengthEquals ||
+        check instanceof $ZodCheckStringFormat ||
+        check instanceof $ZodCheckRegex ||
+        check instanceof $ZodCheckLowerCase ||
+        check instanceof $ZodCheckUpperCase ||
+        check instanceof $ZodCheckIncludes ||
+        check instanceof $ZodCheckStartsWith ||
+        check instanceof $ZodCheckEndsWith ||
+        check instanceof $ZodCheckProperty ||
+        check instanceof $ZodCheckMimeType ||
+        check instanceof $ZodCheckOverwrite
+      ) {
+        allChecks.push(check._zod.def);
+      }
+    }
+  }
+
+  return allChecks;
 }
