@@ -254,4 +254,220 @@ describe('useZodForm', () => {
     expect(result.current.getValues('name')).toBe('Bob');
     expect(result.current.getValues('email')).toBe('bob@example.com');
   });
+
+  describe('schemas with transforms', () => {
+    it('should handle schema with transform', () => {
+      const schema = z
+        .object({
+          name: z.string(),
+          age: z.number(),
+        })
+        .transform((data) => ({
+          ...data,
+          displayName: data.name.toUpperCase(),
+        }));
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { name: 'John', age: 25 },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      expect(result.current.getValues('name')).toBe('John');
+    });
+
+    it('should handle optional fields with transform', () => {
+      const schema = z
+        .object({
+          name: z.string(),
+          bio: z.string().optional(),
+        })
+        .transform((data) => ({
+          ...data,
+          hasBio: !!data.bio,
+        }));
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { name: 'John' },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      result.current.setValue('bio', 'Hello world');
+      expect(result.current.getValues('bio')).toBe('Hello world');
+    });
+
+    it('should handle default values with transform', () => {
+      const schema = z
+        .object({
+          count: z.number().default(0),
+          name: z.string().default('Anonymous'),
+        })
+        .transform((data) => ({
+          ...data,
+          label: `${data.name} (${data.count})`,
+        }));
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+    });
+
+    it('should handle multiple transforms', () => {
+      const schema = z
+        .object({
+          value: z.string(),
+        })
+        .transform((data) => ({ ...data, step1: true }))
+        .transform((data) => ({ ...data, step2: true }));
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { value: 'test' },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      expect(result.current.getValues('value')).toBe('test');
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should handle discriminated union schema', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('create'),
+          name: z.string(),
+          description: z.string().optional(),
+        }),
+        z.object({
+          type: z.literal('edit'),
+          id: z.number(),
+          name: z.string().optional(),
+        }),
+      ]);
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { type: 'create', name: 'New Item' },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      expect(result.current.getValues('type')).toBe('create');
+      expect(result.current.getValues('name')).toBe('New Item');
+    });
+
+    it('should handle discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('mode', [
+          z.object({
+            mode: z.literal('active'),
+            count: z.number(),
+          }),
+          z.object({
+            mode: z.literal('inactive'),
+            reason: z.string(),
+          }),
+        ])
+        .transform((data) => ({ ...data, processed: true }));
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { mode: 'active', count: 5 },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      expect(result.current.getValues('mode')).toBe('active');
+      expect(result.current.getValues('count')).toBe(5);
+    });
+
+    it('should handle discriminated union with superRefine', () => {
+      const schema = z
+        .discriminatedUnion('status', [
+          z.object({
+            status: z.literal('success'),
+            data: z.string(),
+          }),
+          z.object({
+            status: z.literal('error'),
+            message: z.string(),
+          }),
+        ])
+        .superRefine(() => {});
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { status: 'success', data: 'Hello' },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      expect(result.current.getValues('status')).toBe('success');
+    });
+
+    it('should handle discriminated union with superRefine and transform', () => {
+      const schema = z
+        .discriminatedUnion('action', [
+          z.object({
+            action: z.literal('submit'),
+            payload: z.string(),
+          }),
+          z.object({
+            action: z.literal('cancel'),
+            reason: z.string().optional(),
+          }),
+        ])
+        .superRefine(() => {})
+        .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { action: 'submit', payload: 'data' },
+        }),
+      );
+
+      expect(result.current).toBeDefined();
+      expect(result.current.getValues('action')).toBe('submit');
+      expect(result.current.getValues('payload')).toBe('data');
+    });
+
+    it('should allow switching discriminator value', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('text'),
+          content: z.string(),
+        }),
+        z.object({
+          type: z.literal('number'),
+          value: z.number(),
+        }),
+      ]);
+
+      const { result } = renderHook(() =>
+        useZodForm({
+          schema,
+          defaultValues: { type: 'text', content: 'Hello' },
+        }),
+      );
+
+      // Switch to number type
+      result.current.setValue('type', 'number');
+      expect(result.current.getValues('type')).toBe('number');
+    });
+  });
 });

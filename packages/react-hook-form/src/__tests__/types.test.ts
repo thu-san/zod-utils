@@ -1,4 +1,4 @@
-import { describe, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import {
   type PartialFields,
@@ -124,11 +124,69 @@ describe('PartialWithNullableObjects (non-recursive)', () => {
     // Both can be null or omitted
     const valid4: Result = { agent: null, detail: null };
 
+    // Primitives inside PartialFields are NOT nullable (just optional)
+    // @ts-expect-error - primitives inside PartialFields don't accept null
+    const invalid2: Result = { detail: { hotel: null } };
+
     void invalid1;
+    void invalid2;
     void valid1;
     void valid2;
     void valid3;
     void valid4;
+  });
+
+  it('should handle deeply nested PartialFields with strict inner objects', () => {
+    type Input = {
+      a: string;
+      b: number;
+      nested: PartialFields<{
+        c: number;
+        d: Date;
+        nested: { e: boolean };
+      }>;
+    };
+
+    type Result = PartialWithNullableObjects<Input>;
+
+    // Top-level primitives: optional but NOT nullable
+    const valid1: Result = { a: 'test' };
+    const valid2: Result = { a: undefined };
+    // @ts-expect-error - top-level primitives don't accept null
+    const invalid1: Result = { a: null };
+
+    // Inside PartialFields: primitives are optional but NOT nullable
+    const valid3: Result = { nested: { c: 5 } };
+    const valid4: Result = { nested: { c: undefined } };
+    // @ts-expect-error - primitives inside PartialFields don't accept null
+    const invalid2: Result = { nested: { c: null } };
+
+    // Inside PartialFields: Date is nullable (built-in object)
+    const valid5: Result = { nested: { d: new Date() } };
+    const valid6: Result = { nested: { d: null } };
+
+    // Inside PartialFields: nested object is nullable
+    const valid7: Result = { nested: { nested: null } };
+    const valid8: Result = { nested: { nested: { e: true } } };
+
+    // Inside PartialFields > nested object: fields are STRICT
+    // @ts-expect-error - nested.nested.e is strict, not optional
+    const invalid3: Result = { nested: { nested: {} } };
+    // @ts-expect-error - nested.nested.e is strict, doesn't accept null
+    const invalid4: Result = { nested: { nested: { e: null } } };
+
+    void valid1;
+    void valid2;
+    void valid3;
+    void valid4;
+    void valid5;
+    void valid6;
+    void valid7;
+    void valid8;
+    void invalid1;
+    void invalid2;
+    void invalid3;
+    void invalid4;
   });
 });
 
@@ -248,5 +306,120 @@ describe('partialFields helper', () => {
       name: string;
       fee: number;
     }>();
+  });
+
+  describe('schemas with transforms', () => {
+    it('should work with schema with transform', () => {
+      const schema = z
+        .object({
+          hotel: z.string(),
+          nights: z.number(),
+        })
+        .transform((data) => ({
+          ...data,
+          totalPrice: data.nights * 100,
+        }));
+
+      const branded = partialFields(schema);
+
+      // Should parse and transform correctly
+      const result = branded.parse({ hotel: 'Hilton', nights: 3 });
+      expectTypeOf(result).toMatchTypeOf<
+        PartialFields<{ hotel: string; nights: number; totalPrice: number }>
+      >();
+    });
+
+    it('should work with optional fields and transform', () => {
+      const schema = z
+        .object({
+          name: z.string(),
+          description: z.string().optional(),
+        })
+        .transform((data) => ({
+          ...data,
+          hasDescription: !!data.description,
+        }));
+
+      const branded = partialFields(schema);
+
+      const result = branded.parse({ name: 'Test' });
+      expect(result.name).toBe('Test');
+      expect(result.hasDescription).toBe(false);
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should work with discriminated union', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('hotel'),
+          hotelName: z.string(),
+          nights: z.number(),
+        }),
+        z.object({
+          type: z.literal('flight'),
+          airline: z.string(),
+          flightNumber: z.string(),
+        }),
+      ]);
+
+      const branded = partialFields(schema);
+
+      // Should parse hotel type
+      const hotelResult = branded.parse({
+        type: 'hotel',
+        hotelName: 'Hilton',
+        nights: 3,
+      });
+      expect(hotelResult.type).toBe('hotel');
+
+      // Should parse flight type
+      const flightResult = branded.parse({
+        type: 'flight',
+        airline: 'Delta',
+        flightNumber: 'DL123',
+      });
+      expect(flightResult.type).toBe('flight');
+    });
+
+    it('should work with discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('create'),
+            name: z.string(),
+          }),
+          z.object({
+            type: z.literal('edit'),
+            id: z.number(),
+          }),
+        ])
+        .transform((data) => ({ ...data, processed: true }));
+
+      const branded = partialFields(schema);
+
+      const result = branded.parse({ type: 'create', name: 'Test' });
+      expect(result.processed).toBe(true);
+    });
+
+    it('should work with discriminated union with superRefine', () => {
+      const schema = z
+        .discriminatedUnion('mode', [
+          z.object({
+            mode: z.literal('active'),
+            count: z.number(),
+          }),
+          z.object({
+            mode: z.literal('inactive'),
+            reason: z.string(),
+          }),
+        ])
+        .superRefine(() => {});
+
+      const branded = partialFields(schema);
+
+      const result = branded.parse({ mode: 'active', count: 5 });
+      expect(result.mode).toBe('active');
+    });
   });
 });

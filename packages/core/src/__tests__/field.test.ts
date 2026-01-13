@@ -253,6 +253,41 @@ describe('extractFieldFromSchema', () => {
       expect(result).toBeInstanceOf(z.ZodString);
     });
 
+    it('should extract field from object schema with superRefine', () => {
+      const schema = z
+        .object({
+          name: z.string(),
+          age: z.number(),
+        })
+        .superRefine(() => {});
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'name',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should extract field from object schema with multiple transforms', () => {
+      const schema = z
+        .object({
+          name: z.string(),
+          age: z.number(),
+        })
+        .transform((data) => ({ ...data, step1: true }))
+        .transform((data) => ({ ...data, step2: true }));
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'name',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
     it('should extract field from discriminated union with transform', () => {
       const schema = z
         .discriminatedUnion('mode', [
@@ -280,6 +315,61 @@ describe('extractFieldFromSchema', () => {
       expect(result).toBeInstanceOf(z.ZodString);
     });
 
+    it('should extract field from discriminated union with superRefine', () => {
+      const schema = z
+        .discriminatedUnion('mode', [
+          z.object({
+            mode: z.literal('create'),
+            name: z.string(),
+          }),
+          z.object({
+            mode: z.literal('edit'),
+            id: z.number(),
+          }),
+        ])
+        .superRefine(() => {});
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'name',
+        discriminator: {
+          key: 'mode',
+          value: 'create',
+        },
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
+    it('should extract field from discriminated union with superRefine and transform', () => {
+      const schema = z
+        .discriminatedUnion('action', [
+          z.object({
+            action: z.literal('submit'),
+            payload: z.string(),
+          }),
+          z.object({
+            action: z.literal('cancel'),
+            reason: z.string().optional(),
+          }),
+        ])
+        .superRefine(() => {})
+        .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'payload',
+        discriminator: {
+          key: 'action',
+          value: 'submit',
+        },
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+
     it('should extract field from nested transform with optional', () => {
       const schema = z
         .object({
@@ -296,6 +386,245 @@ describe('extractFieldFromSchema', () => {
 
       expect(result).toBeDefined();
       expect(result).toBeInstanceOf(z.ZodString);
+    });
+  });
+
+  describe('nullable schemas', () => {
+    it('should extract field from object with nullable field', () => {
+      const schema = z.object({
+        name: z.string().nullable(),
+        age: z.number(),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'name',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodNullable);
+    });
+
+    it('should extract nested field through nullable object', () => {
+      const schema = z.object({
+        profile: z
+          .object({
+            bio: z.string(),
+          })
+          .nullable(),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'profile.bio',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodString);
+    });
+  });
+
+  describe('union type fields', () => {
+    it('should extract union field from object schema', () => {
+      const schema = z.object({
+        value: z.union([z.string(), z.number()]),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'value',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodUnion);
+    });
+
+    it('should extract union with null from object schema', () => {
+      const schema = z.object({
+        name: z.union([z.string(), z.null()]),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'name',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodUnion);
+    });
+
+    it('should extract union field from discriminated union schema', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('a'),
+          value: z.union([z.string(), z.number()]),
+        }),
+        z.object({
+          type: z.literal('b'),
+          count: z.number(),
+        }),
+      ]);
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'value',
+        discriminator: {
+          key: 'type',
+          value: 'a',
+        },
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodUnion);
+    });
+
+    it('should allow accessing .options on extracted ZodUnion', () => {
+      const schema = z.object({
+        a: z.union([z.string(), z.null()]),
+        b: z.number(),
+        c: z.boolean(),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'a',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodUnion);
+      // Verify .options is accessible (key pattern from sample.ts)
+      expect(result.options).toBeDefined();
+      expect(result.options.length).toBe(2);
+      expect(result.options[0]).toBeInstanceOf(z.ZodString);
+      expect(result.options[1]).toBeInstanceOf(z.ZodNull);
+    });
+  });
+
+  describe('fields with transforms (ZodPipe)', () => {
+    it('should extract field that has transform and access .in.shape', () => {
+      const schema = z.object({
+        detail: z
+          .object({
+            location: z.string().max(200).nullable().optional(),
+            name: z.string().max(100).nullable().optional(),
+          })
+          .transform((detail) => ({
+            location: detail.location || null,
+            name: detail.name || null,
+          })),
+      });
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'detail',
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodPipe);
+      // Key pattern: access input schema via .in property
+      expect(result.in).toBeInstanceOf(z.ZodObject);
+      expect(result.in.shape.location).toBeDefined();
+      expect(result.in.shape.name).toBeDefined();
+    });
+
+    it('should extract nested field through transform using dot notation', () => {
+      const schema = z.object({
+        detail: z
+          .object({
+            location: z.string().max(200).nullable().optional(),
+            name: z.string().max(100).nullable().optional(),
+          })
+          .transform((detail) => ({
+            location: detail.location || null,
+            name: detail.name || null,
+          })),
+      });
+
+      // This tests that extractFieldFromSchema can navigate through transforms
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'detail.location',
+      });
+
+      expect(result).toBeDefined();
+      // The field inside the transform input is ZodOptional<ZodNullable<ZodString>>
+      expect(result).toBeInstanceOf(z.ZodOptional);
+    });
+
+    it('should extract from discriminated union with transform and nested path', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('other'),
+            detail: z
+              .object({
+                entry_name: z.string().max(100).nullable().optional(),
+                location: z.string().max(200).nullable().optional(),
+              })
+              .transform((detail) => ({
+                name: detail.entry_name || null,
+                location: detail.location || null,
+              })),
+          }),
+          z.object({
+            type: z.literal('hotel'),
+            detail: z.object({}),
+          }),
+        ])
+        .superRefine(() => {})
+        .transform((data) => ({ ...data }));
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'detail.location',
+        discriminator: {
+          key: 'type',
+          value: 'other',
+        },
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodOptional);
+    });
+
+    it('should access .in.shape on extracted field from discriminated union', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('other'),
+            detail: z
+              .object({
+                entry_name: z.string().max(100).nullable().optional(),
+                location: z.string().max(200).nullable().optional(),
+              })
+              .transform((detail) => ({
+                name: detail.entry_name || null,
+                location: detail.location || null,
+              })),
+          }),
+          z.object({
+            type: z.literal('hotel'),
+            detail: z.object({}),
+          }),
+        ])
+        .superRefine(() => {})
+        .transform((data) => ({ ...data }));
+
+      const result = extractFieldFromSchema({
+        schema,
+        name: 'detail',
+        discriminator: {
+          key: 'type',
+          value: 'other',
+        },
+      });
+
+      expect(result).toBeDefined();
+      expect(result).toBeInstanceOf(z.ZodPipe);
+      // Navigate through ZodPipe to access input schema shape
+      expect(result.in).toBeInstanceOf(z.ZodObject);
+      expect(result.in.shape.location).toBeDefined();
+      expect(result.in.shape.entry_name).toBeDefined();
     });
   });
 
@@ -593,5 +922,21 @@ describe('extendWithMeta', () => {
       description: 'User age',
       validation: { min: 0, max: 150 },
     });
+  });
+
+  it('should work with field that has transform', () => {
+    const baseField = z
+      .string()
+      .transform((val) => val.toUpperCase())
+      .meta({ translationKey: 'user.field.code' });
+
+    // Note: We can't chain .min() after transform, but we can use refine
+    const extendedField = extendWithMeta(baseField, (f) =>
+      f.refine((val) => val.length >= 3, { message: 'Too short' }),
+    );
+
+    expect(extendedField.meta()).toEqual({ translationKey: 'user.field.code' });
+    expect(extendedField.safeParse('ab').success).toBe(false);
+    expect(extendedField.safeParse('abc').success).toBe(true);
   });
 });
