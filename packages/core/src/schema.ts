@@ -42,6 +42,7 @@ import {
   type $ZodCheckStringFormatDef,
   $ZodCheckUpperCase,
   type $ZodCheckUpperCaseDef,
+  type $ZodType,
 } from 'zod/v4/core';
 
 /**
@@ -70,8 +71,8 @@ type Unwrappable = { unwrap: () => z.ZodTypeAny };
  * @since 0.1.0
  */
 export function canUnwrap(
-  field: z.ZodTypeAny,
-): field is z.ZodTypeAny & Unwrappable {
+  field: z.ZodType | $ZodType,
+): field is (z.ZodType | $ZodType) & Unwrappable {
   return 'unwrap' in field && typeof field.unwrap === 'function';
 }
 
@@ -84,7 +85,7 @@ export function canUnwrap(
  * @returns True if field is a ZodPipe with a ZodType input
  */
 export function isPipeWithZodInput(
-  field: z.ZodTypeAny,
+  field: z.ZodType | $ZodType,
 ): field is z.ZodPipe<z.ZodType, z.ZodTypeAny> {
   return field instanceof z.ZodPipe && field.def.in instanceof z.ZodType;
 }
@@ -204,9 +205,7 @@ export function tryStripNullishOnly(field: z.ZodTypeAny): z.ZodType | false {
  * @see {@link tryStripNullishOnly} for union nullish stripping logic
  * @since 0.1.0
  */
-export const getPrimitiveType = <T extends z.ZodType>(
-  field: T,
-): z.ZodTypeAny => {
+export const getPrimitiveType = <T extends z.ZodType>(field: T): z.ZodType => {
   // Stop at arrays - don't unwrap them
   if (field instanceof z.ZodArray) {
     return field;
@@ -521,17 +520,17 @@ export type ZodUnionCheck =
  * @see {@link ZodUnionCheck} for all supported check types
  * @since 0.4.0
  */
-export function getFieldChecks<T extends z.ZodType>(
+export function getFieldChecks<T extends z.ZodType | $ZodType>(
   field: T,
 ): Array<ZodUnionCheck> {
+  if (!(field instanceof z.ZodType)) return [];
+
   const primitiveType = getPrimitiveType(field);
 
   // Handle unions by collecting checks from all options
   if (primitiveType instanceof z.ZodUnion) {
     const allChecks: Array<ZodUnionCheck> = [];
     for (const option of primitiveType.options) {
-      // Required for TypeScript: narrows $ZodType to ZodType
-      if (!(option instanceof z.ZodType)) continue;
       const optionChecks = getFieldChecks(option);
       allChecks.push(...optionChecks);
     }

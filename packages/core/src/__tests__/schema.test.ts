@@ -1100,7 +1100,94 @@ describe('getFieldChecks', () => {
     });
   });
 
+  describe('additional check types', () => {
+    it('should extract multipleOf constraint', () => {
+      const schema = z.number().multipleOf(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'multiple_of', value: 5 },
+      ]);
+    });
+
+    it('should extract int format constraint', () => {
+      const schema = z.number().int();
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'number_format', format: 'safeint' },
+      ]);
+    });
+
+    it('should extract regex constraint', () => {
+      const schema = z.string().regex(/^[a-z]+$/);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'regex' },
+      ]);
+    });
+
+    it('should extract toLowerCase as overwrite constraint', () => {
+      const schema = z.string().toLowerCase();
+      expect(getFieldChecks(schema)).toMatchObject([{ check: 'overwrite' }]);
+    });
+
+    it('should extract toUpperCase as overwrite constraint', () => {
+      const schema = z.string().toUpperCase();
+      expect(getFieldChecks(schema)).toMatchObject([{ check: 'overwrite' }]);
+    });
+
+    it('should extract includes constraint', () => {
+      const schema = z.string().includes('test');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'includes', includes: 'test' },
+      ]);
+    });
+
+    it('should extract startsWith constraint', () => {
+      const schema = z.string().startsWith('prefix');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'starts_with', prefix: 'prefix' },
+      ]);
+    });
+
+    it('should extract endsWith constraint', () => {
+      const schema = z.string().endsWith('suffix');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'ends_with', suffix: 'suffix' },
+      ]);
+    });
+
+    it('should extract exact length constraint', () => {
+      const schema = z.string().length(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'length_equals', length: 5 },
+      ]);
+    });
+
+    it('should extract set min size constraint', () => {
+      const schema = z.set(z.string()).min(2);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_size', minimum: 2 },
+      ]);
+    });
+
+    it('should extract set max size constraint', () => {
+      const schema = z.set(z.string()).max(10);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'max_size', maximum: 10 },
+      ]);
+    });
+
+    it('should extract set exact size constraint', () => {
+      const schema = z.set(z.string()).size(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'size_equals', size: 5 },
+      ]);
+    });
+  });
+
   describe('fields with no constraints', () => {
+    it('should return empty array for non-ZodType input', () => {
+      // @ts-expect-error - Testing early return for non-ZodType values
+      expect(getFieldChecks({})).toEqual([]);
+    });
+
     it('should return empty array for plain string', () => {
       const schema = z.string();
       expect(getFieldChecks(schema)).toEqual([]);
