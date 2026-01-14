@@ -1309,13 +1309,13 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
-      expect(result?.shape.name).toBeInstanceOf(z.ZodString);
-      expect(result?.shape.age).toBeDefined();
+      expect(result.shape.mode).toBeInstanceOf(z.ZodLiteral);
+      expect(result.shape.name).toBeInstanceOf(z.ZodString);
+      expect(result.shape.age).toBeDefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.id).toBeUndefined();
+      expect(result.shape.id).toBeUndefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.bio).toBeUndefined();
+      expect(result.shape.bio).toBeUndefined();
     });
 
     it('should extract edit mode schema', () => {
@@ -1325,12 +1325,12 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
-      expect(result?.shape.id).toBeInstanceOf(z.ZodNumber);
-      expect(result?.shape.name).toBeDefined();
-      expect(result?.shape.bio).toBeDefined();
+      expect(result.shape.mode).toBeInstanceOf(z.ZodLiteral);
+      expect(result.shape.id).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.name).toBeDefined();
+      expect(result.shape.bio).toBeDefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.age).toBeUndefined();
+      expect(result.shape.age).toBeUndefined();
     });
 
     it('should return undefined for invalid discriminator value', () => {
@@ -1370,9 +1370,9 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.type).toBeInstanceOf(z.ZodLiteral);
-      expect(result?.shape.x).toBeInstanceOf(z.ZodNumber);
-      expect(result?.shape.y).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.type).toBeInstanceOf(z.ZodLiteral);
+      expect(result.shape.x).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.y).toBeInstanceOf(z.ZodNumber);
     });
 
     it('should extract keypress event schema', () => {
@@ -1382,8 +1382,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.key).toBeInstanceOf(z.ZodString);
-      expect(result?.shape.modifiers).toBeDefined();
+      expect(result.shape.key).toBeInstanceOf(z.ZodString);
+      expect(result.shape.modifiers).toBeDefined();
     });
 
     it('should extract scroll event schema', () => {
@@ -1393,8 +1393,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.deltaX).toBeInstanceOf(z.ZodNumber);
-      expect(result?.shape.deltaY).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.deltaX).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.deltaY).toBeInstanceOf(z.ZodNumber);
     });
   });
 
@@ -1418,8 +1418,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.name).toBeInstanceOf(z.ZodDefault);
-      expect(result?.shape.count).toBeInstanceOf(z.ZodDefault);
+      expect(result.shape.name).toBeInstanceOf(z.ZodDefault);
+      expect(result.shape.count).toBeInstanceOf(z.ZodDefault);
     });
 
     it('should extract inactive status schema', () => {
@@ -1429,9 +1429,9 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.reason).toBeDefined();
+      expect(result.shape.reason).toBeDefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.name).toBeUndefined();
+      expect(result.shape.name).toBeUndefined();
     });
   });
 
@@ -1450,7 +1450,7 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.value).toBeInstanceOf(z.ZodString);
+      expect(result.shape.value).toBeInstanceOf(z.ZodString);
     });
 
     it('should work with numeric discriminator values', () => {
@@ -1465,7 +1465,7 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.message).toBeInstanceOf(z.ZodString);
+      expect(result.shape.message).toBeInstanceOf(z.ZodString);
     });
 
     it('should return undefined for missing discriminator field', () => {
@@ -1501,7 +1501,7 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.value).toBeInstanceOf(z.ZodString);
+      expect(result.shape.value).toBeInstanceOf(z.ZodString);
     });
   });
 
@@ -1535,25 +1535,21 @@ describe('extractDiscriminatedSchema', () => {
       expect(editSchema).toBeDefined();
 
       // Type-level checks - these should compile without errors
-      if (createSchema) {
-        createSchema.shape.mode; // ✅ 'mode' exists
-        createSchema.shape.name; // ✅ 'name' exists
-        createSchema.shape.age; // ✅ 'age' exists
-        // @ts-expect-error - 'id' doesn't exist on 'create' schema
-        createSchema.shape.id;
-        // @ts-expect-error - 'bio' doesn't exist on 'create' schema
-        createSchema.shape.bio;
-      }
+      createSchema.shape.mode; // ✅ 'mode' exists
+      createSchema.shape.name; // ✅ 'name' exists
+      createSchema.shape.age; // ✅ 'age' exists
+      // @ts-expect-error - 'id' doesn't exist on 'create' schema
+      createSchema.shape.id;
+      // @ts-expect-error - 'bio' doesn't exist on 'create' schema
+      createSchema.shape.bio;
 
-      if (editSchema) {
-        editSchema.shape.mode; // ✅ 'mode' exists
-        editSchema.shape.id; // ✅ 'id' exists
-        editSchema.shape.bio; // ✅ 'bio' exists
-        // @ts-expect-error - 'name' doesn't exist on 'edit' schema
-        editSchema.shape.name;
-        // @ts-expect-error - 'age' doesn't exist on 'edit' schema
-        editSchema.shape.age;
-      }
+      editSchema.shape.mode; // ✅ 'mode' exists
+      editSchema.shape.id; // ✅ 'id' exists
+      editSchema.shape.bio; // ✅ 'bio' exists
+      // @ts-expect-error - 'name' doesn't exist on 'edit' schema
+      editSchema.shape.name;
+      // @ts-expect-error - 'age' doesn't exist on 'edit' schema
+      editSchema.shape.age;
     });
 
     it('should work with inferred types', () => {
@@ -1605,8 +1601,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(cardSchema).toBeDefined();
-      expect(cardSchema?.shape.cardNumber).toBeDefined();
-      expect(cardSchema?.shape.cvv).toBeDefined();
+      expect(cardSchema.shape.cardNumber).toBeDefined();
+      expect(cardSchema.shape.cvv).toBeDefined();
     });
 
     it('should work with API response discrimination', () => {
@@ -1633,9 +1629,9 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(successSchema).toBeDefined();
-      expect(successSchema?.shape.data).toBeDefined();
+      expect(successSchema.shape.data).toBeDefined();
       expect(errorSchema).toBeDefined();
-      expect(errorSchema?.shape.error).toBeDefined();
+      expect(errorSchema.shape.error).toBeDefined();
     });
   });
 
