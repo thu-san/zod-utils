@@ -1564,14 +1564,12 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       // Type inference check
-      if (activeSchema) {
-        type InferredType = z.infer<typeof activeSchema>;
-        const value: InferredType = {
-          status: 'active',
-          count: 42,
-        };
-        expect(value.status).toBe('active');
-      }
+      type InferredType = z.infer<typeof activeSchema>;
+      const value: InferredType = {
+        status: 'active',
+        count: 42,
+      };
+      expect(value.status).toBe('active');
     });
   });
 
