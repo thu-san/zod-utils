@@ -46,12 +46,23 @@ Review and update documentation as needed:
 
 ## 4. Test Coverage
 
-Ensure 100% test coverage is maintained:
-- Identify any new/modified code that needs tests
-- Add or update tests in the affected packages
-- Ensure edge cases are covered
-- Run `npm run test:coverage` to verify 100% coverage across all packages
-- Fix any coverage gaps immediately
+**REQUIRED:** Always run coverage check - do NOT skip this step.
+
+1. **Run coverage check first:**
+   ```bash
+   npm run test:coverage
+   ```
+
+2. **Verify 100% coverage is maintained:**
+   - Check that all packages show 100% line coverage
+   - If coverage drops below 100%, identify and fix gaps immediately
+   - Do NOT proceed until coverage is restored to 100%
+
+3. **If new code was added:**
+   - Identify any new/modified code that needs tests
+   - Add or update tests in the affected packages
+   - Ensure edge cases are covered
+   - Re-run `npm run test:coverage` to confirm 100%
 
 ## 5. Build All Packages
 
