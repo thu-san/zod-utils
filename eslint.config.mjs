@@ -41,7 +41,7 @@ export default [
           assertionStyle: 'never',
         },
       ],
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-unsafe-assignment': 'error',
     },
   },

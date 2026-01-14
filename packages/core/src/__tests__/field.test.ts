@@ -492,7 +492,7 @@ describe('extractFieldFromSchema', () => {
 
       expect(result).toBeDefined();
       expect(result).toBeInstanceOf(z.ZodUnion);
-      // Verify .options is accessible (key pattern from sample.ts)
+      // Verify .options is accessible on the extracted union type
       expect(result.options).toBeDefined();
       expect(result.options.length).toBe(2);
       expect(result.options[0]).toBeInstanceOf(z.ZodString);
@@ -521,7 +521,7 @@ describe('extractFieldFromSchema', () => {
 
       expect(result).toBeDefined();
       expect(result).toBeInstanceOf(z.ZodPipe);
-      // Key pattern: access input schema via .in property
+      // Users can access the input schema via .in to inspect shape/constraints
       expect(result.in).toBeInstanceOf(z.ZodObject);
       expect(result.in.shape.location).toBeDefined();
       expect(result.in.shape.name).toBeDefined();

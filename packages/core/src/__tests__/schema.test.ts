@@ -1075,7 +1075,7 @@ describe('getFieldChecks', () => {
       ]);
     });
 
-    it('should collect checks from all union options', () => {
+    it('should collect checks from first union option', () => {
       const schema = z.union([z.string().min(3), z.number()]);
       expect(getFieldChecks(schema)).toMatchObject([
         { check: 'min_length', minimum: 3 },
@@ -1086,6 +1086,16 @@ describe('getFieldChecks', () => {
       const schema = z.union([z.string(), z.number().min(10)]);
       expect(getFieldChecks(schema)).toMatchObject([
         { check: 'greater_than', value: 10 },
+      ]);
+    });
+
+    it('should collect checks from all union options when both have constraints', () => {
+      const schema = z.union([z.string().min(3).max(100), z.string().email()]);
+      const checks = getFieldChecks(schema);
+      expect(checks).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+        { check: 'max_length', maximum: 100 },
+        { check: 'string_format', format: 'email' },
       ]);
     });
   });
