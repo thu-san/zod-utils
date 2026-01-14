@@ -530,6 +530,7 @@ export function getFieldChecks<T extends z.ZodTypeAny>(
   if (primitiveType instanceof z.ZodUnion) {
     const allChecks: Array<ZodUnionCheck> = [];
     for (const option of primitiveType.def.options) {
+      // Required for TypeScript: narrows $ZodType to ZodType
       if (!(option instanceof z.ZodType)) continue;
       const optionChecks = getFieldChecks(option);
       allChecks.push(...optionChecks);
