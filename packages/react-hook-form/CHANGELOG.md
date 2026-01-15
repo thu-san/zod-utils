@@ -1,5 +1,24 @@
 # @zod-utils/react-hook-form
 
+## 7.1.0
+
+### Minor Changes
+
+- 00995a2: Enhanced field extraction and validation utilities with union support:
+
+  - `extractFieldFromSchema` return type no longer includes `| undefined` when field definitely exists
+  - `ExtractZodUnionMember` type is now exported for public use
+  - `getFieldChecks` now supports union types (collects checks from all options)
+  - `getFieldChecks` now fully supports Zod v4 format types (ZodEmail, ZodURL, ZodUUID, etc.)
+  - `partialFields` preserves structural type info for better `.shape` access
+
+  Comprehensive test coverage added for 4 patterns: normal schema, schema with transform, discriminated union, and discriminated union with transform.
+
+### Patch Changes
+
+- Updated dependencies [00995a2]
+  - @zod-utils/core@7.1.0
+
 ## 7.0.1
 
 ### Patch Changes
