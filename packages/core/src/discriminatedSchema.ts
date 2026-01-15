@@ -5,6 +5,7 @@ import type {
   DiscriminatorKey,
   DiscriminatorValue,
   SchemaAndDiscriminatorProps,
+  UnwrapZodType,
 } from './types';
 
 /**
@@ -53,7 +54,7 @@ function getShapeField(
  * type CreateSchema = ExtractZodUnionMember<typeof schema, 'mode', 'create'>;
  * ```
  */
-type ExtractZodUnionMember<
+export type ExtractZodUnionMember<
   TSchema extends z.ZodUnion | z.ZodDiscriminatedUnion,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends z.input<TSchema>[TDiscriminatorKey] &
@@ -212,9 +213,34 @@ export const extractDiscriminatedSchema = <
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema>,
   TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
-  ReturnType extends TSchema extends z.ZodDiscriminatedUnion
-    ? ExtractZodUnionMember<TSchema, TDiscriminatorKey, TDiscriminatorValue>
-    : never,
+  TUnwrapped extends z.ZodType = UnwrapZodType<TSchema> extends z.ZodType
+    ? UnwrapZodType<TSchema>
+    : TSchema,
+  ReturnType extends TUnwrapped extends z.ZodDiscriminatedUnion
+    ? ExtractZodUnionMember<
+        TUnwrapped,
+        Extract<TDiscriminatorKey, DiscriminatorKey<TUnwrapped>>,
+        Extract<
+          TDiscriminatorValue,
+          DiscriminatorValue<
+            TUnwrapped,
+            Extract<TDiscriminatorKey, DiscriminatorKey<TUnwrapped>>
+          >
+        >
+      >
+    : undefined = TUnwrapped extends z.ZodDiscriminatedUnion
+    ? ExtractZodUnionMember<
+        TUnwrapped,
+        Extract<TDiscriminatorKey, DiscriminatorKey<TUnwrapped>>,
+        Extract<
+          TDiscriminatorValue,
+          DiscriminatorValue<
+            TUnwrapped,
+            Extract<TDiscriminatorKey, DiscriminatorKey<TUnwrapped>>
+          >
+        >
+      >
+    : undefined,
 >({
   schema,
   discriminator,
@@ -222,11 +248,12 @@ export const extractDiscriminatedSchema = <
   TSchema,
   TDiscriminatorKey,
   TDiscriminatorValue
->): ReturnType | undefined => {
+>): ReturnType => {
   const primitiveSchema = getPrimitiveType(schema);
 
   if (!(primitiveSchema instanceof z.ZodDiscriminatedUnion) || !discriminator) {
-    return undefined;
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return undefined as ReturnType;
   }
 
   const { key, value } = discriminator;

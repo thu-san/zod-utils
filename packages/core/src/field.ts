@@ -1,10 +1,15 @@
 import { z } from 'zod';
-import { extractDiscriminatedSchema } from './discriminatedSchema';
+import {
+  type ExtractZodUnionMember,
+  extractDiscriminatedSchema,
+} from './discriminatedSchema';
 import { getPrimitiveType } from './schema';
 import type {
   DiscriminatorKey,
   DiscriminatorValue,
   FieldSelectorProps,
+  IsDiscriminatedUnion,
+  UnwrapZodType,
 } from './types';
 
 /**
@@ -26,14 +31,16 @@ type Split<S extends string> = S extends `${infer Head}.${infer Tail}`
 // Check if string is numeric
 type IsNumeric<S extends string> = S extends `${number}` ? true : false;
 
-// Unwrap ZodOptional, ZodNullable, ZodDefault
+// Unwrap ZodOptional, ZodNullable, ZodDefault, ZodPipe (transforms)
 type Unwrap<T> = T extends z.ZodOptional<infer U>
   ? Unwrap<U>
   : T extends z.ZodNullable<infer U>
     ? Unwrap<U>
     : T extends z.ZodDefault<infer U>
       ? Unwrap<U>
-      : T;
+      : T extends z.ZodPipe<infer In, z.ZodType>
+        ? Unwrap<In>
+        : T;
 
 // Navigate Zod schema by path array
 type NavigateZod<T, Path extends string[]> = Path extends [
@@ -60,6 +67,91 @@ export type ExtractZodByPath<Schema, Path extends string> = NavigateZod<
   Split<Path>
 >;
 
+/**
+ * Extract field from a discriminated union variant.
+ * First extracts the variant using ExtractZodUnionMember, then navigates through it.
+ * @internal
+ */
+type ExtractFromDiscriminatedUnion<
+  TSchema extends z.ZodType,
+  TName extends string,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+  TUnwrapped extends z.ZodType = UnwrapZodType<TSchema> extends z.ZodType
+    ? UnwrapZodType<TSchema>
+    : TSchema,
+  TVariant = TUnwrapped extends z.ZodDiscriminatedUnion
+    ? ExtractZodUnionMember<
+        TUnwrapped,
+        Extract<TDiscriminatorKey, DiscriminatorKey<TUnwrapped>>,
+        Extract<
+          TDiscriminatorValue,
+          DiscriminatorValue<
+            TUnwrapped,
+            Extract<TDiscriminatorKey, DiscriminatorKey<TUnwrapped>>
+          >
+        >
+      >
+    : never,
+> = TVariant extends z.ZodType ? ExtractZodByPath<TVariant, TName> : never;
+
+/**
+ * Helper type to determine if field extraction should succeed.
+ * Returns true when:
+ * 1. For discriminated unions: discriminator is provided (trust the user)
+ * 2. For non-unions: the path resolves to a valid type (not never)
+ * @internal
+ */
+type CanExtractField<
+  TSchema extends z.ZodType,
+  TName extends string,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+> = IsDiscriminatedUnion<TSchema> extends true // Discriminated union - check if discriminator is provided
+  ? [TDiscriminatorKey] extends [never]
+    ? false // No discriminator = can't extract
+    : true // Discriminator provided = trust it
+  : // Not a discriminated union - check if path is valid
+    [ExtractZodByPath<TSchema, TName>] extends [never]
+    ? false
+    : true;
+
+/**
+ * Conditional return type for extractFieldFromSchema.
+ * For discriminated unions: extracts variant first, then navigates.
+ * For non-unions: navigates directly.
+ * @internal
+ */
+type ExtractFieldResult<
+  TSchema extends z.ZodType,
+  TName extends string,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = DiscriminatorValue<TSchema, TDiscriminatorKey>,
+> = CanExtractField<TSchema, TName, TDiscriminatorKey> extends true
+  ? IsDiscriminatedUnion<TSchema> extends true
+    ? // For discriminated unions: extract variant first, then navigate
+      [
+        ExtractFromDiscriminatedUnion<
+          TSchema,
+          TName,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        >,
+      ] extends [never]
+      ? z.ZodType // Path couldn't be resolved, return generic type
+      : ExtractFromDiscriminatedUnion<
+          TSchema,
+          TName,
+          TDiscriminatorKey,
+          TDiscriminatorValue
+        > &
+          z.ZodType
+    : // For non-unions: navigate directly
+      ExtractZodByPath<TSchema, TName> & z.ZodType
+  : (ExtractZodByPath<TSchema, TName> & z.ZodType) | undefined;
+
 export function extractFieldFromSchema<
   TSchema extends z.ZodType,
   TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
@@ -78,7 +170,7 @@ export function extractFieldFromSchema<
     TFilterType,
     TStrict
   > & { name: TName },
-): (ExtractZodByPath<TSchema, TName> & z.ZodType) | undefined {
+): ExtractFieldResult<TSchema, TName, TDiscriminatorKey, TDiscriminatorValue> {
   let currentSchema: z.ZodType | undefined;
 
   const newParams = {
@@ -94,13 +186,27 @@ export function extractFieldFromSchema<
     currentSchema = newParams.schema;
   }
 
-  if (!currentSchema) return undefined;
+  if (!currentSchema)
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return undefined as ExtractFieldResult<
+      TSchema,
+      TName,
+      TDiscriminatorKey,
+      TDiscriminatorValue
+    >;
 
   // Split name into segments (e.g., "contact.email" -> ["contact", "email"])
   const segments = String(newParams.name).split('.');
 
   for (const segment of segments) {
-    if (!currentSchema) return undefined;
+    if (!currentSchema)
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return undefined as ExtractFieldResult<
+        TSchema,
+        TName,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >;
 
     const unwrapped: z.ZodType = getPrimitiveType(currentSchema);
 
@@ -111,17 +217,31 @@ export function extractFieldFromSchema<
       if (/^\d+$/.test(segment) && unwrapped.element instanceof z.ZodType) {
         currentSchema = unwrapped.element;
       } else {
-        return undefined;
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        return undefined as ExtractFieldResult<
+          TSchema,
+          TName,
+          TDiscriminatorKey
+        >;
       }
     } else {
-      return undefined;
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      return undefined as ExtractFieldResult<
+        TSchema,
+        TName,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return currentSchema as
-    | (ExtractZodByPath<TSchema, TName> & z.ZodType)
-    | undefined;
+  return currentSchema as ExtractFieldResult<
+    TSchema,
+    TName,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >;
 }
 
 /**

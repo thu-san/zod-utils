@@ -54,6 +54,12 @@ export default async function RootLayout({
                     Package
                   </Link>
                   <Link
+                    href="/form-provider"
+                    className="transition-colors hover:text-foreground/80 text-foreground"
+                  >
+                    FormProvider
+                  </Link>
+                  <Link
                     href="/approach-transform"
                     className="transition-colors hover:text-foreground/80 text-foreground"
                   >

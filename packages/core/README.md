@@ -690,6 +690,32 @@ getFieldChecks(
 // [{ check: 'min_length', ... }, { check: 'max_length', ... }]
 ```
 
+#### Union Types
+
+```typescript
+// Collects checks from all union options
+getFieldChecks(z.union([z.string().min(3), z.string().email()]));
+// [{ check: 'min_length', minimum: 3, ... }, { check: 'string_format', format: 'email', ... }]
+
+// Works with nullable/optional unions
+getFieldChecks(z.string().min(5).nullable());
+// [{ check: 'min_length', minimum: 5, ... }]
+```
+
+#### Format Types (Zod v4)
+
+```typescript
+// Format types (ZodURL, ZodEmail, ZodUUID, etc.) are fully supported
+getFieldChecks(z.email());
+// [{ check: 'string_format', format: 'email', ... }]
+
+getFieldChecks(z.url());
+// [{ check: 'string_format', format: 'url', ... }]
+
+getFieldChecks(z.uuid());
+// [{ check: 'string_format', format: 'uuid', ... }]
+```
+
 #### No Constraints
 
 ```typescript

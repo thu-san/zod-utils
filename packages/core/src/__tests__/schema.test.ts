@@ -3,8 +3,10 @@ import * as z from 'zod';
 import { extractDiscriminatedSchema } from '../discriminatedSchema';
 import {
   canUnwrap,
+  extractCheck,
   getFieldChecks,
   getPrimitiveType,
+  isPipeWithZodInput,
   removeDefault,
   requiresValidInput,
   tryStripNullishOnly,
@@ -220,6 +222,48 @@ describe('removeDefault', () => {
     // Promise type should still be a promise after removing inner default
     expect(result).toBeInstanceOf(z.ZodPromise);
   });
+
+  describe('schemas with transforms', () => {
+    it('should handle schema with transform (ZodPipe)', () => {
+      const schema = z
+        .string()
+        .default('hello')
+        .transform((val) => val.toUpperCase());
+      const result = removeDefault(schema);
+      // removeDefault doesn't unwrap ZodPipe, it works on the input schema
+      expect(result).toBeInstanceOf(z.ZodPipe);
+    });
+
+    it('should remove default from schema before transform', () => {
+      const schema = z
+        .string()
+        .default('test')
+        .transform((val) => val.length);
+      const result = removeDefault(schema);
+      // The default is inside the ZodPipe's input, removeDefault returns ZodPipe as-is
+      expect(result).toBeInstanceOf(z.ZodPipe);
+    });
+
+    it('should handle optional with transform', () => {
+      const schema = z
+        .string()
+        .optional()
+        .transform((val) => val ?? 'default');
+      const result = removeDefault(schema);
+      // No default to remove, returns as-is
+      expect(result).toBeInstanceOf(z.ZodPipe);
+    });
+
+    it('should handle default after optional with transform', () => {
+      const schema = z
+        .string()
+        .optional()
+        .default('fallback')
+        .transform((val) => val.toUpperCase());
+      const result = removeDefault(schema);
+      expect(result).toBeInstanceOf(z.ZodPipe);
+    });
+  });
 });
 
 describe('requiresValidInput', () => {
@@ -401,6 +445,96 @@ describe('requiresValidInput', () => {
     const result = requiresValidInput(malformedField);
     expect(result).toBe(false);
   });
+
+  describe('schemas with transforms', () => {
+    it('should return true for required string with transform', () => {
+      const schema = z
+        .string()
+        .min(1)
+        .transform((val) => val.toUpperCase());
+      expect(requiresValidInput(schema)).toBe(true);
+    });
+
+    it('should return false for optional string with transform', () => {
+      const schema = z
+        .string()
+        .optional()
+        .transform((val) => val ?? 'default');
+      expect(requiresValidInput(schema)).toBe(false);
+    });
+
+    it('should return true for required number with transform', () => {
+      const schema = z.number().transform((val) => val * 2);
+      expect(requiresValidInput(schema)).toBe(true);
+    });
+
+    it('should return false for nullable number with transform', () => {
+      const schema = z
+        .number()
+        .nullable()
+        .transform((val) => val ?? 0);
+      expect(requiresValidInput(schema)).toBe(false);
+    });
+
+    it('should return false for plain string with transform (accepts empty)', () => {
+      const schema = z.string().transform((val) => val.trim());
+      expect(requiresValidInput(schema)).toBe(false);
+    });
+
+    it('should return true for string.min(1) with multiple transforms', () => {
+      const schema = z
+        .string()
+        .min(1)
+        .transform((val) => val.trim())
+        .transform((val) => val.toLowerCase());
+      expect(requiresValidInput(schema)).toBe(true);
+    });
+
+    it('should return true for boolean with transform', () => {
+      const schema = z.boolean().transform((val) => (val ? 'yes' : 'no'));
+      expect(requiresValidInput(schema)).toBe(true);
+    });
+
+    it('should return false for optional boolean with transform', () => {
+      const schema = z
+        .boolean()
+        .optional()
+        .transform((val) => val ?? false);
+      expect(requiresValidInput(schema)).toBe(false);
+    });
+
+    it('should return false for array with transform (accepts empty)', () => {
+      const schema = z.array(z.string()).transform((arr) => arr.join(','));
+      expect(requiresValidInput(schema)).toBe(false);
+    });
+
+    it('should return true for array.min(1) with transform', () => {
+      const schema = z
+        .array(z.string())
+        .min(1)
+        .transform((arr) => arr.join(','));
+      expect(requiresValidInput(schema)).toBe(true);
+    });
+
+    it('should handle transform with default - does not require input', () => {
+      const schema = z
+        .string()
+        .min(1)
+        .default('hello')
+        .transform((val) => val.toUpperCase());
+      // Has default, so it doesn't require valid input - default satisfies the constraint
+      expect(requiresValidInput(schema)).toBe(false);
+    });
+
+    it('should require input for string.min(1) with transform and no default', () => {
+      const schema = z
+        .string()
+        .min(1)
+        .transform((val) => val.toUpperCase());
+      // No default, min(1) requires non-empty string
+      expect(requiresValidInput(schema)).toBe(true);
+    });
+  });
 });
 
 describe('tryStripNullishOnly', () => {
@@ -506,6 +640,65 @@ describe('tryStripNullishOnly', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('schemas with transforms', () => {
+    it('should return false for union with transform (not a union after transform)', () => {
+      const schema = z
+        .union([z.string(), z.null()])
+        .transform((val) => val ?? 'default');
+      const result = tryStripNullishOnly(schema);
+      // After transform, it's a ZodPipe, not a ZodUnion
+      expect(result).toBe(false);
+    });
+
+    it('should return false for plain string with transform', () => {
+      const schema = z.string().transform((val) => val.toUpperCase());
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
+
+    it('should return false for object with transform', () => {
+      const schema = z
+        .object({ name: z.string() })
+        .transform((data) => ({ ...data, processed: true }));
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should return false for discriminated union (not nullish-only)', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({ type: z.literal('a'), value: z.string() }),
+        z.object({ type: z.literal('b'), count: z.number() }),
+      ]);
+      const result = tryStripNullishOnly(schema);
+      // Discriminated unions have real options, not just nullish
+      expect(result).toBe(false);
+    });
+
+    it('should return false for discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .transform((data) => ({ ...data, processed: true }));
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
+
+    it('should return false for optional discriminated union', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .optional();
+      const result = tryStripNullishOnly(schema);
+      expect(result).toBe(false);
+    });
+  });
 });
 
 describe('canUnwrap', () => {
@@ -542,6 +735,197 @@ describe('canUnwrap', () => {
   it('should return false for plain object', () => {
     const schema = z.object({ foo: z.string() });
     expect(canUnwrap(schema)).toBe(false);
+  });
+
+  describe('schemas with transforms', () => {
+    it('should return false for schema with transform (ZodPipe has no unwrap)', () => {
+      const schema = z.string().transform((val) => val.toUpperCase());
+      // ZodPipe doesn't have an unwrap method
+      expect(canUnwrap(schema)).toBe(false);
+    });
+
+    it('should return false for optional schema with transform', () => {
+      const schema = z
+        .string()
+        .optional()
+        .transform((val) => val ?? 'default');
+      // ZodPipe wraps the optional, but pipe itself doesn't have unwrap
+      expect(canUnwrap(schema)).toBe(false);
+    });
+
+    it('should return false for schema with default and transform', () => {
+      const schema = z
+        .string()
+        .default('hello')
+        .transform((val) => val.toUpperCase());
+      // ZodPipe doesn't have unwrap
+      expect(canUnwrap(schema)).toBe(false);
+    });
+
+    it('should return false for schema with multiple transforms', () => {
+      const schema = z
+        .string()
+        .transform((val) => val.trim())
+        .transform((val) => val.toLowerCase());
+      // Nested ZodPipe doesn't have unwrap
+      expect(canUnwrap(schema)).toBe(false);
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should return false for plain discriminated union', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({ type: z.literal('a'), value: z.string() }),
+        z.object({ type: z.literal('b'), count: z.number() }),
+      ]);
+      expect(canUnwrap(schema)).toBe(false);
+    });
+
+    it('should return true for optional discriminated union', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .optional();
+      expect(canUnwrap(schema)).toBe(true);
+    });
+
+    it('should return false for discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .transform((data) => ({ ...data, processed: true }));
+      // ZodPipe doesn't have unwrap
+      expect(canUnwrap(schema)).toBe(false);
+    });
+
+    it('should return false for discriminated union with superRefine', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .superRefine(() => {});
+      // superRefine doesn't change the type or add unwrap
+      expect(canUnwrap(schema)).toBe(false);
+    });
+  });
+});
+
+describe('isPipeWithZodInput', () => {
+  describe('normal schemas', () => {
+    it('should return false for plain string', () => {
+      const schema = z.string();
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+
+    it('should return false for plain number', () => {
+      const schema = z.number();
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+
+    it('should return false for plain object', () => {
+      const schema = z.object({ name: z.string() });
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+
+    it('should return false for optional string', () => {
+      const schema = z.string().optional();
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+
+    it('should return false for string with default', () => {
+      const schema = z.string().default('test');
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+  });
+
+  describe('schemas with transforms', () => {
+    it('should return true for string with transform', () => {
+      const schema = z.string().transform((val) => val.toUpperCase());
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+
+    it('should return true for number with transform', () => {
+      const schema = z.number().transform((val) => val * 2);
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+
+    it('should return true for object with transform', () => {
+      const schema = z
+        .object({ name: z.string() })
+        .transform((data) => ({ ...data, processed: true }));
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+
+    it('should return true for schema with multiple transforms', () => {
+      const schema = z
+        .string()
+        .transform((val) => val.trim())
+        .transform((val) => val.toLowerCase());
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+
+    it('should return true for optional with transform', () => {
+      const schema = z
+        .string()
+        .optional()
+        .transform((val) => val ?? 'default');
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+
+    it('should return true for default with transform', () => {
+      const schema = z
+        .string()
+        .default('hello')
+        .transform((val) => val.toUpperCase());
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should return false for plain discriminated union', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({ type: z.literal('a'), value: z.string() }),
+        z.object({ type: z.literal('b'), count: z.number() }),
+      ]);
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+
+    it('should return true for discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .transform((data) => ({ ...data, processed: true }));
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
+
+    it('should return false for discriminated union with superRefine (not a ZodPipe)', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .superRefine(() => {});
+      // superRefine doesn't create a ZodPipe, it modifies the schema in place
+      expect(isPipeWithZodInput(schema)).toBe(false);
+    });
+
+    it('should return true for discriminated union with superRefine and transform', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .superRefine(() => {})
+        .transform((data) => data);
+      expect(isPipeWithZodInput(schema)).toBe(true);
+    });
   });
 });
 
@@ -692,18 +1076,137 @@ describe('getFieldChecks', () => {
       ]);
     });
 
-    it('should return empty array for union with multiple non-nullish types', () => {
+    it('should collect checks from first union option', () => {
       const schema = z.union([z.string().min(3), z.number()]);
-      expect(getFieldChecks(schema)).toEqual([]);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+      ]);
     });
 
-    it('should ignore constraints in second union option', () => {
+    it('should collect checks from second union option', () => {
       const schema = z.union([z.string(), z.number().min(10)]);
-      expect(getFieldChecks(schema)).toEqual([]);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 10 },
+      ]);
+    });
+
+    it('should collect checks from all union options when both have constraints', () => {
+      const schema = z.union([z.string().min(3).max(100), z.string().email()]);
+      const checks = getFieldChecks(schema);
+      expect(checks).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+        { check: 'max_length', maximum: 100 },
+        { check: 'string_format', format: 'email' },
+      ]);
+    });
+  });
+
+  describe('additional check types', () => {
+    it('should extract multipleOf constraint', () => {
+      const schema = z.number().multipleOf(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'multiple_of', value: 5 },
+      ]);
+    });
+
+    it('should extract int format constraint', () => {
+      const schema = z.number().int();
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'number_format', format: 'safeint' },
+      ]);
+    });
+
+    it('should extract regex constraint', () => {
+      const schema = z.string().regex(/^[a-z]+$/);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'regex' },
+      ]);
+    });
+
+    it('should extract toLowerCase as overwrite constraint', () => {
+      const schema = z.string().toLowerCase();
+      expect(getFieldChecks(schema)).toMatchObject([{ check: 'overwrite' }]);
+    });
+
+    it('should extract toUpperCase as overwrite constraint', () => {
+      const schema = z.string().toUpperCase();
+      expect(getFieldChecks(schema)).toMatchObject([{ check: 'overwrite' }]);
+    });
+
+    it('should extract includes constraint', () => {
+      const schema = z.string().includes('test');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'includes', includes: 'test' },
+      ]);
+    });
+
+    it('should extract startsWith constraint', () => {
+      const schema = z.string().startsWith('prefix');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'starts_with', prefix: 'prefix' },
+      ]);
+    });
+
+    it('should extract endsWith constraint', () => {
+      const schema = z.string().endsWith('suffix');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'ends_with', suffix: 'suffix' },
+      ]);
+    });
+
+    it('should extract exact length constraint', () => {
+      const schema = z.string().length(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'length_equals', length: 5 },
+      ]);
+    });
+
+    it('should extract set min size constraint', () => {
+      const schema = z.set(z.string()).min(2);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_size', minimum: 2 },
+      ]);
+    });
+
+    it('should extract set max size constraint', () => {
+      const schema = z.set(z.string()).max(10);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'max_size', maximum: 10 },
+      ]);
+    });
+
+    it('should extract set exact size constraint', () => {
+      const schema = z.set(z.string()).size(5);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'size_equals', size: 5 },
+      ]);
+    });
+
+    it('should extract file mime type constraint', () => {
+      const schema = z.file().mime('image/png');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'mime_type', mime: ['image/png'] },
+      ]);
     });
   });
 
   describe('fields with no constraints', () => {
+    it('should return empty array for non-ZodType input', () => {
+      // @ts-expect-error - Testing early return for non-ZodType values
+      expect(getFieldChecks({})).toEqual([]);
+    });
+
+    it('should skip unknown check types', () => {
+      const result = extractCheck({
+        _zod: {
+          check: () => {},
+          onattach: [],
+          def: { check: '' },
+        },
+      });
+      expect(result).toEqual([]);
+    });
+
     it('should return empty array for plain string', () => {
       const schema = z.string();
       expect(getFieldChecks(schema)).toEqual([]);
@@ -775,6 +1278,128 @@ describe('getFieldChecks', () => {
       ]);
     });
   });
+
+  describe('schemas with transforms', () => {
+    it('should extract checks from string with transform', () => {
+      const schema = z
+        .string()
+        .min(3)
+        .max(100)
+        .transform((val) => val.toUpperCase());
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 3 },
+        { check: 'max_length', maximum: 100 },
+      ]);
+    });
+
+    it('should extract checks from number with transform', () => {
+      const schema = z
+        .number()
+        .min(0)
+        .max(100)
+        .transform((val) => val * 2);
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'greater_than', value: 0, inclusive: true },
+        { check: 'less_than', value: 100, inclusive: true },
+      ]);
+    });
+
+    it('should extract checks from string with multiple transforms', () => {
+      const schema = z
+        .string()
+        .min(5)
+        .transform((val) => val.trim())
+        .transform((val) => val.toLowerCase());
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 5 },
+      ]);
+    });
+
+    it('should extract checks from optional field with transform', () => {
+      const schema = z
+        .string()
+        .min(1)
+        .max(50)
+        .optional()
+        .transform((val) => val ?? 'default');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 1 },
+        { check: 'max_length', maximum: 50 },
+      ]);
+    });
+
+    it('should extract checks from url with transform', () => {
+      const schema = z
+        .url()
+        .max(200)
+        .transform((val) => new URL(val));
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'url' },
+        { check: 'max_length', maximum: 200 },
+      ]);
+    });
+
+    it('should extract checks from email with transform', () => {
+      const schema = z.email().transform((val) => val.toLowerCase());
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'string_format', format: 'email' },
+      ]);
+    });
+
+    it('should extract checks from array with transform', () => {
+      const schema = z
+        .array(z.string())
+        .min(1)
+        .max(10)
+        .transform((arr) => arr.join(','));
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'min_length', minimum: 1 },
+        { check: 'max_length', maximum: 10 },
+      ]);
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should return empty array for plain discriminated union', () => {
+      const schema = z.discriminatedUnion('type', [
+        z.object({ type: z.literal('a'), value: z.string() }),
+        z.object({ type: z.literal('b'), count: z.number() }),
+      ]);
+      // Discriminated unions don't have field-level checks at the union level
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string().min(1) }),
+          z.object({ type: z.literal('b'), count: z.number().min(0) }),
+        ])
+        .transform((data) => ({ ...data, processed: true }));
+      // Union-level checks are empty, individual field checks are on nested schemas
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for discriminated union with superRefine', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .superRefine(() => {});
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+
+    it('should return empty array for optional discriminated union', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('a'), value: z.string() }),
+          z.object({ type: z.literal('b'), count: z.number() }),
+        ])
+        .optional();
+      expect(getFieldChecks(schema)).toEqual([]);
+    });
+  });
 });
 
 describe('extractDiscriminatedSchema', () => {
@@ -800,13 +1425,13 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
-      expect(result?.shape.name).toBeInstanceOf(z.ZodString);
-      expect(result?.shape.age).toBeDefined();
+      expect(result.shape.mode).toBeInstanceOf(z.ZodLiteral);
+      expect(result.shape.name).toBeInstanceOf(z.ZodString);
+      expect(result.shape.age).toBeDefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.id).toBeUndefined();
+      expect(result.shape.id).toBeUndefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.bio).toBeUndefined();
+      expect(result.shape.bio).toBeUndefined();
     });
 
     it('should extract edit mode schema', () => {
@@ -816,12 +1441,12 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.mode).toBeInstanceOf(z.ZodLiteral);
-      expect(result?.shape.id).toBeInstanceOf(z.ZodNumber);
-      expect(result?.shape.name).toBeDefined();
-      expect(result?.shape.bio).toBeDefined();
+      expect(result.shape.mode).toBeInstanceOf(z.ZodLiteral);
+      expect(result.shape.id).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.name).toBeDefined();
+      expect(result.shape.bio).toBeDefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.age).toBeUndefined();
+      expect(result.shape.age).toBeUndefined();
     });
 
     it('should return undefined for invalid discriminator value', () => {
@@ -861,9 +1486,9 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.type).toBeInstanceOf(z.ZodLiteral);
-      expect(result?.shape.x).toBeInstanceOf(z.ZodNumber);
-      expect(result?.shape.y).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.type).toBeInstanceOf(z.ZodLiteral);
+      expect(result.shape.x).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.y).toBeInstanceOf(z.ZodNumber);
     });
 
     it('should extract keypress event schema', () => {
@@ -873,8 +1498,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.key).toBeInstanceOf(z.ZodString);
-      expect(result?.shape.modifiers).toBeDefined();
+      expect(result.shape.key).toBeInstanceOf(z.ZodString);
+      expect(result.shape.modifiers).toBeDefined();
     });
 
     it('should extract scroll event schema', () => {
@@ -884,8 +1509,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.deltaX).toBeInstanceOf(z.ZodNumber);
-      expect(result?.shape.deltaY).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.deltaX).toBeInstanceOf(z.ZodNumber);
+      expect(result.shape.deltaY).toBeInstanceOf(z.ZodNumber);
     });
   });
 
@@ -909,8 +1534,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.name).toBeInstanceOf(z.ZodDefault);
-      expect(result?.shape.count).toBeInstanceOf(z.ZodDefault);
+      expect(result.shape.name).toBeInstanceOf(z.ZodDefault);
+      expect(result.shape.count).toBeInstanceOf(z.ZodDefault);
     });
 
     it('should extract inactive status schema', () => {
@@ -920,9 +1545,9 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.reason).toBeDefined();
+      expect(result.shape.reason).toBeDefined();
       // @ts-expect-error - testing that property doesn't exist
-      expect(result?.shape.name).toBeUndefined();
+      expect(result.shape.name).toBeUndefined();
     });
   });
 
@@ -941,7 +1566,7 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.value).toBeInstanceOf(z.ZodString);
+      expect(result.shape.value).toBeInstanceOf(z.ZodString);
     });
 
     it('should work with numeric discriminator values', () => {
@@ -956,7 +1581,7 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.message).toBeInstanceOf(z.ZodString);
+      expect(result.shape.message).toBeInstanceOf(z.ZodString);
     });
 
     it('should return undefined for missing discriminator field', () => {
@@ -992,7 +1617,7 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.shape.value).toBeInstanceOf(z.ZodString);
+      expect(result.shape.value).toBeInstanceOf(z.ZodString);
     });
   });
 
@@ -1026,25 +1651,21 @@ describe('extractDiscriminatedSchema', () => {
       expect(editSchema).toBeDefined();
 
       // Type-level checks - these should compile without errors
-      if (createSchema) {
-        createSchema.shape.mode; // ✅ 'mode' exists
-        createSchema.shape.name; // ✅ 'name' exists
-        createSchema.shape.age; // ✅ 'age' exists
-        // @ts-expect-error - 'id' doesn't exist on 'create' schema
-        createSchema.shape.id;
-        // @ts-expect-error - 'bio' doesn't exist on 'create' schema
-        createSchema.shape.bio;
-      }
+      createSchema.shape.mode; // ✅ 'mode' exists
+      createSchema.shape.name; // ✅ 'name' exists
+      createSchema.shape.age; // ✅ 'age' exists
+      // @ts-expect-error - 'id' doesn't exist on 'create' schema
+      createSchema.shape.id;
+      // @ts-expect-error - 'bio' doesn't exist on 'create' schema
+      createSchema.shape.bio;
 
-      if (editSchema) {
-        editSchema.shape.mode; // ✅ 'mode' exists
-        editSchema.shape.id; // ✅ 'id' exists
-        editSchema.shape.bio; // ✅ 'bio' exists
-        // @ts-expect-error - 'name' doesn't exist on 'edit' schema
-        editSchema.shape.name;
-        // @ts-expect-error - 'age' doesn't exist on 'edit' schema
-        editSchema.shape.age;
-      }
+      editSchema.shape.mode; // ✅ 'mode' exists
+      editSchema.shape.id; // ✅ 'id' exists
+      editSchema.shape.bio; // ✅ 'bio' exists
+      // @ts-expect-error - 'name' doesn't exist on 'edit' schema
+      editSchema.shape.name;
+      // @ts-expect-error - 'age' doesn't exist on 'edit' schema
+      editSchema.shape.age;
     });
 
     it('should work with inferred types', () => {
@@ -1059,14 +1680,12 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       // Type inference check
-      if (activeSchema) {
-        type InferredType = z.infer<typeof activeSchema>;
-        const value: InferredType = {
-          status: 'active',
-          count: 42,
-        };
-        expect(value.status).toBe('active');
-      }
+      type InferredType = z.infer<typeof activeSchema>;
+      const value: InferredType = {
+        status: 'active',
+        count: 42,
+      };
+      expect(value.status).toBe('active');
     });
   });
 
@@ -1096,8 +1715,8 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(cardSchema).toBeDefined();
-      expect(cardSchema?.shape.cardNumber).toBeDefined();
-      expect(cardSchema?.shape.cvv).toBeDefined();
+      expect(cardSchema.shape.cardNumber).toBeDefined();
+      expect(cardSchema.shape.cvv).toBeDefined();
     });
 
     it('should work with API response discrimination', () => {
@@ -1124,9 +1743,142 @@ describe('extractDiscriminatedSchema', () => {
       });
 
       expect(successSchema).toBeDefined();
-      expect(successSchema?.shape.data).toBeDefined();
+      expect(successSchema.shape.data).toBeDefined();
       expect(errorSchema).toBeDefined();
-      expect(errorSchema?.shape.error).toBeDefined();
+      expect(errorSchema.shape.error).toBeDefined();
+    });
+  });
+
+  describe('schemas with transforms', () => {
+    it('should extract schema from discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('mode', [
+          z.object({
+            mode: z.literal('create'),
+            name: z.string(),
+            age: z.number().optional(),
+          }),
+          z.object({
+            mode: z.literal('edit'),
+            id: z.number(),
+            bio: z.string().optional(),
+          }),
+        ])
+        .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+      const createSchema = extractDiscriminatedSchema({
+        schema,
+        discriminator: { key: 'mode', value: 'create' },
+      });
+
+      expect(createSchema).toBeDefined();
+      expect(createSchema.shape.mode).toBeDefined();
+      expect(createSchema.shape.name).toBeDefined();
+      expect(createSchema.shape.age).toBeDefined();
+    });
+
+    it('should extract schema from discriminated union with superRefine', () => {
+      const schema = z
+        .discriminatedUnion('type', [
+          z.object({
+            type: z.literal('a'),
+            value: z.string(),
+          }),
+          z.object({
+            type: z.literal('b'),
+            count: z.number(),
+          }),
+        ])
+        .superRefine(() => {});
+
+      const result = extractDiscriminatedSchema({
+        schema,
+        discriminator: { key: 'type', value: 'b' },
+      });
+
+      expect(result).toBeDefined();
+      expect(result.shape.type).toBeDefined();
+      expect(result.shape.count).toBeDefined();
+    });
+
+    it('should extract schema from discriminated union with superRefine and transform', () => {
+      const schema = z
+        .discriminatedUnion('status', [
+          z.object({
+            status: z.literal('active'),
+            name: z.string(),
+          }),
+          z.object({
+            status: z.literal('inactive'),
+            reason: z.string(),
+          }),
+        ])
+        .superRefine(() => {})
+        .transform((data) => data);
+
+      const activeSchema = extractDiscriminatedSchema({
+        schema,
+        discriminator: { key: 'status', value: 'active' },
+      });
+
+      const inactiveSchema = extractDiscriminatedSchema({
+        schema,
+        discriminator: { key: 'status', value: 'inactive' },
+      });
+
+      expect(activeSchema).toBeDefined();
+      expect(activeSchema.shape.name).toBeDefined();
+      expect(inactiveSchema).toBeDefined();
+      expect(inactiveSchema.shape.reason).toBeDefined();
+    });
+
+    it('should extract schema from discriminated union with multiple transforms', () => {
+      const schema = z
+        .discriminatedUnion('kind', [
+          z.object({
+            kind: z.literal('one'),
+            x: z.number(),
+          }),
+          z.object({
+            kind: z.literal('two'),
+            y: z.string(),
+          }),
+        ])
+        .transform((data) => ({ ...data, step: 1 }))
+        .transform((data) => ({ ...data, step: 2 }));
+
+      const result = extractDiscriminatedSchema({
+        schema,
+        discriminator: { key: 'kind', value: 'one' },
+      });
+
+      expect(result).toBeDefined();
+      expect(result.shape.kind).toBeDefined();
+      expect(result.shape.x).toBeDefined();
+    });
+
+    it('should extract schema from discriminated union with refine', () => {
+      const schema = z
+        .discriminatedUnion('action', [
+          z.object({
+            action: z.literal('create'),
+            title: z.string(),
+          }),
+          z.object({
+            action: z.literal('delete'),
+            id: z.number(),
+          }),
+        ])
+        .refine((data) => data.action === 'create' || data.id > 0);
+
+      const result = extractDiscriminatedSchema({
+        schema,
+        discriminator: { key: 'action', value: 'delete' },
+      });
+
+      expect(result).toBeDefined();
+      expect(result.shape.action).toBeDefined();
+      expect(result.shape.id).toBeDefined();
     });
   });
 
@@ -1175,6 +1927,5 @@ describe('extractDiscriminatedSchema', () => {
 
       expect(result).toBeUndefined();
     });
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
   });
 });

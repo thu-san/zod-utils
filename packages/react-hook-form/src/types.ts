@@ -107,12 +107,10 @@ type ExtractPartialFieldsInner<T> = T extends PartialFields<infer U>
  */
 export function partialFields<T extends z.ZodType>(
   schema: T,
-): z.ZodType<PartialFields<z.infer<T>>, PartialFields<z.input<T>>> {
+): T & z.ZodType<PartialFields<z.infer<T>>, PartialFields<z.input<T>>> {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return schema as z.ZodType<
-    PartialFields<z.infer<T>>,
-    PartialFields<z.input<T>>
-  >;
+  return schema as T &
+    z.ZodType<PartialFields<z.infer<T>>, PartialFields<z.input<T>>>;
 }
 
 /**

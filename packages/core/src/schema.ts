@@ -1,26 +1,46 @@
-import { z } from 'zod';
-import type {
-  $ZodCheckBigIntFormatDef,
-  $ZodCheckEndsWithDef,
-  $ZodCheckGreaterThanDef,
-  $ZodCheckIncludesDef,
-  $ZodCheckLengthEqualsDef,
-  $ZodCheckLessThanDef,
-  $ZodCheckLowerCaseDef,
-  $ZodCheckMaxLengthDef,
-  $ZodCheckMaxSizeDef,
-  $ZodCheckMimeTypeDef,
-  $ZodCheckMinLengthDef,
-  $ZodCheckMinSizeDef,
-  $ZodCheckMultipleOfDef,
-  $ZodCheckNumberFormatDef,
-  $ZodCheckOverwriteDef,
-  $ZodCheckPropertyDef,
-  $ZodCheckRegexDef,
-  $ZodCheckSizeEqualsDef,
-  $ZodCheckStartsWithDef,
-  $ZodCheckStringFormatDef,
-  $ZodCheckUpperCaseDef,
+import { ZodStringFormat, z } from 'zod';
+import {
+  // $ZodCheckBigIntFormat,
+  // type $ZodCheckBigIntFormatDef,
+  $ZodCheckEndsWith,
+  type $ZodCheckEndsWithDef,
+  $ZodCheckGreaterThan,
+  type $ZodCheckGreaterThanDef,
+  $ZodCheckIncludes,
+  type $ZodCheckIncludesDef,
+  $ZodCheckLengthEquals,
+  type $ZodCheckLengthEqualsDef,
+  $ZodCheckLessThan,
+  type $ZodCheckLessThanDef,
+  // $ZodCheckLowerCase,
+  // type $ZodCheckLowerCaseDef,
+  $ZodCheckMaxLength,
+  type $ZodCheckMaxLengthDef,
+  $ZodCheckMaxSize,
+  type $ZodCheckMaxSizeDef,
+  $ZodCheckMimeType,
+  type $ZodCheckMimeTypeDef,
+  $ZodCheckMinLength,
+  type $ZodCheckMinLengthDef,
+  $ZodCheckMinSize,
+  type $ZodCheckMinSizeDef,
+  $ZodCheckMultipleOf,
+  type $ZodCheckMultipleOfDef,
+  $ZodCheckNumberFormat,
+  type $ZodCheckNumberFormatDef,
+  $ZodCheckOverwrite,
+  type $ZodCheckOverwriteDef,
+  $ZodCheckRegex,
+  type $ZodCheckRegexDef,
+  $ZodCheckSizeEquals,
+  type $ZodCheckSizeEqualsDef,
+  $ZodCheckStartsWith,
+  type $ZodCheckStartsWithDef,
+  $ZodCheckStringFormat,
+  type $ZodCheckStringFormatDef,
+  // $ZodCheckUpperCase,
+  // type $ZodCheckUpperCaseDef,
+  type $ZodType,
 } from 'zod/v4/core';
 
 /**
@@ -49,8 +69,8 @@ type Unwrappable = { unwrap: () => z.ZodTypeAny };
  * @since 0.1.0
  */
 export function canUnwrap(
-  field: z.ZodTypeAny,
-): field is z.ZodTypeAny & Unwrappable {
+  field: z.ZodType | $ZodType,
+): field is (z.ZodType | $ZodType) & Unwrappable {
   return 'unwrap' in field && typeof field.unwrap === 'function';
 }
 
@@ -63,7 +83,7 @@ export function canUnwrap(
  * @returns True if field is a ZodPipe with a ZodType input
  */
 export function isPipeWithZodInput(
-  field: z.ZodTypeAny,
+  field: z.ZodType | $ZodType,
 ): field is z.ZodPipe<z.ZodType, z.ZodTypeAny> {
   return field instanceof z.ZodPipe && field.def.in instanceof z.ZodType;
 }
@@ -183,9 +203,7 @@ export function tryStripNullishOnly(field: z.ZodTypeAny): z.ZodType | false {
  * @see {@link tryStripNullishOnly} for union nullish stripping logic
  * @since 0.1.0
  */
-export const getPrimitiveType = <T extends z.ZodType>(
-  field: T,
-): z.ZodTypeAny => {
+export const getPrimitiveType = <T extends z.ZodType>(field: T): z.ZodType => {
   // Stop at arrays - don't unwrap them
   if (field instanceof z.ZodArray) {
     return field;
@@ -407,7 +425,7 @@ export type ZodUnionCheck =
   | $ZodCheckGreaterThanDef
   | $ZodCheckMultipleOfDef
   | $ZodCheckNumberFormatDef
-  | $ZodCheckBigIntFormatDef
+  // | $ZodCheckBigIntFormatDef
   | $ZodCheckMaxSizeDef
   | $ZodCheckMinSizeDef
   | $ZodCheckSizeEqualsDef
@@ -416,12 +434,11 @@ export type ZodUnionCheck =
   | $ZodCheckLengthEqualsDef
   | $ZodCheckStringFormatDef
   | $ZodCheckRegexDef
-  | $ZodCheckLowerCaseDef
-  | $ZodCheckUpperCaseDef
+  // | $ZodCheckLowerCaseDef
+  // | $ZodCheckUpperCaseDef
   | $ZodCheckIncludesDef
   | $ZodCheckStartsWithDef
   | $ZodCheckEndsWithDef
-  | $ZodCheckPropertyDef
   | $ZodCheckMimeTypeDef
   | $ZodCheckOverwriteDef;
 
@@ -500,11 +517,89 @@ export type ZodUnionCheck =
  * @see {@link ZodUnionCheck} for all supported check types
  * @since 0.4.0
  */
-export function getFieldChecks<T extends z.ZodTypeAny>(
+export function getFieldChecks<T extends z.ZodType | $ZodType>(
   field: T,
 ): Array<ZodUnionCheck> {
+  if (!(field instanceof z.ZodType)) return [];
+
   const primitiveType = getPrimitiveType(field);
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  return (primitiveType.def.checks?.map((check) => check._zod.def) ||
-    []) as Array<ZodUnionCheck>;
+
+  // Handle unions by collecting checks from all options
+  if (primitiveType instanceof z.ZodUnion) {
+    const allChecks: Array<ZodUnionCheck> = [];
+    for (const option of primitiveType.options) {
+      const optionChecks = getFieldChecks(option);
+      allChecks.push(...optionChecks);
+    }
+    return allChecks;
+  }
+
+  const allChecks: Array<ZodUnionCheck> = [];
+
+  // Handle format types (ZodURL, ZodEmail, ZodUUID, etc.)
+  // These store format info in def.format instead of def.checks
+  if (primitiveType instanceof ZodStringFormat) {
+    const formatCheck = primitiveType.def;
+    allChecks.push(formatCheck);
+  }
+
+  // Add any additional checks (like .max(), .min(), etc.)
+  if (primitiveType.def.checks) {
+    for (const check of primitiveType.def.checks) {
+      allChecks.push(...extractCheck(check));
+    }
+  }
+
+  return allChecks;
+}
+
+// Returns array instead of single value to enable 100% test coverage
+// (avoids uncoverable branch when using `if (extracted)` pattern)
+export function extractCheck(check: z.core.$ZodCheck<never>): ZodUnionCheck[] {
+  if (check instanceof $ZodCheckLessThan) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckGreaterThan) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMultipleOf) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckNumberFormat) {
+    return [check._zod.def];
+    // } else if (check instanceof $ZodCheckBigIntFormat) {
+    //   // this is format, not check
+    //   return [check._zod.def];
+  } else if (check instanceof $ZodCheckMaxSize) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMinSize) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckSizeEquals) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMaxLength) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMinLength) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckLengthEquals) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckRegex) {
+    // $ZodCheckRegex must be checked before $ZodCheckStringFormat (it's instanceof both)
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckStringFormat) {
+    return [check._zod.def];
+    // } else if (check instanceof $ZodCheckLowerCase) {
+    // //   these are formats not checks
+    //   return [check._zod.def];
+    // } else if (check instanceof $ZodCheckUpperCase) {
+    // //   these are formats not checks
+    //   return [check._zod.def];
+  } else if (check instanceof $ZodCheckOverwrite) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMimeType) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckIncludes) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckStartsWith) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckEndsWith) {
+    return [check._zod.def];
+  }
+  return [];
 }

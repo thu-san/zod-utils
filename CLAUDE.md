@@ -71,6 +71,37 @@ Each package uses **Vitest** for testing. The react-hook-form package uses `@tes
 
 **Test Coverage Requirement:** All packages must maintain **100% test coverage**. Any new code or changes must include comprehensive tests to maintain this standard.
 
+**Test Pattern Requirement:** Every function that works with Zod schemas MUST be tested with all four schema patterns:
+
+1. **Normal schema** - Basic `z.object()`, `z.string()`, etc.
+2. **Normal schema with transform** - Schema with `.transform()` applied
+3. **Discriminated union schema** - `z.discriminatedUnion()` without transforms
+4. **Discriminated union schema with transform** - `z.discriminatedUnion()` with `.transform()`, `.superRefine()`, or `.refine()`
+
+This is critical because:
+- `.transform()` wraps the schema in `ZodPipe`, changing the schema structure
+- `.superRefine()` and `.refine()` may or may not create `ZodPipe` depending on Zod version
+- Discriminated unions have special handling for extracting specific schema variants
+- Many utility functions need to unwrap these layers to access the underlying schema
+
+Example test structure:
+```typescript
+describe('myFunction', () => {
+  describe('normal schemas', () => {
+    it('should work with plain object schema', () => { ... });
+  });
+
+  describe('schemas with transforms', () => {
+    it('should work with schema with transform', () => { ... });
+  });
+
+  describe('discriminated union schemas', () => {
+    it('should work with discriminated union', () => { ... });
+    it('should work with discriminated union with transform', () => { ... });
+  });
+});
+```
+
 ### Linting
 ```bash
 # Run all linters (Biome + ESLint + TypeScript)
