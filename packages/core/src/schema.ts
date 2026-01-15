@@ -1,7 +1,7 @@
 import { ZodStringFormat, z } from 'zod';
 import {
-  $ZodCheckBigIntFormat,
-  type $ZodCheckBigIntFormatDef,
+  // $ZodCheckBigIntFormat,
+  // type $ZodCheckBigIntFormatDef,
   $ZodCheckEndsWith,
   type $ZodCheckEndsWithDef,
   $ZodCheckGreaterThan,
@@ -12,8 +12,8 @@ import {
   type $ZodCheckLengthEqualsDef,
   $ZodCheckLessThan,
   type $ZodCheckLessThanDef,
-  $ZodCheckLowerCase,
-  type $ZodCheckLowerCaseDef,
+  // $ZodCheckLowerCase,
+  // type $ZodCheckLowerCaseDef,
   $ZodCheckMaxLength,
   type $ZodCheckMaxLengthDef,
   $ZodCheckMaxSize,
@@ -30,8 +30,6 @@ import {
   type $ZodCheckNumberFormatDef,
   $ZodCheckOverwrite,
   type $ZodCheckOverwriteDef,
-  $ZodCheckProperty,
-  type $ZodCheckPropertyDef,
   $ZodCheckRegex,
   type $ZodCheckRegexDef,
   $ZodCheckSizeEquals,
@@ -40,8 +38,8 @@ import {
   type $ZodCheckStartsWithDef,
   $ZodCheckStringFormat,
   type $ZodCheckStringFormatDef,
-  $ZodCheckUpperCase,
-  type $ZodCheckUpperCaseDef,
+  // $ZodCheckUpperCase,
+  // type $ZodCheckUpperCaseDef,
   type $ZodType,
 } from 'zod/v4/core';
 
@@ -427,7 +425,7 @@ export type ZodUnionCheck =
   | $ZodCheckGreaterThanDef
   | $ZodCheckMultipleOfDef
   | $ZodCheckNumberFormatDef
-  | $ZodCheckBigIntFormatDef
+  // | $ZodCheckBigIntFormatDef
   | $ZodCheckMaxSizeDef
   | $ZodCheckMinSizeDef
   | $ZodCheckSizeEqualsDef
@@ -436,12 +434,11 @@ export type ZodUnionCheck =
   | $ZodCheckLengthEqualsDef
   | $ZodCheckStringFormatDef
   | $ZodCheckRegexDef
-  | $ZodCheckLowerCaseDef
-  | $ZodCheckUpperCaseDef
+  // | $ZodCheckLowerCaseDef
+  // | $ZodCheckUpperCaseDef
   | $ZodCheckIncludesDef
   | $ZodCheckStartsWithDef
   | $ZodCheckEndsWithDef
-  | $ZodCheckPropertyDef
   | $ZodCheckMimeTypeDef
   | $ZodCheckOverwriteDef;
 
@@ -549,33 +546,60 @@ export function getFieldChecks<T extends z.ZodType | $ZodType>(
   // Add any additional checks (like .max(), .min(), etc.)
   if (primitiveType.def.checks) {
     for (const check of primitiveType.def.checks) {
-      if (
-        check instanceof $ZodCheckLessThan ||
-        check instanceof $ZodCheckGreaterThan ||
-        check instanceof $ZodCheckMultipleOf ||
-        check instanceof $ZodCheckNumberFormat ||
-        check instanceof $ZodCheckBigIntFormat ||
-        check instanceof $ZodCheckMaxSize ||
-        check instanceof $ZodCheckMinSize ||
-        check instanceof $ZodCheckSizeEquals ||
-        check instanceof $ZodCheckMaxLength ||
-        check instanceof $ZodCheckMinLength ||
-        check instanceof $ZodCheckLengthEquals ||
-        check instanceof $ZodCheckStringFormat ||
-        check instanceof $ZodCheckRegex ||
-        check instanceof $ZodCheckLowerCase ||
-        check instanceof $ZodCheckUpperCase ||
-        check instanceof $ZodCheckIncludes ||
-        check instanceof $ZodCheckStartsWith ||
-        check instanceof $ZodCheckEndsWith ||
-        check instanceof $ZodCheckProperty ||
-        check instanceof $ZodCheckMimeType ||
-        check instanceof $ZodCheckOverwrite
-      ) {
-        allChecks.push(check._zod.def);
-      }
+      allChecks.push(...extractCheck(check));
     }
   }
 
   return allChecks;
+}
+
+// Returns array instead of single value to enable 100% test coverage
+// (avoids uncoverable branch when using `if (extracted)` pattern)
+export function extractCheck(check: z.core.$ZodCheck<never>): ZodUnionCheck[] {
+  if (check instanceof $ZodCheckLessThan) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckGreaterThan) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMultipleOf) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckNumberFormat) {
+    return [check._zod.def];
+    // } else if (check instanceof $ZodCheckBigIntFormat) {
+    //   // this is format, not check
+    //   return [check._zod.def];
+  } else if (check instanceof $ZodCheckMaxSize) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMinSize) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckSizeEquals) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMaxLength) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMinLength) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckLengthEquals) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckRegex) {
+    // $ZodCheckRegex must be checked before $ZodCheckStringFormat (it's instanceof both)
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckStringFormat) {
+    return [check._zod.def];
+    // } else if (check instanceof $ZodCheckLowerCase) {
+    // //   these are formats not checks
+    //   return [check._zod.def];
+    // } else if (check instanceof $ZodCheckUpperCase) {
+    // //   these are formats not checks
+    //   return [check._zod.def];
+  } else if (check instanceof $ZodCheckOverwrite) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckMimeType) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckIncludes) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckStartsWith) {
+    return [check._zod.def];
+  } else if (check instanceof $ZodCheckEndsWith) {
+    return [check._zod.def];
+  }
+  return [];
 }

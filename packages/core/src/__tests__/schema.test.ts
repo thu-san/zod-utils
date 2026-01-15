@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { extractDiscriminatedSchema } from '../discriminatedSchema';
 import {
   canUnwrap,
+  extractCheck,
   getFieldChecks,
   getPrimitiveType,
   isPipeWithZodInput,
@@ -1180,12 +1181,30 @@ describe('getFieldChecks', () => {
         { check: 'size_equals', size: 5 },
       ]);
     });
+
+    it('should extract file mime type constraint', () => {
+      const schema = z.file().mime('image/png');
+      expect(getFieldChecks(schema)).toMatchObject([
+        { check: 'mime_type', mime: ['image/png'] },
+      ]);
+    });
   });
 
   describe('fields with no constraints', () => {
     it('should return empty array for non-ZodType input', () => {
       // @ts-expect-error - Testing early return for non-ZodType values
       expect(getFieldChecks({})).toEqual([]);
+    });
+
+    it('should skip unknown check types', () => {
+      const result = extractCheck({
+        _zod: {
+          check: () => {},
+          onattach: [],
+          def: { check: '' },
+        },
+      });
+      expect(result).toEqual([]);
     });
 
     it('should return empty array for plain string', () => {
@@ -1908,6 +1927,5 @@ describe('extractDiscriminatedSchema', () => {
 
       expect(result).toBeUndefined();
     });
-    /* eslint-enable @typescript-eslint/consistent-type-assertions */
   });
 });
