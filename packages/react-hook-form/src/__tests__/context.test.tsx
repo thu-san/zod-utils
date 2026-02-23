@@ -9,6 +9,9 @@ import {
   useExtractFieldFromSchema,
   useFieldChecks,
   useFormSchema,
+  useGetMergedSchemaDefaults,
+  useGetSchemaDefaults,
+  useGetSchemaMeta,
   useIsRequiredField,
 } from '../context';
 
@@ -506,5 +509,221 @@ describe('useFieldChecks', () => {
     expect(result.current.length).toBeGreaterThan(0);
     expect(result.current.some((c) => c.check === 'greater_than')).toBe(true);
     expect(result.current.some((c) => c.check === 'less_than')).toBe(true);
+  });
+});
+
+describe('useGetSchemaDefaults', () => {
+  it('should return undefined when params is undefined', () => {
+    const { result } = renderHook(() => useGetSchemaDefaults(undefined));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('should extract defaults from normal schema', () => {
+    const schema = z.object({
+      name: z.string().default('hello'),
+      age: z.number(),
+      role: z.string().default('user'),
+    });
+
+    const { result } = renderHook(() => useGetSchemaDefaults({ schema }));
+
+    expect(result.current).toEqual({ name: 'hello', role: 'user' });
+  });
+
+  it('should handle schema with transforms', () => {
+    const schema = z
+      .object({
+        name: z.string().default('hello'),
+        count: z.number().default(0),
+      })
+      .transform((data) => ({ ...data, computed: true }));
+
+    const { result } = renderHook(() => useGetSchemaDefaults({ schema }));
+
+    expect(result.current).toEqual({ name: 'hello', count: 0 });
+  });
+
+  it('should handle discriminated union with discriminator', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create'),
+        name: z.string().default('New'),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number(),
+      }),
+    ]);
+
+    const { result } = renderHook(() =>
+      useGetSchemaDefaults({
+        schema,
+        discriminator: { key: 'mode', value: 'create' },
+      }),
+    );
+
+    expect(result.current).toEqual({ name: 'New' });
+  });
+
+  it('should return empty object for schema without defaults', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+
+    const { result } = renderHook(() => useGetSchemaDefaults({ schema }));
+
+    expect(result.current).toEqual({});
+  });
+});
+
+describe('useGetSchemaMeta', () => {
+  it('should return undefined when params is undefined', () => {
+    const { result } = renderHook(() => useGetSchemaMeta(undefined, 'label'));
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('should extract meta values from normal schema', () => {
+    const schema = z.object({
+      name: z.string().meta({ label: 'Name' }),
+      age: z.number().meta({ label: 'Age' }),
+      bio: z.string(),
+    });
+
+    const { result } = renderHook(() => useGetSchemaMeta({ schema }, 'label'));
+
+    expect(result.current).toEqual({ name: 'Name', age: 'Age' });
+  });
+
+  it('should handle schema with transforms', () => {
+    const schema = z
+      .object({
+        name: z.string().meta({ label: 'Name' }),
+        count: z.number().meta({ label: 'Count' }),
+      })
+      .transform((data) => ({ ...data, computed: true }));
+
+    const { result } = renderHook(() => useGetSchemaMeta({ schema }, 'label'));
+
+    expect(result.current).toEqual({ name: 'Name', count: 'Count' });
+  });
+
+  it('should handle discriminated union with discriminator', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create'),
+        name: z.string().meta({ label: 'Name' }),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number().meta({ label: 'ID' }),
+      }),
+    ]);
+
+    const { result } = renderHook(() =>
+      useGetSchemaMeta(
+        {
+          schema,
+          discriminator: { key: 'mode', value: 'edit' },
+        },
+        'label',
+      ),
+    );
+
+    expect(result.current).toEqual({ id: 'ID' });
+  });
+
+  it('should return empty object for schema without matching meta', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+
+    const { result } = renderHook(() => useGetSchemaMeta({ schema }, 'label'));
+
+    expect(result.current).toEqual({});
+  });
+});
+
+describe('useGetMergedSchemaDefaults', () => {
+  it('should return undefined when params is undefined', () => {
+    const { result } = renderHook(() =>
+      useGetMergedSchemaDefaults(undefined, 'label'),
+    );
+
+    expect(result.current).toBeUndefined();
+  });
+
+  it('should merge defaults and meta (meta wins)', () => {
+    const schema = z.object({
+      name: z.string().meta({ label: 'Name' }).default('hello'),
+      age: z.number().meta({ label: 'Age' }),
+      bio: z.string().default(''),
+    });
+
+    const { result } = renderHook(() =>
+      useGetMergedSchemaDefaults({ schema }, 'label'),
+    );
+
+    expect(result.current).toEqual({
+      name: 'Name',
+      age: 'Age',
+      bio: '',
+    });
+  });
+
+  it('should handle schema with transforms', () => {
+    const schema = z
+      .object({
+        name: z.string().meta({ label: 'Name' }).default('hello'),
+        count: z.number().default(0),
+      })
+      .transform((data) => ({ ...data, computed: true }));
+
+    const { result } = renderHook(() =>
+      useGetMergedSchemaDefaults({ schema }, 'label'),
+    );
+
+    expect(result.current).toEqual({ name: 'Name', count: 0 });
+  });
+
+  it('should handle discriminated union with discriminator', () => {
+    const schema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create'),
+        name: z.string().meta({ label: 'Name' }).default('New'),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number().meta({ label: 'ID' }),
+      }),
+    ]);
+
+    const { result } = renderHook(() =>
+      useGetMergedSchemaDefaults(
+        {
+          schema,
+          discriminator: { key: 'mode', value: 'create' },
+        },
+        'label',
+      ),
+    );
+
+    expect(result.current).toEqual({ name: 'Name' });
+  });
+
+  it('should return empty object for schema without defaults or meta', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+
+    const { result } = renderHook(() =>
+      useGetMergedSchemaDefaults({ schema }, 'label'),
+    );
+
+    expect(result.current).toEqual({});
   });
 });
