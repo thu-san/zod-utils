@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { getSchemaDefaults } from './defaults';
+import { getSchemaDefaults, getShapeEntries } from './defaults';
 import { extractDiscriminatedSchema } from './discriminatedSchema';
 import {
   canUnwrap,
@@ -13,16 +13,6 @@ import type {
   SchemaAndDiscriminatorProps,
   Simplify,
 } from './types';
-
-/**
- * Type-safe helper to iterate over ZodObject shape entries.
- * @internal
- */
-function getShapeEntries(
-  schema: z.ZodObject,
-): Array<[string, z.ZodType | undefined]> {
-  return Object.entries(schema.shape);
-}
 
 /**
  * Extracts the value of a specific meta key from a Zod field, recursively unwrapping
