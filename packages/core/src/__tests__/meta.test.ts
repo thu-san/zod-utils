@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
-import { extractMeta, getSchemaMeta } from '../meta';
+import { extractMeta, getMergedSchemaDefaults, getSchemaMeta } from '../meta';
 
 describe('extractMeta', () => {
   it('should extract meta value for a given key', () => {
@@ -488,5 +488,193 @@ describe('getSchemaMeta', () => {
         ),
       ).toEqual({ settings: { theme: 'Theme' } });
     });
+  });
+});
+
+describe('getMergedSchemaDefaults', () => {
+  it('should return meta values overriding defaults where both exist', () => {
+    const schema = z.object({
+      name: z.string().meta({ label: 'Name' }).default('hello'),
+      age: z.number().meta({ label: 'Age' }),
+      bio: z.string().default(''),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      name: 'Name',
+      age: 'Age',
+      bio: '',
+    });
+  });
+
+  it('should return only defaults when no fields have the target meta key', () => {
+    const schema = z.object({
+      name: z.string().default('hello'),
+      count: z.number().default(0),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      name: 'hello',
+      count: 0,
+    });
+  });
+
+  it('should return only meta when no fields have defaults', () => {
+    const schema = z.object({
+      name: z.string().meta({ label: 'Name' }),
+      age: z.number().meta({ label: 'Age' }),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      name: 'Name',
+      age: 'Age',
+    });
+  });
+
+  it('should return empty object when no fields have defaults or meta', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({});
+  });
+
+  it('should deep merge nested objects preserving both sources', () => {
+    const schema = z.object({
+      address: z.object({
+        city: z.string().meta({ label: 'City' }).default('NYC'),
+        zip: z.string().default('00000'),
+        state: z.string().meta({ label: 'State' }),
+      }),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      address: {
+        city: 'City',
+        zip: '00000',
+        state: 'State',
+      },
+    });
+  });
+
+  it('should handle array meta taking precedence over array default', () => {
+    const schema = z.object({
+      tags: z.array(z.string().meta({ label: 'Tag' })).default(['default-tag']),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      tags: ['Tag'],
+    });
+  });
+
+  it('should keep array defaults when no array meta exists', () => {
+    const schema = z.object({
+      tags: z.array(z.string()).default(['a', 'b']),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      tags: ['a', 'b'],
+    });
+  });
+
+  it('should handle wrapped fields (optional/nullable/default)', () => {
+    const schema = z.object({
+      name: z.string().meta({ label: 'Name' }).optional().default('hello'),
+      age: z.number().meta({ label: 'Age' }).nullable(),
+    });
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+      name: 'Name',
+      age: 'Age',
+    });
+  });
+
+  describe('schemas with transforms', () => {
+    it('should merge defaults and meta from schema with transform', () => {
+      const schema = z
+        .object({
+          name: z.string().meta({ label: 'Name' }).default('hello'),
+          age: z.number().meta({ label: 'Age' }),
+        })
+        .transform((data) => ({ ...data, computed: true }));
+
+      expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+        name: 'Name',
+        age: 'Age',
+      });
+    });
+
+    it('should merge through nested transforms', () => {
+      const schema = z.object({
+        settings: z
+          .object({
+            theme: z.string().meta({ label: 'Theme' }).default('light'),
+            fontSize: z.number().default(14),
+          })
+          .transform((s) => ({ ...s, applied: true })),
+      });
+
+      expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({
+        settings: {
+          theme: 'Theme',
+          fontSize: 14,
+        },
+      });
+    });
+  });
+
+  describe('discriminated union schemas', () => {
+    const userSchema = z.discriminatedUnion('mode', [
+      z.object({
+        mode: z.literal('create'),
+        name: z.string().meta({ label: 'Name' }).default('New User'),
+      }),
+      z.object({
+        mode: z.literal('edit'),
+        id: z.number().meta({ label: 'ID' }),
+        name: z.string().meta({ label: 'Edit Name' }).default(''),
+      }),
+    ]);
+
+    it('should merge for create mode', () => {
+      expect(
+        getMergedSchemaDefaults(
+          {
+            schema: userSchema,
+            discriminator: { key: 'mode', value: 'create' },
+          },
+          'label',
+        ),
+      ).toEqual({ name: 'Name' });
+    });
+
+    it('should merge for edit mode', () => {
+      expect(
+        getMergedSchemaDefaults(
+          { schema: userSchema, discriminator: { key: 'mode', value: 'edit' } },
+          'label',
+        ),
+      ).toEqual({ id: 'ID', name: 'Edit Name' });
+    });
+
+    it('should merge from discriminated union with transform', () => {
+      const schema = z
+        .discriminatedUnion('mode', [
+          z.object({
+            mode: z.literal('create'),
+            name: z.string().meta({ label: 'Name' }).default('New'),
+            count: z.number().default(0),
+          }),
+          z.object({
+            mode: z.literal('edit'),
+            id: z.number().meta({ label: 'ID' }),
+          }),
+        ])
+        .transform((data) => ({ ...data, timestamp: Date.now() }));
+
+      expect(
+        getMergedSchemaDefaults(
+          { schema, discriminator: { key: 'mode', value: 'create' } },
+          'label',
+        ),
+      ).toEqual({ name: 'Name', count: 0 });
+    });
+  });
+
+  it('should return empty object for non-object schema', () => {
+    const schema = z.string().meta({ label: 'Name' }).default('hello');
+    expect(getMergedSchemaDefaults({ schema }, 'label')).toEqual({});
   });
 });

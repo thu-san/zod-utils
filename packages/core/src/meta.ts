@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { getSchemaDefaults } from './defaults';
 import { extractDiscriminatedSchema } from './discriminatedSchema';
 import {
   canUnwrap,
@@ -203,4 +204,80 @@ export function getSchemaMeta<
 
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return result as Partial<z.input<TSchema>>;
+}
+
+/**
+ * @internal
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Deep-merges two records, with `source` values taking precedence.
+ * When both values at a key are plain objects, recurses. Otherwise, `source` wins.
+ * @internal
+ */
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...target };
+  for (const key of Object.keys(source)) {
+    const targetVal = target[key];
+    const sourceVal = source[key];
+    if (isPlainObject(targetVal) && isPlainObject(sourceVal)) {
+      result[key] = deepMerge(targetVal, sourceVal);
+    } else {
+      result[key] = sourceVal;
+    }
+  }
+  return result;
+}
+
+/**
+ * Combines schema defaults and meta values into a single result.
+ * Meta values take precedence over defaults where both exist.
+ * For nested objects, performs a deep merge so that fields from both
+ * sources are preserved at every level.
+ *
+ * @param params - Schema and optional discriminator configuration
+ * @param metaKey - The meta property key to extract
+ * @returns Deep-merged record of defaults and meta values (meta wins on conflict)
+ *
+ * @example
+ * ```typescript
+ * const schema = z.object({
+ *   name: z.string().meta({ label: 'Name' }).default('hello'),
+ *   age: z.number().meta({ label: 'Age' }),
+ *   bio: z.string().default(''),
+ * });
+ * getMergedSchemaDefaults({ schema }, 'label');
+ * // { name: 'Name', age: 'Age', bio: '' }
+ * ```
+ *
+ * @see {@link getSchemaDefaults} for extracting only defaults
+ * @see {@link getSchemaMeta} for extracting only meta
+ * @since 0.5.0
+ */
+export function getMergedSchemaDefaults<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema>,
+  TDiscriminatorValue extends DiscriminatorValue<TSchema, TDiscriminatorKey>,
+>(
+  params: SchemaAndDiscriminatorProps<
+    TSchema,
+    TDiscriminatorKey,
+    TDiscriminatorValue
+  >,
+  metaKey: string,
+): Simplify<Partial<z.input<TSchema>>> {
+  const defaults = getSchemaDefaults(params);
+  const meta = getSchemaMeta(params, metaKey);
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return deepMerge(
+    defaults as Record<string, unknown>,
+    meta as Record<string, unknown>,
+  ) as Partial<z.input<TSchema>>;
 }
