@@ -6,8 +6,12 @@ import {
   extractFieldFromSchema,
   type FieldSelectorProps,
   getFieldChecks,
+  getMergedSchemaDefaults,
+  getSchemaDefaults,
+  getSchemaMeta,
   requiresValidInput,
   type SchemaAndDiscriminatorProps,
+  type Simplify,
   type ZodUnionCheck,
 } from '@zod-utils/core';
 import {
@@ -407,4 +411,139 @@ export function useFieldChecks<
     if (!field) return [];
     return getFieldChecks(field);
   }, [...flattenFieldSelector(params)]);
+}
+
+/**
+ * Hook to extract default values from a Zod schema.
+ *
+ * Memoized - only recalculates when schema or discriminator changes.
+ *
+ * @param params - Schema and optional discriminator
+ * @returns Partial object with fields that have explicit `.default()` values, or undefined if params is undefined
+ *
+ * @example
+ * ```tsx
+ * function MyForm({ schema }: { schema: z.ZodType }) {
+ *   const defaults = useGetSchemaDefaults({ schema });
+ *   // Use defaults for form initialization
+ * }
+ * ```
+ *
+ * @see {@link getSchemaDefaults} for the non-hook version
+ */
+export function useGetSchemaDefaults<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+>(
+  params:
+    | SchemaAndDiscriminatorProps<
+        TSchema,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >
+    | undefined,
+): Simplify<Partial<z.input<TSchema>>> | undefined {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
+  return useMemo(() => {
+    if (!params) {
+      return undefined;
+    }
+    return getSchemaDefaults(params);
+  }, [...flattenFieldSelector(params)]);
+}
+
+/**
+ * Hook to extract meta values from all fields in a Zod schema.
+ *
+ * Memoized - only recalculates when schema, discriminator, or metaKey changes.
+ *
+ * @param params - Schema and optional discriminator
+ * @param metaKey - The meta property key to extract
+ * @returns Record mapping field names to their meta values, or undefined if params is undefined
+ *
+ * @example
+ * ```tsx
+ * function MyForm({ schema }: { schema: z.ZodType }) {
+ *   const labels = useGetSchemaMeta({ schema }, 'label');
+ *   // { name: 'Name', age: 'Age' }
+ * }
+ * ```
+ *
+ * @see {@link getSchemaMeta} for the non-hook version
+ */
+export function useGetSchemaMeta<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+>(
+  params:
+    | SchemaAndDiscriminatorProps<
+        TSchema,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >
+    | undefined,
+  metaKey: string,
+): Simplify<Partial<z.input<TSchema>>> | undefined {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
+  return useMemo(() => {
+    if (!params) {
+      return undefined;
+    }
+    return getSchemaMeta(params, metaKey);
+  }, [...flattenFieldSelector(params), metaKey]);
+}
+
+/**
+ * Hook to get combined schema defaults and meta values.
+ *
+ * Meta values take precedence over defaults where both exist.
+ * Memoized - only recalculates when schema, discriminator, or metaKey changes.
+ *
+ * @param params - Schema and optional discriminator
+ * @param metaKey - The meta property key to extract
+ * @returns Deep-merged record of defaults and meta values (meta wins on conflict), or undefined if params is undefined
+ *
+ * @example
+ * ```tsx
+ * function MyForm({ schema }: { schema: z.ZodType }) {
+ *   const defaults = useGetMergedSchemaDefaults({ schema }, 'label');
+ *   // { name: 'Name', age: 'Age', bio: '' }
+ *   // Meta 'Name' wins over default 'hello' for name field
+ * }
+ * ```
+ *
+ * @see {@link getMergedSchemaDefaults} for the non-hook version
+ */
+export function useGetMergedSchemaDefaults<
+  TSchema extends z.ZodType,
+  TDiscriminatorKey extends DiscriminatorKey<TSchema> = never,
+  TDiscriminatorValue extends DiscriminatorValue<
+    TSchema,
+    TDiscriminatorKey
+  > = never,
+>(
+  params:
+    | SchemaAndDiscriminatorProps<
+        TSchema,
+        TDiscriminatorKey,
+        TDiscriminatorValue
+      >
+    | undefined,
+  metaKey: string,
+): Simplify<Partial<z.input<TSchema>>> | undefined {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: using flattenFieldSelector for stable deps
+  return useMemo(() => {
+    if (!params) {
+      return undefined;
+    }
+    return getMergedSchemaDefaults(params, metaKey);
+  }, [...flattenFieldSelector(params), metaKey]);
 }

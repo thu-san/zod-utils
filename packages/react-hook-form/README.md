@@ -420,6 +420,46 @@ function FieldHint({ schema, name }: { schema: z.ZodType; name: string }) {
 
 **Supported check types:** `min_length`, `max_length`, `greater_than`, `less_than`, `string_format`, and more.
 
+### `useGetSchemaDefaults({ schema, discriminator? })`
+
+Hook to extract default values from a Zod schema. Memoized for performance.
+
+```tsx
+import { useGetSchemaDefaults } from "@zod-utils/react-hook-form";
+
+function MyForm({ schema }: { schema: z.ZodType }) {
+  const defaults = useGetSchemaDefaults({ schema });
+  // { role: 'user', count: 0 } — only fields with explicit .default()
+}
+```
+
+### `useGetSchemaMeta({ schema, discriminator? }, metaKey)`
+
+Hook to extract meta values from all fields in a Zod schema. Memoized for performance.
+
+```tsx
+import { useGetSchemaMeta } from "@zod-utils/react-hook-form";
+
+function MyForm({ schema }: { schema: z.ZodType }) {
+  const labels = useGetSchemaMeta({ schema }, "label");
+  // { name: 'Name', age: 'Age' }
+}
+```
+
+### `useGetMergedSchemaDefaults({ schema, discriminator? }, metaKey)`
+
+Hook to get combined schema defaults and meta values. Meta values take precedence over defaults where both exist. Memoized for performance.
+
+```tsx
+import { useGetMergedSchemaDefaults } from "@zod-utils/react-hook-form";
+
+function MyForm({ schema }: { schema: z.ZodType }) {
+  const defaults = useGetMergedSchemaDefaults({ schema }, "label");
+  // { name: 'Name', age: 'Age', bio: '' }
+  // Meta 'Name' wins over default 'hello' for name field
+}
+```
+
 ---
 
 ## Core Utilities (Re-exported)
@@ -430,6 +470,9 @@ All utilities from `@zod-utils/core` are re-exported for convenience:
 import {
   // Schema utilities (from @zod-utils/core)
   getSchemaDefaults,
+  extractMeta,
+  getSchemaMeta,
+  getMergedSchemaDefaults,
   requiresValidInput,
   getPrimitiveType,
   removeDefault,
@@ -448,6 +491,9 @@ import {
   isRequiredField,
   useExtractFieldFromSchema,
   useFieldChecks,
+  useGetSchemaDefaults,
+  useGetSchemaMeta,
+  useGetMergedSchemaDefaults,
 
   // Form field utilities
   flattenFieldSelector,

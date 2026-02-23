@@ -17,7 +17,7 @@ import type {
  * Type-safe helper to iterate over ZodObject shape entries.
  * @internal
  */
-function getShapeEntries(
+export function getShapeEntries(
   schema: z.ZodObject,
 ): Array<[string, z.ZodType | undefined]> {
   return Object.entries(schema.shape);
