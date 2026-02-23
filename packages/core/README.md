@@ -23,6 +23,8 @@ npm install @zod-utils/core zod
 ## Features
 
 - **Extract defaults** - Get default values from Zod schemas
+- **Extract meta** - Get `.meta()` property values from schema fields
+- **Merge defaults with meta** - Combine defaults and meta into a single result
 - **Check validation requirements** - Determine if fields will error on empty input
 - **Extract validation checks** - Get all validation constraints (min/max, formats, patterns, etc.)
 - **Schema utilities** - Unwrap and manipulate schema types
@@ -83,6 +85,9 @@ npm install @zod-utils/core zod
       - [With Transforms](#with-transforms-2)
     - [`extendWithMeta(field, transform)`](#extendwithmetafield-transform)
       - [Use Case: Shared Field Definitions with i18n](#use-case-shared-field-definitions-with-i18n)
+    - [`extractMeta(field, metaKey)`](#extractmetafield-metakey)
+    - [`getSchemaMeta(params, metaKey)`](#getschemametaparams-metakey)
+    - [`getMergedSchemaDefaults(params, metaKey)`](#getmergedschemadefaultsparams-metakey)
     - [`toFieldSelector(props)`](#tofieldselectorprops)
   - [Type Utilities](#type-utilities)
     - [`Simplify<T>`](#simplifyt)
@@ -1000,6 +1005,145 @@ const editFormSchema = z.object({
   email: fields.email, // no extension needed
   age: extendWithMeta(fields.age, (f) => f.optional()),
 });
+```
+
+---
+
+### `extractMeta(field, metaKey)`
+
+Extract the value of a specific meta key from a Zod field. Recursively unwraps optional, nullable, default, transform, and union layers.
+
+For `ZodObject` fields: if the object's own meta contains the target key, returns that value directly. Otherwise, recurses into shape children and returns a nested record.
+
+```typescript
+import { extractMeta } from "@zod-utils/core";
+import { z } from "zod";
+
+// Basic extraction
+const field = z.string().meta({ label: "Name" });
+extractMeta(field, "label"); // 'Name'
+
+// Unwraps through optional/nullable/default
+extractMeta(z.string().meta({ label: "Name" }).optional(), "label"); // 'Name'
+extractMeta(z.string().meta({ label: "Name" }).nullable(), "label"); // 'Name'
+extractMeta(z.string().meta({ label: "Name" }).default("hi"), "label"); // 'Name'
+
+// Nested objects: recurses when parent lacks the key
+const address = z.object({
+  city: z.string().meta({ label: "City" }),
+  zip: z.string().meta({ label: "Zip" }),
+});
+extractMeta(address, "label"); // { city: 'City', zip: 'Zip' }
+
+// Object's own meta stops recursion
+const labeled = address.meta({ label: "Address" });
+extractMeta(labeled, "label"); // 'Address'
+
+// Arrays: wraps element meta in an array
+extractMeta(z.array(z.string().meta({ label: "Tag" })), "label"); // ['Tag']
+
+// No meta returns undefined
+extractMeta(z.string(), "label"); // undefined
+```
+
+---
+
+### `getSchemaMeta(params, metaKey)`
+
+Extract the value of a specific meta key from all fields in a Zod schema. Supports discriminated unions via the `discriminator` parameter.
+
+```typescript
+import { getSchemaMeta } from "@zod-utils/core";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string().meta({ label: "Name" }),
+  age: z.number().meta({ label: "Age" }),
+  bio: z.string(), // no meta
+});
+
+getSchemaMeta({ schema }, "label");
+// { name: 'Name', age: 'Age' }
+
+// With discriminated union
+const formSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("create"),
+    name: z.string().meta({ label: "Name" }),
+  }),
+  z.object({
+    mode: z.literal("edit"),
+    id: z.number().meta({ label: "ID" }),
+  }),
+]);
+
+getSchemaMeta(
+  { schema: formSchema, discriminator: { key: "mode", value: "create" } },
+  "label"
+);
+// { name: 'Name' }
+
+// With transforms
+const transformed = z
+  .object({ name: z.string().meta({ label: "Name" }) })
+  .transform((data) => ({ ...data, computed: true }));
+
+getSchemaMeta({ schema: transformed }, "label");
+// { name: 'Name' }
+```
+
+---
+
+### `getMergedSchemaDefaults(params, metaKey)`
+
+Combines schema defaults and meta values into a single result. Meta values take precedence over defaults where both exist. Performs a deep merge for nested objects.
+
+```typescript
+import { getMergedSchemaDefaults } from "@zod-utils/core";
+import { z } from "zod";
+
+const schema = z.object({
+  name: z.string().meta({ label: "Name" }).default("hello"),
+  age: z.number().meta({ label: "Age" }),
+  bio: z.string().default(""),
+});
+
+getMergedSchemaDefaults({ schema }, "label");
+// { name: 'Name', age: 'Age', bio: '' }
+// 'name': meta 'Name' wins over default 'hello'
+// 'age': only meta exists
+// 'bio': only default exists
+
+// Deep merge preserves nested fields from both sources
+const nested = z.object({
+  address: z.object({
+    city: z.string().meta({ label: "City" }).default("NYC"),
+    zip: z.string().default("00000"),
+    state: z.string().meta({ label: "State" }),
+  }),
+});
+
+getMergedSchemaDefaults({ schema: nested }, "label");
+// { address: { city: 'City', zip: '00000', state: 'State' } }
+
+// Works with discriminated unions
+const formSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("create"),
+    name: z.string().meta({ label: "Name" }).default("New User"),
+    count: z.number().default(0),
+  }),
+  z.object({
+    mode: z.literal("edit"),
+    id: z.number().meta({ label: "ID" }),
+  }),
+]);
+
+getMergedSchemaDefaults(
+  { schema: formSchema, discriminator: { key: "mode", value: "create" } },
+  "label"
+);
+// { name: 'Name', count: 0 }
 ```
 
 ---

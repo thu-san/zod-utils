@@ -1,0 +1,6 @@
+---
+"@zod-utils/core": minor
+"@zod-utils/react-hook-form": minor
+---
+
+Add schema meta utilities: `extractMeta` for extracting meta values from individual fields, `getSchemaMeta` for extracting meta from entire schemas, and `getMergedSchemaDefaults` for combining schema defaults with meta values (meta wins on conflict)

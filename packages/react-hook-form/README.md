@@ -430,6 +430,9 @@ All utilities from `@zod-utils/core` are re-exported for convenience:
 import {
   // Schema utilities (from @zod-utils/core)
   getSchemaDefaults,
+  extractMeta,
+  getSchemaMeta,
+  getMergedSchemaDefaults,
   requiresValidInput,
   getPrimitiveType,
   removeDefault,
