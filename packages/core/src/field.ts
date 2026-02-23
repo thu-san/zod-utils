@@ -272,5 +272,6 @@ export function extendWithMeta<T extends z.ZodType, R extends z.ZodType>(
   if (!meta) {
     return transformedField;
   }
-  return transformedField.meta({ ...meta });
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return transformedField.meta({ ...meta } as Record<string, unknown>);
 }

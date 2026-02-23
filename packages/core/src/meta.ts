@@ -265,9 +265,10 @@ export function getMergedSchemaDefaults<
   const defaults = getSchemaDefaults(params);
   const meta = getSchemaMeta(params, metaKey);
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  /* eslint-disable @typescript-eslint/consistent-type-assertions */
   return deepMerge(
     defaults as Record<string, unknown>,
     meta as Record<string, unknown>,
   ) as Partial<z.input<TSchema>>;
+  /* eslint-enable @typescript-eslint/consistent-type-assertions */
 }
